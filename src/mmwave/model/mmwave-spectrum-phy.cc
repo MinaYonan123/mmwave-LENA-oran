@@ -65,7 +65,10 @@ namespace mmwave {
 
 NS_OBJECT_ENSURE_REGISTERED (MmWaveSpectrumPhy);
 
-MmWaveSpectrumPhy::MmWaveSpectrumPhy () : m_cellId (0), m_state (IDLE), m_componentCarrierId (0)
+MmWaveSpectrumPhy::MmWaveSpectrumPhy ()
+  : m_cellId (0),
+    m_state (IDLE),
+    m_componentCarrierId (0)
 {
   m_interferenceData = CreateObject<mmWaveInterference> ();
   m_random = CreateObject<UniformRandomVariable> ();
