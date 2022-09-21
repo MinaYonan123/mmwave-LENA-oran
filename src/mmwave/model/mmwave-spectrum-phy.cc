@@ -153,7 +153,7 @@ MmWaveSpectrumPhy::SetDevice (Ptr<NetDevice> d)
   Ptr<MmWaveEnbNetDevice> enbNetDev = DynamicCast<MmWaveEnbNetDevice> (GetDevice ());
 
   // TODO m_isEnb is never used
-  if (enbNetDev != 0)
+  if (enbNetDev)
     {
       m_isEnb = true;
     }
@@ -199,11 +199,12 @@ MmWaveSpectrumPhy::SetErrorModelType (TypeId errorModelType)
   m_errorModelType = errorModelType;
 }
 
-Ptr<AntennaModel>
-MmWaveSpectrumPhy::GetRxAntenna () const
+Ptr<Object>
+MmWaveSpectrumPhy::GetAntenna () const
 {
-  // NOTE the antenna gain is implicitly taken into account in the channel
-  // model classes
+  // Note: the antenna gain is implicitly taken into account in the channel model classes.
+  //       Still, this method is needed to overload the SpectrumPhy class
+
   return 0;
 }
 
@@ -368,7 +369,7 @@ MmWaveSpectrumPhy::StartRx (Ptr<SpectrumSignalParameters> params)
 
   Ptr<MmWaveEnbNetDevice> enbTx = DynamicCast<MmWaveEnbNetDevice> (params->txPhy->GetDevice ());
   Ptr<MmWaveEnbNetDevice> enbRx = DynamicCast<MmWaveEnbNetDevice> (GetDevice ());
-  if ((enbTx != 0 && enbRx != 0) || (enbTx == 0 && enbRx == 0))
+  if (( enbTx &&  enbRx) || ( enbTx &&  enbRx))
     {
       NS_LOG_INFO ("BS to BS or UE to UE transmission neglected.");
       return;
@@ -380,7 +381,7 @@ MmWaveSpectrumPhy::StartRx (Ptr<SpectrumSignalParameters> params)
   Ptr<MmWaveSpectrumSignalParametersDlCtrlFrame> mmwaveDlCtrlRxParams =
       DynamicCast<MmWaveSpectrumSignalParametersDlCtrlFrame> (params);
 
-  if (mmwaveDataRxParams != 0)
+  if (mmwaveDataRxParams)
     {
       // mmWave DATA case
 
@@ -392,18 +393,19 @@ MmWaveSpectrumPhy::StartRx (Ptr<SpectrumSignalParameters> params)
       Ptr<MmWaveUeNetDevice> ueRx = DynamicCast<MmWaveUeNetDevice> (GetDevice ());
       Ptr<McUeNetDevice> rxMcUe = DynamicCast<McUeNetDevice> (GetDevice ());
 
-      if ((ueRx != 0) && (ueRx->GetPhy (m_componentCarrierId)->IsReceptionEnabled () == false))
-        { // if the first cast is 0 (the device is MC) then this if will not be executed
+
+      if ((ueRx) && (ueRx->GetPhy (m_componentCarrierId)->IsReceptionEnabled () == false))
+        {               // if the first cast is 0 (the device is MC) then this if will not be executed
           isAllocated = false;
         }
-      else if ((rxMcUe != 0) &&
-               (rxMcUe->GetMmWavePhy (m_componentCarrierId)->IsReceptionEnabled () == false))
-        { // this is executed if the device is MC and is transmitting
+      else if ((rxMcUe) && (rxMcUe->GetMmWavePhy (m_componentCarrierId)->IsReceptionEnabled () == false))
+        {               // this is executed if the device is MC and is transmitting
           isAllocated = false;
         }
 
-      NS_LOG_DEBUG ("Now: " << Simulator::Now ().GetSeconds () << " enb? " << (enbRx != 0)
-                            << " ue? " << (ueRx != 0) << " " << isAllocated);
+      NS_LOG_DEBUG("Now: " << Simulator::Now().GetSeconds() << " enb? " << (bool) (enbRx)
+        << " ue? " << (bool) (ueRx) << " "
+        << isAllocated);
 
       if (isAllocated)
         {
@@ -423,7 +425,7 @@ MmWaveSpectrumPhy::StartRx (Ptr<SpectrumSignalParameters> params)
             }
         }
     }
-  else if (mmwaveDlCtrlRxParams != 0)
+  else if (mmwaveDlCtrlRxParams)
     {
       // for CTRL messages interference is not considered
       StartRxCtrl (mmwaveDlCtrlRxParams);
@@ -865,40 +867,38 @@ MmWaveSpectrumPhy::StartTxDataFrames (Ptr<PacketBurst> pb,
 {
   switch (m_state)
     {
-    case RX_DATA:
-    case RX_CTRL:
-      NS_FATAL_ERROR ("cannot TX while RX: Cannot transmit while receiving");
-      break;
+      case RX_DATA:
+      case RX_CTRL:
+        NS_FATAL_ERROR ("cannot TX while RX: Cannot transmit while receiving");
+        break;
 
-    case TX:
-      NS_FATAL_ERROR (
-          "cannot TX while already Tx: Cannot transmit while a transmission is still on");
-      break;
+      case TX:
+        NS_FATAL_ERROR ("cannot TX while already Tx: Cannot transmit while a transmission is still on");
+        break;
 
-      case IDLE: {
-        NS_ASSERT (m_txPsd);
-        Ptr<MmwaveSpectrumSignalParametersDataFrame> txParams =
-            Create<MmwaveSpectrumSignalParametersDataFrame> ();
-        txParams->duration = duration;
-        txParams->txPhy = this->GetObject<SpectrumPhy> ();
-        txParams->psd = m_txPsd;
-        txParams->packetBurst = pb;
-        txParams->cellId = m_cellId;
-        txParams->ctrlMsgList = ctrlMsgList;
-        txParams->slotInd = slotInd;
-        txParams->txAntenna = GetRxAntenna (); // TODO do we need to know the antenna?
-        NS_LOG_DEBUG (Simulator::Now ().GetSeconds ()
-                      << " StartTxDataFrames " << txParams << " cellId " << m_cellId << " duration "
-                      << (Simulator::Now () + duration).GetSeconds () << " slotInd "
-                      << (uint16_t) slotInd);
+      case IDLE:
+        {
+          NS_ASSERT (m_txPsd);
+          Ptr<MmwaveSpectrumSignalParametersDataFrame> txParams = Create<MmwaveSpectrumSignalParametersDataFrame> ();
+          txParams->duration = duration;
+          txParams->txPhy = this->GetObject<SpectrumPhy> ();
+          txParams->psd = m_txPsd;
+          txParams->packetBurst = pb;
+          txParams->cellId = m_cellId;
+          txParams->ctrlMsgList = ctrlMsgList;
+          txParams->slotInd = slotInd;
+          txParams->txAntenna = nullptr; // TODO: do we need to know the antenna?
+          NS_LOG_DEBUG(Simulator::Now().GetSeconds() << " StartTxDataFrames " << txParams << " cellId " << m_cellId
+            << " duration " << (Simulator::Now() + duration).GetSeconds()
+            << " slotInd " << (uint16_t)slotInd);
 
-        m_channel->StartTx (txParams);
+          m_channel->StartTx (txParams);
 
-        ChangeState (TX);
+          ChangeState (TX);
 
-        m_endTxEvent = Simulator::Schedule (duration, &MmWaveSpectrumPhy::EndTx, this);
-      }
-      break;
+          m_endTxEvent = Simulator::Schedule (duration, &MmWaveSpectrumPhy::EndTx, this);
+        }
+        break;
 
     default:
       NS_LOG_FUNCTION (this << "Programming Error. Code should not reach this point");
@@ -914,6 +914,7 @@ MmWaveSpectrumPhy::StartTxDlControlFrames (std::list<Ptr<MmWaveControlMessage>> 
 
   switch (m_state)
     {
+<<<<<<< HEAD
     case RX_DATA:
     case RX_CTRL:
       NS_FATAL_ERROR ("cannot TX while RX: Cannot transmit while receiving");
@@ -942,6 +943,35 @@ MmWaveSpectrumPhy::StartTxDlControlFrames (std::list<Ptr<MmWaveControlMessage>> 
         ChangeState (TX);
 
         m_endTxEvent = Simulator::Schedule (duration, &MmWaveSpectrumPhy::EndTx, this);
+=======
+      case RX_DATA:
+      case RX_CTRL:
+        NS_FATAL_ERROR ("cannot TX while RX: Cannot transmit while receiving");
+        break;
+
+      case TX:
+        NS_FATAL_ERROR ("cannot TX while already Tx: Cannot transmit while a transmission is still on");
+        break;
+
+      case IDLE:
+        {
+          NS_ASSERT (m_txPsd);
+
+          Ptr<MmWaveSpectrumSignalParametersDlCtrlFrame> txParams = Create<MmWaveSpectrumSignalParametersDlCtrlFrame> ();
+          txParams->duration = duration;
+          txParams->txPhy = GetObject<SpectrumPhy> ();
+          txParams->psd = m_txPsd;
+          txParams->cellId = m_cellId;
+          txParams->pss = true;
+          txParams->ctrlMsgList = ctrlMsgList;
+          txParams->txAntenna = nullptr; // TODO: do we need to know the antenna?
+
+          m_channel->StartTx (txParams);
+
+          ChangeState (TX);
+
+          m_endTxEvent = Simulator::Schedule (duration, &MmWaveSpectrumPhy::EndTx, this);
+>>>>>>> Update to release ns-3.36.1 (including new building system -- cmake) (#93)
       }
       //TODO is the default case needed here ??
     }

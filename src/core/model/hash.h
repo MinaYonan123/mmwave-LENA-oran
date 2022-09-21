@@ -239,7 +239,7 @@ inline
 uint32_t
 Hasher::GetHash32  (const char * buffer, const std::size_t size)
 {
-  NS_ASSERT (m_impl != 0);
+  NS_ASSERT (m_impl);
   return m_impl->GetHash32  (buffer, size);
 }
 
@@ -247,7 +247,7 @@ inline
 uint64_t
 Hasher::GetHash64  (const char * buffer, const std::size_t size)
 {
-  NS_ASSERT (m_impl != 0);
+  NS_ASSERT (m_impl);
   return m_impl->GetHash64  (buffer, size);
 }
 
@@ -255,7 +255,7 @@ inline
 uint32_t
 Hasher::GetHash32  (const std::string s)
 {
-  NS_ASSERT (m_impl != 0);
+  NS_ASSERT (m_impl);
   return m_impl->GetHash32  (s.c_str (), s.size ());
 }
 
@@ -263,7 +263,7 @@ inline
 uint64_t
 Hasher::GetHash64  (const std::string s)
 {
-  NS_ASSERT (m_impl != 0);
+  NS_ASSERT (m_impl);
   return m_impl->GetHash64  (s.c_str (), s.size ());
 }
 
@@ -272,32 +272,38 @@ Hasher::GetHash64  (const std::string s)
   Global hash functions, inlined for rvo
 */
 
+/**
+  * \brief Get a reference to the static global hasher at g_hasher
+  * \return Reference to the static Hasher instance.
+  */
+Hasher& GetStaticHash (void);
+
 inline
 uint32_t
 Hash32 (const char * buffer, const std::size_t size)
 {
-  return Hasher ().GetHash32 (buffer, size);
+  return GetStaticHash ().GetHash32 (buffer, size);
 }
 
 inline
 uint64_t
 Hash64 (const char * buffer, const std::size_t size)
 {
-  return Hasher ().GetHash64 (buffer, size);
+  return GetStaticHash ().GetHash64 (buffer, size);
 }
 
 inline
 uint32_t
 Hash32 (const std::string s)
 {
-  return Hasher ().GetHash32 (s);
+  return GetStaticHash ().GetHash32 (s);
 }
 
 inline
 uint64_t
 Hash64 (const std::string s)
 {
-  return Hasher ().GetHash64 (s);
+  return GetStaticHash ().GetHash64 (s);
 }
 
 
