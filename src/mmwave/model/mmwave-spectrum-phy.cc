@@ -56,6 +56,7 @@
 #include <ns3/mmwave-lte-mi-error-model.h>
 #include "mmwave-mac-pdu-tag.h"
 #include <ns3/phased-array-model.h>
+#include "ns3/mmwave-eesm-ir-t1.h"
 
 namespace ns3 {
 
@@ -82,38 +83,39 @@ MmWaveSpectrumPhy::~MmWaveSpectrumPhy ()
 TypeId
 MmWaveSpectrumPhy::GetTypeId (void)
 {
-  static TypeId tid =
-      TypeId ("ns3::MmWaveSpectrumPhy")
-          .SetParent<NetDevice> ()
-          .AddTraceSource ("RxPacketTraceEnb",
-                           "The no. of packets received and transmitted by the Base Station",
-                           MakeTraceSourceAccessor (&MmWaveSpectrumPhy::m_rxPacketTraceEnb),
-                           "ns3::EnbTxRxPacketCount::TracedCallback")
-          .AddTraceSource ("RxPacketTraceUe",
-                           "The no. of packets received and transmitted by the User Device",
-                           MakeTraceSourceAccessor (&MmWaveSpectrumPhy::m_rxPacketTraceUe),
-                           "ns3::UeTxRxPacketCount::TracedCallback")
-          .AddTraceSource ("State", "State Value to trace",
-                           MakeTraceSourceAccessor (&MmWaveSpectrumPhy::m_intState),
-                           "ns3::TracedValueCallback::Int32")
-          .AddAttribute ("MakeItSleep", "Make the base station to sleep {by default false].",
-                         BooleanValue (false),
-                         MakeBooleanAccessor (&MmWaveSpectrumPhy::m_sleepEnabled),
-                         MakeBooleanChecker ())
-          .AddAttribute ("DataErrorModelEnabled",
-                         "Activate/Deactivate the error model of data (TBs of PDSCH and PUSCH) [by "
-                         "default is active].",
-                         BooleanValue (true),
-                         MakeBooleanAccessor (&MmWaveSpectrumPhy::m_dataErrorModelEnabled),
-                         MakeBooleanChecker ())
-          .AddAttribute ("ErrorModelType",
-                         "Type of the Error Model to apply to TBs of PDSCH and PUSCH",
-                         TypeIdValue (MmWaveLteMiErrorModel::GetTypeId ()),
-                         MakeTypeIdAccessor (&MmWaveSpectrumPhy::SetErrorModelType,
-                                             &MmWaveSpectrumPhy::GetErrorModelType),
-                         MakeTypeIdChecker ())
-          .AddAttribute ("FileName", "file name", StringValue ("no"),
-                         MakeStringAccessor (&MmWaveSpectrumPhy::m_fileName), MakeStringChecker ());
+  static TypeId
+    tid =
+    TypeId ("ns3::MmWaveSpectrumPhy")
+    .SetParent<NetDevice> ()
+    .AddTraceSource ("RxPacketTraceEnb",
+                     "The no. of packets received and transmitted by the Base Station",
+                     MakeTraceSourceAccessor (&MmWaveSpectrumPhy::m_rxPacketTraceEnb),
+                     "ns3::EnbTxRxPacketCount::TracedCallback")
+    .AddTraceSource ("RxPacketTraceUe",
+                     "The no. of packets received and transmitted by the User Device",
+                     MakeTraceSourceAccessor (&MmWaveSpectrumPhy::m_rxPacketTraceUe),
+                     "ns3::UeTxRxPacketCount::TracedCallback")
+    .AddTraceSource ("State",
+                     "State Value to trace",
+                     MakeTraceSourceAccessor (&MmWaveSpectrumPhy::m_intState),
+                     "ns3::TracedValueCallback::Int32")
+    .AddAttribute ("DataErrorModelEnabled",
+                   "Activate/Deactivate the error model of data (TBs of PDSCH and PUSCH) [by default is active].",
+                   BooleanValue (true),
+                   MakeBooleanAccessor (&MmWaveSpectrumPhy::m_dataErrorModelEnabled),
+                   MakeBooleanChecker ())
+    .AddAttribute ("ErrorModelType",
+                   "Type of the Error Model to apply to TBs of PDSCH and PUSCH",
+                    TypeIdValue (MmWaveEesmIrT1::GetTypeId ()),
+                    MakeTypeIdAccessor (&MmWaveSpectrumPhy::SetErrorModelType,
+                                        &MmWaveSpectrumPhy::GetErrorModelType),
+                    MakeTypeIdChecker ())
+    .AddAttribute ("FileName",
+                   "file name",
+                   StringValue ("no"),
+                   MakeStringAccessor (&MmWaveSpectrumPhy::m_fileName),
+                   MakeStringChecker ())
+  ;
 
   return tid;
 }
