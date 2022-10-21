@@ -371,7 +371,7 @@ MmWaveSpectrumPhy::StartRx (Ptr<SpectrumSignalParameters> params)
 
   Ptr<MmWaveEnbNetDevice> enbTx = DynamicCast<MmWaveEnbNetDevice> (params->txPhy->GetDevice ());
   Ptr<MmWaveEnbNetDevice> enbRx = DynamicCast<MmWaveEnbNetDevice> (GetDevice ());
-  if (( enbTx &&  enbRx) || ( enbTx &&  enbRx))
+  if ((enbTx && enbRx) || (!enbTx && !enbRx))
     {
       NS_LOG_INFO ("BS to BS or UE to UE transmission neglected.");
       return;
@@ -916,36 +916,6 @@ MmWaveSpectrumPhy::StartTxDlControlFrames (std::list<Ptr<MmWaveControlMessage>> 
 
   switch (m_state)
     {
-<<<<<<< HEAD
-    case RX_DATA:
-    case RX_CTRL:
-      NS_FATAL_ERROR ("cannot TX while RX: Cannot transmit while receiving");
-      break;
-
-    case TX:
-      NS_FATAL_ERROR (
-          "cannot TX while already Tx: Cannot transmit while a transmission is still on");
-      break;
-
-      case IDLE: {
-        NS_ASSERT (m_txPsd);
-
-        Ptr<MmWaveSpectrumSignalParametersDlCtrlFrame> txParams =
-            Create<MmWaveSpectrumSignalParametersDlCtrlFrame> ();
-        txParams->duration = duration;
-        txParams->txPhy = GetObject<SpectrumPhy> ();
-        txParams->psd = m_txPsd;
-        txParams->cellId = m_cellId;
-        txParams->pss = true;
-        txParams->ctrlMsgList = ctrlMsgList;
-        txParams->txAntenna = GetRxAntenna (); // TODO do we need to know the antenna?
-
-        m_channel->StartTx (txParams);
-
-        ChangeState (TX);
-
-        m_endTxEvent = Simulator::Schedule (duration, &MmWaveSpectrumPhy::EndTx, this);
-=======
       case RX_DATA:
       case RX_CTRL:
         NS_FATAL_ERROR ("cannot TX while RX: Cannot transmit while receiving");
@@ -973,7 +943,6 @@ MmWaveSpectrumPhy::StartTxDlControlFrames (std::list<Ptr<MmWaveControlMessage>> 
           ChangeState (TX);
 
           m_endTxEvent = Simulator::Schedule (duration, &MmWaveSpectrumPhy::EndTx, this);
->>>>>>> Update to release ns-3.36.1 (including new building system -- cmake) (#93)
       }
       //TODO is the default case needed here ??
     }
