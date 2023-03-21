@@ -31,12 +31,13 @@
 #include "ns3/lte-rlc-sequence-number.h"
 #include "ns3/lte-rlc.h"
 #include <ns3/epc-x2-sap.h>
-
 #include <ns3/event-id.h>
-#include <map>
-#include <deque>
 
-namespace ns3 {
+#include <deque>
+#include <map>
+
+namespace ns3
+{
 
 /**
  * LTE RLC Unacknowledged Mode (UM), see 3GPP TS 36.322
@@ -143,7 +144,6 @@ private:
 
   bool m_sendBsrWhenPacketTx;
 };
-
 
 } // namespace ns3
 

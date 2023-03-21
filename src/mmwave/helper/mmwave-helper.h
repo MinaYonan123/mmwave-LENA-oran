@@ -1,98 +1,98 @@
 /* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 /*
-*   Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
-*   Copyright (c) 2015, NYU WIRELESS, Tandon School of Engineering, New York University
-*   Copyright (c) 2016, 2018, University of Padova, Dep. of Information Engineering, SIGNET lab.
-*
-*   This program is free software; you can redistribute it and/or modify
-*   it under the terms of the GNU General Public License version 2 as
-*   published by the Free Software Foundation;
-*
-*   This program is distributed in the hope that it will be useful,
-*   but WITHOUT ANY WARRANTY; without even the implied warranty of
-*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*   GNU General Public License for more details.
-*
-*   You should have received a copy of the GNU General Public License
-*   along with this program; if not, write to the Free Software
-*   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*
-*   Author: Marco Miozzo <marco.miozzo@cttc.es>
-*           Nicola Baldo  <nbaldo@cttc.es>
-*
-*   Modified by: Marco Mezzavilla < mezzavilla@nyu.edu>
-*                         Sourjya Dutta <sdutta@nyu.edu>
-*                         Russell Ford <russell.ford@nyu.edu>
-*                         Menglei Zhang <menglei@nyu.edu>
-*
-* Modified by: Michele Polese <michele.polese@gmail.com>
-*                 Dual Connectivity and Handover functionalities
-*
-* Modified by: Tommaso Zugno <tommasozugno@gmail.com>
-*                Integration of Carrier Aggregation
-*/
-
+ *   Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
+ *   Copyright (c) 2015, NYU WIRELESS, Tandon School of Engineering, New York University
+ *   Copyright (c) 2016, 2018, University of Padova, Dep. of Information Engineering, SIGNET lab.
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License version 2 as
+ *   published by the Free Software Foundation;
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ *   Author: Marco Miozzo <marco.miozzo@cttc.es>
+ *           Nicola Baldo  <nbaldo@cttc.es>
+ *
+ *   Modified by: Marco Mezzavilla < mezzavilla@nyu.edu>
+ *                         Sourjya Dutta <sdutta@nyu.edu>
+ *                         Russell Ford <russell.ford@nyu.edu>
+ *                         Menglei Zhang <menglei@nyu.edu>
+ *
+ * Modified by: Michele Polese <michele.polese@gmail.com>
+ *                 Dual Connectivity and Handover functionalities
+ *
+ * Modified by: Tommaso Zugno <tommasozugno@gmail.com>
+ *                Integration of Carrier Aggregation
+ */
 
 #ifndef MMWAVE_HELPER_H
 #define MMWAVE_HELPER_H
 
-#include <ns3/config.h>
-#include <ns3/simulator.h>
-#include <ns3/names.h>
-#include <ns3/net-device.h>
-#include <ns3/net-device-container.h>
-#include <ns3/node.h>
-#include <ns3/node-container.h>
-#include <ns3/mobility-model.h>
-#include <ns3/spectrum-phy.h>
-#include <ns3/mmwave-ue-net-device.h>
-#include <ns3/mc-ue-net-device.h>
-#include <ns3/mmwave-enb-net-device.h>
-#include <ns3/mmwave-phy.h>
-#include <ns3/mmwave-ue-phy.h>
-#include <ns3/mmwave-enb-phy.h>
-#include <ns3/mmwave-spectrum-value-helper.h>
-#include <ns3/mmwave-phy-mac-common.h>
-#include <ns3/mmwave-rrc-protocol-ideal.h>
-#include "mmwave-phy-trace.h"
 #include "mmwave-mac-trace.h"
+#include "mmwave-phy-trace.h"
+
+#include <ns3/boolean.h>
+#include <ns3/config.h>
+#include <ns3/core-network-stats-calculator.h>
+#include <ns3/epc-enb-s1-sap.h>
 #include <ns3/epc-helper.h>
 #include <ns3/epc-ue-nas.h>
-#include <ns3/lte-enb-rrc.h>
-#include <ns3/lte-ue-rrc.h>
-#include <ns3/boolean.h>
-#include <ns3/epc-helper.h>
-#include <ns3/lte-ffr-algorithm.h>
-#include <ns3/mmwave-bearer-stats-calculator.h>
-#include <ns3/mc-stats-calculator.h>
-#include <ns3/mmwave-bearer-stats-connector.h>
-#include <ns3/propagation-loss-model.h>
-
+#include <ns3/ff-mac-scheduler.h>
+#include <ns3/lte-anr.h>
 #include <ns3/lte-enb-mac.h>
 #include <ns3/lte-enb-net-device.h>
 #include <ns3/lte-enb-phy.h>
-#include <ns3/ff-mac-scheduler.h>
+#include <ns3/lte-enb-rrc.h>
+#include <ns3/lte-ffr-algorithm.h>
 #include <ns3/lte-handover-algorithm.h>
-#include <ns3/epc-enb-s1-sap.h>
-#include <ns3/lte-anr.h>
 #include <ns3/lte-spectrum-value-helper.h>
-#include <ns3/core-network-stats-calculator.h>
+#include <ns3/lte-ue-rrc.h>
+#include <ns3/mc-stats-calculator.h>
+#include <ns3/mc-ue-net-device.h>
+#include <ns3/mmwave-bearer-stats-calculator.h>
+#include <ns3/mmwave-bearer-stats-connector.h>
 #include <ns3/mmwave-component-carrier-enb.h>
+#include <ns3/mmwave-enb-net-device.h>
+#include <ns3/mmwave-enb-phy.h>
+#include <ns3/mmwave-phy-mac-common.h>
+#include <ns3/mmwave-phy.h>
+#include <ns3/mmwave-rrc-protocol-ideal.h>
+#include <ns3/mmwave-spectrum-value-helper.h>
+#include <ns3/mmwave-ue-net-device.h>
+#include <ns3/mmwave-ue-phy.h>
+#include <ns3/mobility-model.h>
+#include <ns3/names.h>
+#include <ns3/net-device-container.h>
+#include <ns3/net-device.h>
+#include <ns3/node-container.h>
+#include <ns3/node.h>
+#include <ns3/propagation-loss-model.h>
+#include <ns3/simulator.h>
+#include <ns3/spectrum-phy.h>
 
-
-namespace ns3 {
+namespace ns3
+{
 
 class SpectrumChannel;
 class SpectrumpropagationLossModel;
 class PropagationLossModel;
 
-namespace mmwave {
+namespace mmwave
+{
 
 /* ... */
 class MmWaveUePhy;
 class MmWaveEnbPhy;
 class MmWaveSpectrumValueHelper;
-//class MmWave3gppChannel;
+
+// class MmWave3gppChannel;
 
 class MmWaveHelper : public Object
 {
@@ -529,8 +529,8 @@ private:
 
 };
 
-}
+} // namespace mmwave
 
-}
+} // namespace ns3
 
 #endif /* MMWAVE_HELPER_H */

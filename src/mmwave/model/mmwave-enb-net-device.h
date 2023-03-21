@@ -38,17 +38,15 @@
 #ifndef SRC_MMWAVE_MODEL_MMWAVE_ENB_NET_DEVICE_H_
 #define SRC_MMWAVE_MODEL_MMWAVE_ENB_NET_DEVICE_H_
 
-
-#include "mmwave-net-device.h"
-#include "ns3/event-id.h"
-#include "ns3/traced-callback.h"
-#include "ns3/nstime.h"
-#include "mmwave-phy.h"
-#include "mmwave-enb-phy.h"
 #include "mmwave-enb-mac.h"
+#include "mmwave-enb-phy.h"
 #include "mmwave-mac-scheduler.h"
-#include <vector>
-#include <map>
+#include "mmwave-net-device.h"
+#include "mmwave-phy.h"
+
+#include "ns3/event-id.h"
+#include "ns3/nstime.h"
+#include "ns3/traced-callback.h"
 #include <ns3/lte-enb-rrc.h>
 #include <ns3/oran-interface.h>
 #include "ns3/mmwave-bearer-stats-calculator.h"
@@ -62,8 +60,11 @@
 #include "E2SM-KPM-ActionDefinition.h"
 #include <functional>
 
+#include <map>
+#include <vector>
 
-namespace ns3 {
+namespace ns3
+{
 /* Add forward declarations here */
     class Packet;
 

@@ -17,25 +17,27 @@
  *
  * Author: Giuseppe Piro  <g.piro@poliba.it>
  * Author: Marco Miozzo <marco.miozzo@cttc.es> : Update to FF API Architecture
- * Author: Danilo Abrignani <danilo.abrignani@unibo.it> : Integrated with new architecture - GSoC 2015 - Carrier Aggregation
+ * Author: Danilo Abrignani <danilo.abrignani@unibo.it> : Integrated with new architecture - GSoC
+ * 2015 - Carrier Aggregation
  */
 
 #ifndef LTE_ENB_NET_DEVICE_H
 #define LTE_ENB_NET_DEVICE_H
 
-#include "ns3/lte-net-device.h"
-#include "ns3/event-id.h"
-#include "ns3/mac48-address.h"
-#include "ns3/traced-callback.h"
-#include "ns3/nstime.h"
-#include "ns3/lte-phy.h"
 #include "ns3/component-carrier-enb.h"
-#include <vector>
+#include "ns3/event-id.h"
+#include "ns3/lte-net-device.h"
+#include "ns3/lte-phy.h"
+#include "ns3/mac48-address.h"
+#include "ns3/nstime.h"
+#include "ns3/traced-callback.h"
+
 #include <map>
 #include <ns3/oran-interface.h>
 #include "ns3/mmwave-bearer-stats-calculator.h"
 
-namespace ns3 {
+namespace ns3
+{
 
     class Packet;
 

@@ -52,12 +52,13 @@
 #include <ns3/double.h>
 #include "mmwave-enb-net-device.h"
 #include "mmwave-ue-net-device.h"
-#include <ns3/lte-enb-rrc.h>
+#include <ns3/abort.h>
+#include <ns3/enum.h>
 #include <ns3/ipv4-l3-protocol.h>
 #include <ns3/ipv6-l3-protocol.h>
-#include <ns3/abort.h>
 #include <ns3/log.h>
 #include <ns3/lte-enb-component-carrier-manager.h>
+#include <ns3/lte-enb-rrc.h>
 #include <ns3/mmwave-component-carrier-enb.h>
 #include <ns3/config.h>
 #include <ns3/lte-rlc-um.h>
@@ -74,11 +75,13 @@
 #include "ns3/network-module.h"
 #include <any>
 
-namespace ns3 {
+namespace ns3
+{
 
-NS_LOG_COMPONENT_DEFINE ("MmWaveEnbNetDevice");
+NS_LOG_COMPONENT_DEFINE("MmWaveEnbNetDevice");
 
-namespace mmwave {
+namespace mmwave
+{
 
 NS_OBJECT_ENSURE_REGISTERED (MmWaveEnbNetDevice);
 
@@ -386,12 +389,12 @@ MmWaveEnbNetDevice::MmWaveEnbNetDevice ()
 
 
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 }
 
-MmWaveEnbNetDevice::~MmWaveEnbNetDevice ()
+MmWaveEnbNetDevice::~MmWaveEnbNetDevice()
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 }
 
 // MmWaveEnbNetDevice::MmWaveEnbNetDevice(Ptr<E2Termination> e2Termination)
@@ -400,14 +403,14 @@ MmWaveEnbNetDevice::~MmWaveEnbNetDevice ()
 // }
 
 void
-MmWaveEnbNetDevice::DoInitialize (void)
+MmWaveEnbNetDevice::DoInitialize(void)
 {
-  NS_LOG_FUNCTION (this);
-  m_isConstructed = true;
-  UpdateConfig ();
-  for (auto it = m_ccMap.begin (); it != m_ccMap.end (); ++it)
+    NS_LOG_FUNCTION(this);
+    m_isConstructed = true;
+    UpdateConfig();
+    for (auto it = m_ccMap.begin(); it != m_ccMap.end(); ++it)
     {
-      it->second->Initialize ();
+        it->second->Initialize();
     }
   m_rrc->Initialize ();
   m_componentCarrierManager->Initialize ();
@@ -422,24 +425,24 @@ MmWaveEnbNetDevice::DoInitialize (void)
 }
 
 void
-MmWaveEnbNetDevice::DoDispose ()
+MmWaveEnbNetDevice::DoDispose()
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 
-  m_rrc->Dispose ();
-  m_rrc = 0;
+    m_rrc->Dispose();
+    m_rrc = 0;
 
-  m_componentCarrierManager->Dispose ();
-  m_componentCarrierManager = 0;
-  // MmWaveComponentCarrierEnb::DoDispose() will call DoDispose
-  // of its PHY, MAC, FFR and scheduler instance
-  for (uint32_t i = 0; i < m_ccMap.size (); i++)
+    m_componentCarrierManager->Dispose();
+    m_componentCarrierManager = 0;
+    // MmWaveComponentCarrierEnb::DoDispose() will call DoDispose
+    // of its PHY, MAC, FFR and scheduler instance
+    for (uint32_t i = 0; i < m_ccMap.size(); i++)
     {
-      m_ccMap.at (i)->Dispose ();
-      m_ccMap.at (i) = 0;
+        m_ccMap.at(i)->Dispose();
+        m_ccMap.at(i) = 0;
     }
 
-  MmWaveNetDevice::DoDispose ();
+    MmWaveNetDevice::DoDispose();
 }
 
 void
@@ -477,23 +480,23 @@ MmWaveEnbNetDevice::RegisterNewSinrReading (uint64_t imsi, uint16_t cellId, long
 }
 
 Ptr<MmWaveEnbPhy>
-MmWaveEnbNetDevice::GetPhy (void) const
+MmWaveEnbNetDevice::GetPhy(void) const
 {
-  NS_LOG_FUNCTION (this);
-  return DynamicCast<MmWaveComponentCarrierEnb> (m_ccMap.at (0))->GetPhy ();
+    NS_LOG_FUNCTION(this);
+    return DynamicCast<MmWaveComponentCarrierEnb>(m_ccMap.at(0))->GetPhy();
 }
 
 Ptr<MmWaveEnbPhy>
-MmWaveEnbNetDevice::GetPhy (uint8_t index)
+MmWaveEnbNetDevice::GetPhy(uint8_t index)
 {
-  return DynamicCast<MmWaveComponentCarrierEnb> (m_ccMap.at (index))->GetPhy ();
+    return DynamicCast<MmWaveComponentCarrierEnb>(m_ccMap.at(index))->GetPhy();
 }
 
 uint16_t
-MmWaveEnbNetDevice::GetCellId () const
+MmWaveEnbNetDevice::GetCellId() const
 {
-  NS_LOG_FUNCTION (this);
-  return m_cellId;
+    NS_LOG_FUNCTION(this);
+    return m_cellId;
 }
 
 std::map<uint16_t, Ptr<UeManager>>
@@ -503,54 +506,54 @@ MmWaveEnbNetDevice::GetUeMap ()
 }
 
 bool
-MmWaveEnbNetDevice::HasCellId (uint16_t cellId) const
+MmWaveEnbNetDevice::HasCellId(uint16_t cellId) const
 {
-  for (auto &it : m_ccMap)
+    for (auto& it : m_ccMap)
     {
       if (DynamicCast<MmWaveComponentCarrierEnb> (it.second)->GetCellId () == cellId)
         {
-          return true;
+            return true;
         }
     }
-  return false;
+    return false;
 }
 
 uint8_t
-MmWaveEnbNetDevice::GetBandwidth () const
+MmWaveEnbNetDevice::GetBandwidth() const
 {
-  NS_LOG_FUNCTION (this);
-  return m_Bandwidth;
+    NS_LOG_FUNCTION(this);
+    return m_Bandwidth;
 }
 
 void
-MmWaveEnbNetDevice::SetBandwidth (uint8_t bw)
+MmWaveEnbNetDevice::SetBandwidth(uint8_t bw)
 {
-  NS_LOG_FUNCTION (this << bw);
-  m_Bandwidth = bw;
+    NS_LOG_FUNCTION(this << bw);
+    m_Bandwidth = bw;
 }
 
 Ptr<MmWaveEnbMac>
-MmWaveEnbNetDevice::GetMac (void)
+MmWaveEnbNetDevice::GetMac(void)
 {
-  return DynamicCast<MmWaveComponentCarrierEnb> (m_ccMap.at (0))->GetMac ();
+    return DynamicCast<MmWaveComponentCarrierEnb>(m_ccMap.at(0))->GetMac();
 }
 
 Ptr<MmWaveEnbMac>
-MmWaveEnbNetDevice::GetMac (uint8_t index)
+MmWaveEnbNetDevice::GetMac(uint8_t index)
 {
-  return DynamicCast<MmWaveComponentCarrierEnb> (m_ccMap.at (index))->GetMac ();
+    return DynamicCast<MmWaveComponentCarrierEnb>(m_ccMap.at(index))->GetMac();
 }
 
 void
-MmWaveEnbNetDevice::SetRrc (Ptr<LteEnbRrc> rrc)
+MmWaveEnbNetDevice::SetRrc(Ptr<LteEnbRrc> rrc)
 {
-  m_rrc = rrc;
+    m_rrc = rrc;
 }
 
 Ptr<LteEnbRrc>
-MmWaveEnbNetDevice::GetRrc (void)
+MmWaveEnbNetDevice::GetRrc(void)
 {
-  return m_rrc;
+    return m_rrc;
 }
 
 bool
@@ -564,22 +567,22 @@ MmWaveEnbNetDevice::DoSend (Ptr<Packet> packet, const Address &dest, uint16_t pr
 }
 
 void
-MmWaveEnbNetDevice::UpdateConfig (void)
+MmWaveEnbNetDevice::UpdateConfig(void)
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 
-  if (m_isConstructed)
+    if (m_isConstructed)
     {
-      if (!m_isConfigured)
+        if (!m_isConfigured)
         {
-          NS_LOG_LOGIC (this << " Configure cell " << m_cellId);
-          // we have to make sure that this function is called only once
-          //m_rrc->ConfigureCell (m_Bandwidth, m_Bandwidth, m_Earfcn, m_Earfcn, m_cellId);
-          NS_ASSERT (!m_ccMap.empty ());
+            NS_LOG_LOGIC(this << " Configure cell " << m_cellId);
+            // we have to make sure that this function is called only once
+            // m_rrc->ConfigureCell (m_Bandwidth, m_Bandwidth, m_Earfcn, m_Earfcn, m_cellId);
+            NS_ASSERT(!m_ccMap.empty());
 
-          // create the MmWaveComponentCarrierConf map used for the RRC setup
-          std::map<uint8_t, LteEnbRrc::MmWaveComponentCarrierConf> ccConfMap;
-          for (auto it = m_ccMap.begin (); it != m_ccMap.end (); ++it)
+            // create the MmWaveComponentCarrierConf map used for the RRC setup
+            std::map<uint8_t, LteEnbRrc::MmWaveComponentCarrierConf> ccConfMap;
+            for (auto it = m_ccMap.begin(); it != m_ccMap.end(); ++it)
             {
               Ptr<MmWaveComponentCarrierEnb> ccEnb =
                   DynamicCast<MmWaveComponentCarrierEnb> (it->second);
@@ -595,7 +598,7 @@ MmWaveEnbNetDevice::UpdateConfig (void)
 
           // trigger E2Termination activation for when the simulation starts
           // schedule at start time
-          if (m_e2term != 0)
+          if (m_e2term)
             {
               NS_LOG_DEBUG ("E2sim start in cell " << m_cellId << " force CSV logging "
                                                    << m_forceE2FileLogging);
@@ -696,22 +699,22 @@ MmWaveEnbNetDevice::UpdateConfig (void)
           m_isConfigured = true;
         }
 
-      //m_rrc->SetCsgId (m_csgId, m_csgIndication);
+        // m_rrc->SetCsgId (m_csgId, m_csgIndication);
     }
-  else
+    else
     {
-      /*
-      * Lower layers are not ready yet, so do nothing now and expect
-      * ``DoInitialize`` to re-invoke this function.
-      */
+        /*
+         * Lower layers are not ready yet, so do nothing now and expect
+         * ``DoInitialize`` to re-invoke this function.
+         */
     }
 }
 
 void
 MmWaveEnbNetDevice::SetCcMap (std::map<uint8_t, Ptr<MmWaveComponentCarrier>> ccm)
 {
-  NS_ASSERT_MSG (!m_isConfigured, "attempt to set CC map after configuration");
-  m_ccMap = ccm;
+    NS_ASSERT_MSG(!m_isConfigured, "attempt to set CC map after configuration");
+    m_ccMap = ccm;
 }
 
 Ptr<E2Termination>
@@ -1279,15 +1282,15 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuCp (std::string plmId)
 uint32_t
 MmWaveEnbNetDevice::GetRlcBufferOccupancy (Ptr<LteRlc> rlc) const
 {
-  if (DynamicCast<LteRlcAm> (rlc) != 0)
+  if (DynamicCast<LteRlcAm> (rlc))
     {
       return DynamicCast<LteRlcAm> (rlc)->GetTxBufferSize ();
     }
-  else if (DynamicCast<LteRlcUm> (rlc) != 0)
+  else if (DynamicCast<LteRlcUm> (rlc))
     {
       return DynamicCast<LteRlcUm> (rlc)->GetTxBufferSize ();
     }
-  else if (DynamicCast<LteRlcUmLowLat> (rlc) != 0)
+  else if (DynamicCast<LteRlcUmLowLat> (rlc))
     {
       return DynamicCast<LteRlcUmLowLat> (rlc)->GetTxBufferSize ();
     }
@@ -1299,7 +1302,21 @@ MmWaveEnbNetDevice::GetRlcBufferOccupancy (Ptr<LteRlc> rlc) const
 
 Ptr<KpmIndicationMessage>
 MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrCellId)
-{
+{ 
+    bool local_m_forceE2FileLogging;
+
+            if (m_forceE2FileLogging)
+            {
+                local_m_forceE2FileLogging = true;
+            }
+            else
+            {
+                local_m_forceE2FileLogging = false;
+            }
+            if (m_e2andlog)
+            {
+                local_m_forceE2FileLogging = true;
+            } 
   Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
       Create<MmWaveIndicationMessageHelper> (IndicationMessageHelper::IndicationMessageType::Du,
                                              m_forceE2FileLogging, m_reducedPmValues);

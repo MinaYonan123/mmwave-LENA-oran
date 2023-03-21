@@ -158,7 +158,7 @@ public:
   void SetDevice (Ptr<NetDevice> d) override;
   Ptr<NetDevice> GetDevice () const override;
   void SetMobility (Ptr<MobilityModel> m) override;
-  Ptr<MobilityModel> GetMobility () const override;
+    Ptr<MobilityModel> GetMobility() const override;
   void SetChannel (Ptr<SpectrumChannel> c) override;
   Ptr<const SpectrumModel> GetRxSpectrumModel () const override;
 
@@ -180,7 +180,7 @@ public:
   * channel model classes, therefore this function returns 0.
   * \return 0
   */
-  Ptr<Object> GetAntenna () const override;
+  Ptr<Object> GetAntenna() const override;
 
   /**
   * Set the beamforming module
@@ -281,6 +281,7 @@ private:
   Time m_firstRxStart;
   Time m_firstRxDuration;
 
+  Ptr<AntennaModel> m_antenna; // TODO can we remove this? it is never used
   Ptr<MmWaveBeamformingModel> m_beamforming; //!< used to compute the beamforming vector
 
   uint16_t m_cellId;
