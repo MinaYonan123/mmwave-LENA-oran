@@ -23,14 +23,14 @@
 #define NS3_SOCKET_H
 
 #include "address.h"
+#include "net-device.h"
+#include "tag.h"
 
 #include "ns3/callback.h"
 #include "ns3/inet-socket-address.h"
 #include "ns3/inet6-socket-address.h"
-#include "ns3/net-device.h"
 #include "ns3/object.h"
 #include "ns3/ptr.h"
-#include "ns3/tag.h"
 
 #include <stdint.h>
 
@@ -162,11 +162,11 @@ class Socket : public Object
      *         socket. Each socket's errno is initialized to zero
      *         when the socket is created.
      */
-    virtual enum Socket::SocketErrno GetErrno() const = 0;
+    virtual Socket::SocketErrno GetErrno() const = 0;
     /**
      * \return the socket type, analogous to getsockopt (SO_TYPE)
      */
-    virtual enum Socket::SocketType GetSocketType() const = 0;
+    virtual Socket::SocketType GetSocketType() const = 0;
     /**
      * \brief Return the node this socket is associated with.
      * \returns the node

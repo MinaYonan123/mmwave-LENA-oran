@@ -125,12 +125,12 @@ RealtimeSimulatorImpl::Destroy()
     // means shutting down the workers and doing a Join() before calling the
     // Simulator::Destroy().
     //
-    while (m_destroyEvents.empty() == false)
+    while (!m_destroyEvents.empty())
     {
         Ptr<EventImpl> ev = m_destroyEvents.front().PeekEventImpl();
         m_destroyEvents.pop_front();
         NS_LOG_LOGIC("handle destroy " << ev);
-        if (ev->IsCancelled() == false)
+        if (!ev->IsCancelled())
         {
             ev->Invoke();
         }
@@ -149,7 +149,7 @@ RealtimeSimulatorImpl::SetScheduler(ObjectFactory schedulerFactory)
 
         if (m_events)
         {
-            while (m_events->IsEmpty() == false)
+            while (!m_events->IsEmpty())
             {
                 Scheduler::Event next = m_events->RemoveNext();
                 scheduler->Insert(next);
@@ -704,7 +704,7 @@ RealtimeSimulatorImpl::Remove(const EventId& id)
     if (id.GetUid() == EventId::UID::DESTROY)
     {
         // destroy events.
-        for (DestroyEvents::iterator i = m_destroyEvents.begin(); i != m_destroyEvents.end(); i++)
+        for (auto i = m_destroyEvents.begin(); i != m_destroyEvents.end(); i++)
         {
             if (*i == id)
             {
@@ -738,7 +738,7 @@ RealtimeSimulatorImpl::Remove(const EventId& id)
 void
 RealtimeSimulatorImpl::Cancel(const EventId& id)
 {
-    if (IsExpired(id) == false)
+    if (!IsExpired(id))
     {
         id.PeekEventImpl()->Cancel();
     }
@@ -754,8 +754,7 @@ RealtimeSimulatorImpl::IsExpired(const EventId& id) const
             return true;
         }
         // destroy events.
-        for (DestroyEvents::const_iterator i = m_destroyEvents.begin(); i != m_destroyEvents.end();
-             i++)
+        for (auto i = m_destroyEvents.begin(); i != m_destroyEvents.end(); i++)
         {
             if (*i == id)
             {
@@ -773,16 +772,9 @@ RealtimeSimulatorImpl::IsExpired(const EventId& id) const
     //
     // The same is true for the next line involving the m_currentUid.
     //
-    if (id.PeekEventImpl() == nullptr || id.GetTs() < m_currentTs ||
-        (id.GetTs() == m_currentTs && id.GetUid() <= m_currentUid) ||
-        id.PeekEventImpl()->IsCancelled())
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return id.PeekEventImpl() == nullptr || id.GetTs() < m_currentTs ||
+           (id.GetTs() == m_currentTs && id.GetUid() <= m_currentUid) ||
+           id.PeekEventImpl()->IsCancelled();
 }
 
 Time

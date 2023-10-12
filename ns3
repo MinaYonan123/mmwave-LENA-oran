@@ -167,13 +167,14 @@ def parse_args(argv):
         parser_configure = on_off_argument(parser_configure, *on_off_option)
 
     parser_configure.add_argument('--enable-modules',
-                                  help='List of modules to build (e.g. core;network;internet)',
+                                  help='List of modules to build (e.g. \"core;network;internet\")',
                                   action="store", type=str, default=None)
     parser_configure.add_argument('--disable-modules',
-                                  help='List of modules not to build (e.g. lte;wimax)',
+                                  help='List of modules not to build (e.g. \"lte;wimax\")',
                                   action="store", type=str, default=None)
     parser_configure.add_argument('--filter-module-examples-and-tests',
-                                  help='List of modules that should have their examples and tests built (e.g. lte;wifi)',
+                                  help=('List of modules that should have their examples '
+                                        'and tests built (e.g. \"lte;wifi\")'),
                                   action="store", type=str, default=None)
     parser_configure.add_argument('--lcov-report',
                                   help=('Generate a code coverage report '
@@ -186,8 +187,7 @@ def parse_args(argv):
                                   action="store_true", default=None)
 
     parser_configure.add_argument('--out', '--output-directory',
-                                  help=('Use BRITE integration support, given by the indicated path,'
-                                        ' to allow the use of the BRITE topology generator'),
+                                  help=('Directory to store build artifacts'),
                                   type=str, default=None, dest="output_directory")
     parser_configure.add_argument('--with-brite',
                                   help=('Use BRITE integration support, given by the indicated path,'
@@ -282,7 +282,7 @@ def parse_args(argv):
                                         help='Try "./ns3 docs --help" for more documentation options')
     parser_docs.add_argument('docs',
                              help='Build project documentation',
-                             choices=["manual", "models", "tutorial", "contributing",
+                             choices=["contributing", "installation", "manual", "models", "tutorial",
                                       "sphinx", "doxygen-no-build", "doxygen", "all"],
                              action="store", type=str, default=None)
 
@@ -430,7 +430,8 @@ def print_and_buffer(message):
 def remove_dir(dir_to_remove, dry_run, directory_qualifier=""):
     dir_to_remove = os.path.abspath(dir_to_remove)
     if os.path.exists(dir_to_remove):
-        if ".." in os.path.relpath(dir_to_remove, ns3_path):
+        if (".." in os.path.relpath(dir_to_remove, ns3_path)
+            or os.path.abspath(dir_to_remove) == os.path.abspath(ns3_path)):
             # In case the directory to remove isn't within
             # the current ns-3 directory, print an error
             # message for the dry-run case
@@ -504,6 +505,10 @@ def clean_pip_packaging_artifacts(dry_run=False):
                 ]
     for directory in pip_dirs:
         remove_dir(directory, dry_run)
+
+
+def clean_vcpkg_artifacts(dry_run=False):
+    remove_dir(os.path.join(ns3_path, "vcpkg"), dry_run)
 
 
 def search_cmake_cache(build_profile):
@@ -609,6 +614,14 @@ def configure_cmake(cmake, args, current_cmake_cache_folder, current_cmake_gener
         # Set generator if a previous cache doesn't exist
         if args.G is None:
             args.G = current_cmake_generator
+
+        # Get the current Python information to supply
+        # CMake with the respective installation
+        if args.enable_python_bindings is True:
+            import sysconfig
+            cmake_args.append(f"-DPython3_LIBRARY_DIRS={sysconfig.get_config_var('LIBDIR')}")
+            cmake_args.append(f"-DPython3_INCLUDE_DIRS={sysconfig.get_config_var('INCLUDEPY')}")
+            cmake_args.append(f"-DPython3_EXECUTABLE={sys.executable}")
 
     # C++ standard
     if args.cxx_standard is not None:
@@ -794,7 +807,7 @@ def get_program_shortcuts(build_profile, ns3_version):
 
             ns3_program_map[shortcut_path] = [program]
 
-            # Add an additional shortcut with .exe suffix when running on Windows
+            # Add a shortcut with .exe suffix when running on Windows
             if sys.platform == "win32":
                 ns3_program_map[shortcut_path.replace("\\", "/")] = [program]
                 ns3_program_map[shortcut_path + ".exe"] = [program]
@@ -846,6 +859,7 @@ def cmake_check_version():
     if not cmake:
         print("Error:  CMake not found; please install version 3.10 or greater, or modify", path_variable)
         exit(1)
+    cmake = cmake.replace(".EXE", "").replace(".exe", "")  # Trim cmake executable extension
     cmake_output = subprocess.check_output([cmake, "--version"]).decode("utf-8")
     version = re.findall("version (.*)", cmake_output)[0]
     if parse_version(version) < parse_version("3.10.0"):
@@ -1045,6 +1059,7 @@ def build_step(args,
                                   "docs",
                                   "doxygen",
                                   "doxygen-no-build",
+                                  "installation",
                                   "sphinx",
                                   "manual",
                                   "models",
@@ -1063,7 +1078,7 @@ def build_step(args,
                 target = get_target_to_build(target, ns3_version, build_profile)
             else:
                 # Sphinx target should have the sphinx prefix
-                if target in ["contributing", "manual", "models", "tutorial"]:
+                if target in ["contributing", "installation", "manual", "models", "tutorial"]:
                     target = "sphinx_%s" % target
 
                 # Docs should build both doxygen and sphinx based docs
@@ -1436,6 +1451,7 @@ def main():
         clean_cmake_artifacts(dry_run=args.dry_run)
         clean_docs_and_tests_artifacts(dry_run=args.dry_run)
         clean_pip_packaging_artifacts(dry_run=args.dry_run)
+        clean_vcpkg_artifacts(dry_run=args.dry_run)
         # We end things earlier when cleaning
         return
 
@@ -1584,30 +1600,7 @@ def main():
                    output
                    )
 
-    def remove_overlapping_path(base_path, target_path):
-        """
-        Remove overlapping paths from output directory and target_to_run
-        :param base_path: output path of the ns-3 build
-        :param target_path: path to the executable to run
-        :return: target_path without the overlapping parts
-        """
-        target_path = target_path.replace('/', os.sep).split(os.sep)
-        base_path = base_path.replace('/', os.sep).split(os.sep)
-        while target_path[0] in base_path:
-            target_path = target_path[1:]
-        target_path = os.sep.join(target_path)
-        return target_path
-
     if not args.shell and target_to_run and ".py" not in target_to_run:
-        target_to_run = remove_overlapping_path(out_dir, target_to_run)
-
-        # Waf doesn't add version prefix and build type suffix to the scratches, so we remove them
-        if current_cmake_cache_folder is None:
-            if "scratch" in target_to_run and run_only:
-                waf_target_to_run = target_to_run.replace(os.path.basename(target_to_run), args.run)
-                if os.path.exists(os.sep.join([out_dir, waf_target_to_run])):
-                    target_to_run = waf_target_to_run
-        target_to_run = os.sep.join([out_dir, target_to_run])
         if sys.platform == "win32":
             target_to_run += ".exe"
 

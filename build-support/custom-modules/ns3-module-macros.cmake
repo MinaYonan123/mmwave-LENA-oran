@@ -104,7 +104,9 @@ function(build_lib)
       )
     endif()
 
-    if(NOT FILESYSTEM_LIBRARY_IS_LINKED)
+    if((NOT FILESYSTEM_LIBRARY_IS_LINKED) OR (${GCC} AND ${GCC8}))
+      # The GCC8 alternative is necessary since when installed alongside newer
+      # releases, the incorrect shared library can end up being linked.
       list(APPEND BLIB_LIBRARIES_TO_LINK -lstdc++fs)
     endif()
 
@@ -144,6 +146,15 @@ function(build_lib)
   foreach(library ${BLIB_LIBRARIES_TO_LINK})
     remove_lib_prefix("${library}" module_name)
 
+    # Ignore the case where the library dependency name match the ns-3 module
+    # since it is most likely is due to brite, click and openflow collisions.
+    # All the ns-3 module targets should be prefixed with 'lib' to be
+    # differentiable.
+    if("${library}" STREQUAL "${BLIB_LIBNAME}")
+      list(APPEND non_ns_libraries_to_link ${library})
+      continue()
+    endif()
+
     # Check if the module exists in the ns-3 modules list or if it is a
     # 3rd-party library
     if(${module_name} IN_LIST ns3-all-enabled-modules)
@@ -180,9 +191,29 @@ function(build_lib)
     # include directories, allowing consumers of this module to include and link
     # the 3rd-party code with no additional setup
     get_target_includes(${lib${BLIB_LIBNAME}} exported_include_directories)
+
     string(REPLACE "-I" "" exported_include_directories
                    "${exported_include_directories}"
     )
+
+    # include directories prefixed in the source or binary directory need to be
+    # treated differently
+    set(new_exported_include_directories)
+    foreach(directory ${exported_include_directories})
+      string(FIND "${directory}" "${PROJECT_SOURCE_DIR}" is_prefixed_in_subdir)
+      if(${is_prefixed_in_subdir} GREATER_EQUAL 0)
+        string(SUBSTRING "${directory}" ${is_prefixed_in_subdir} -1
+                         directory_path
+        )
+        list(APPEND new_exported_include_directories
+             $<BUILD_INTERFACE:${directory_path}>
+        )
+      else()
+        list(APPEND new_exported_include_directories ${directory})
+      endif()
+    endforeach()
+    set(exported_include_directories ${new_exported_include_directories})
+
     string(REPLACE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include" ""
                    exported_include_directories
                    "${exported_include_directories}"
@@ -192,6 +223,20 @@ function(build_lib)
   target_link_libraries(
     ${lib${BLIB_LIBNAME}} ${exported_libraries} ${private_libraries}
   )
+
+  if(NOT ${XCODE})
+    # Since linking libraries to object libraries in not allowed in older CMake
+    # releases, we need to import each of their include directories. Otherwise,
+    # include directories won't be properly propagated
+    set(temp)
+    foreach(target ${ns_libraries_to_link})
+      list(APPEND temp
+           "$<TARGET_PROPERTY:${target},INTERFACE_INCLUDE_DIRECTORIES>"
+      )
+    endforeach()
+    target_include_directories(${lib${BLIB_LIBNAME}}-obj PRIVATE ${temp})
+    unset(temp)
+  endif()
 
   # set output name of library
   set_target_properties(
@@ -208,6 +253,23 @@ function(build_lib)
     PUBLIC $<BUILD_INTERFACE:${CMAKE_OUTPUT_DIRECTORY}/include>
            $<INSTALL_INTERFACE:include>
     INTERFACE ${exported_include_directories}
+  )
+
+  # Export definitions as interface definitions, propagating local definitions
+  # to other modules and scratches
+  get_target_property(
+    target_definitions ${lib${BLIB_LIBNAME}} COMPILE_DEFINITIONS
+  )
+  if(${target_definitions} STREQUAL "target_definitions-NOTFOUND")
+    set(target_definitions)
+  endif()
+  get_directory_property(dir_definitions COMPILE_DEFINITIONS)
+  set(exported_definitions "${target_definitions};${dir_definitions}")
+  list(REMOVE_DUPLICATES exported_definitions)
+  list(REMOVE_ITEM exported_definitions "")
+  set_target_properties(
+    ${lib${BLIB_LIBNAME}} PROPERTIES INTERFACE_COMPILE_DEFINITIONS
+                                     "${exported_definitions}"
   )
 
   set(ns3-external-libs "${non_ns_libraries_to_link};${ns3-external-libs}"

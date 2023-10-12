@@ -227,7 +227,7 @@ WallClockSynchronizer::DoSynchronize(uint64_t nsCurrent, uint64_t nsDelay)
         // interrupted by a Signal.  In this case, we need to return and let the
         // simulator re-evaluate what to do.
         //
-        if (SleepWait((numberJiffies - 3) * m_jiffy) == false)
+        if (!SleepWait((numberJiffies - 3) * m_jiffy))
         {
             NS_LOG_INFO("SleepWait interrupted");
             return false;
@@ -363,7 +363,7 @@ WallClockSynchronizer::DriftCorrect(uint64_t nsNow, uint64_t nsDelay)
     // have more drift than delay, then we just play catch up as fast as possible
     // by not delaying at all.
     //
-    uint64_t correction = (uint64_t)drift;
+    auto correction = (uint64_t)drift;
     if (correction <= nsDelay)
     {
         return nsDelay - correction;

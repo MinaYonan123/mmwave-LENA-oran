@@ -356,8 +356,8 @@ class DsrRouteCacheEntry
             NS_ASSERT(false);
             return false;
         }
-        IP_VECTOR::const_iterator j = o.m_path.begin();
-        for (IP_VECTOR::const_iterator i = m_path.begin(); i != m_path.end(); i++, j++)
+        auto j = o.m_path.begin();
+        for (auto i = m_path.begin(); i != m_path.end(); i++, j++)
         {
             /*
              * Verify if neither the entry are not 0 and they equal to each other
@@ -767,16 +767,6 @@ class DsrRouteCache : public Object
     void DelArpCache(Ptr<ArpCache>);
 
     /**
-     * \brief Get callback to ProcessTxError, this callback is trying to use the wifi mac tx error
-     * header to notify a link layer drop event, however, it is not fully supported yet
-     * \return The callback to ProcessTxError
-     */
-    Callback<void, const WifiMacHeader&> GetTxErrorCallback() const
-    {
-        return m_txErrorCallback;
-    }
-
-    /**
      * Handle link failure callback
      * \param cb the callback to be set
      */
@@ -911,8 +901,6 @@ class DsrRouteCache : public Object
      * The following code handles link-layer acks
      */
     Callback<void, Ipv4Address, uint8_t> m_handleLinkFailure; ///< link failure callback
-
-    Callback<void, const WifiMacHeader&> m_txErrorCallback; ///< TX error callback
 
     Timer m_ntimer; ///< Timer for neighbor's list. Schedule Purge().
 

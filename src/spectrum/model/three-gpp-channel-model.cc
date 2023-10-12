@@ -1083,14 +1083,7 @@ bool
 ThreeGppChannelModel::ChannelMatrixNeedsUpdate(Ptr<const ThreeGppChannelParams> channelParams,
                                                Ptr<const ChannelMatrix> channelMatrix)
 {
-    if (channelParams->m_generatedTime > channelMatrix->m_generatedTime)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return channelParams->m_generatedTime > channelMatrix->m_generatedTime;
 }
 
 Ptr<const MatrixBasedChannelModel::ChannelMatrix>
@@ -1972,7 +1965,7 @@ ThreeGppChannelModel::GetNewChannel(Ptr<const ThreeGppChannelParams> channelPara
             // cache the component of the "rxPhaseDiff" terms which depend on the random angle of
             // arrivals only
             double sinRayZoa = sin(rayZoaRadian[nIndex][mIndex]);
-            double sinRayAoa = cos(rayAoaRadian[nIndex][mIndex]);
+            double sinRayAoa = sin(rayAoaRadian[nIndex][mIndex]);
             double cosRayAoa = cos(rayAoaRadian[nIndex][mIndex]);
             sinCosA[nIndex][mIndex] = sinRayZoa * cosRayAoa;
             sinSinA[nIndex][mIndex] = sinRayZoa * sinRayAoa;
@@ -1981,7 +1974,7 @@ ThreeGppChannelModel::GetNewChannel(Ptr<const ThreeGppChannelParams> channelPara
             // cache the component of the "txPhaseDiff" terms which depend on the random angle of
             // departure only
             double sinRayZod = sin(rayZodRadian[nIndex][mIndex]);
-            double sinRayAod = cos(rayAodRadian[nIndex][mIndex]);
+            double sinRayAod = sin(rayAodRadian[nIndex][mIndex]);
             double cosRayAod = cos(rayAodRadian[nIndex][mIndex]);
             sinCosD[nIndex][mIndex] = sinRayZod * cosRayAod;
             sinSinD[nIndex][mIndex] = sinRayZod * sinRayAod;
@@ -2147,7 +2140,7 @@ ThreeGppChannelModel::GetNewChannel(Ptr<const ThreeGppChannelParams> channelPara
                     sqrt(kLinear / (1 + kLinear)) * ray /
                         pow(10,
                             channelParams->m_attenuation_dB[0] / 10.0); //(7.5-30) for tau = tau1
-                for (uint16_t nIndex = 1; nIndex < hUsn.GetNumPages(); nIndex++)
+                for (size_t nIndex = 1; nIndex < hUsn.GetNumPages(); nIndex++)
                 {
                     hUsn(uIndex, sIndex, nIndex) *=
                         sqrt(1.0 / (kLinear + 1)); //(7.5-30) for tau = tau2...tauN
@@ -2157,11 +2150,11 @@ ThreeGppChannelModel::GetNewChannel(Ptr<const ThreeGppChannelParams> channelPara
     }
 
     NS_LOG_DEBUG("Husn (sAntenna, uAntenna):" << sAntenna->GetId() << ", " << uAntenna->GetId());
-    for (uint16_t cIndex = 0; cIndex < hUsn.GetNumPages(); cIndex++)
+    for (size_t cIndex = 0; cIndex < hUsn.GetNumPages(); cIndex++)
     {
-        for (uint16_t rowIdx = 0; rowIdx < hUsn.GetNumRows(); rowIdx++)
+        for (size_t rowIdx = 0; rowIdx < hUsn.GetNumRows(); rowIdx++)
         {
-            for (uint16_t colIdx = 0; colIdx < hUsn.GetNumCols(); colIdx++)
+            for (size_t colIdx = 0; colIdx < hUsn.GetNumCols(); colIdx++)
             {
                 NS_LOG_DEBUG(" " << hUsn(rowIdx, colIdx, cIndex) << ",");
             }
@@ -2204,12 +2197,11 @@ ThreeGppChannelModel::CalcAttenuationOfBlockage(
 {
     NS_LOG_FUNCTION(this);
 
-    DoubleVector powerAttenuation;
-    uint8_t clusterNum = clusterAOA.size();
-    for (uint8_t cInd = 0; cInd < clusterNum; cInd++)
-    {
-        powerAttenuation.push_back(0); // Initial power attenuation for all clusters to be 0 dB;
-    }
+    auto clusterNum = clusterAOA.size();
+
+    // Initial power attenuation for all clusters to be 0 dB
+    DoubleVector powerAttenuation(clusterNum, 0);
+
     // step a: the number of non-self blocking blockers is stored in m_numNonSelfBlocking.
 
     // step b:Generate the size and location of each blocker
@@ -2322,7 +2314,7 @@ ThreeGppChannelModel::CalcAttenuationOfBlockage(
     }
 
     // step c: Determine the attenuation of each blocker due to blockers
-    for (uint8_t cInd = 0; cInd < clusterNum; cInd++)
+    for (std::size_t cInd = 0; cInd < clusterNum; cInd++)
     {
         NS_ASSERT_MSG(clusterAOA[cInd] >= 0 && clusterAOA[cInd] <= 360,
                       "the AOA should be the range of [0,360]");

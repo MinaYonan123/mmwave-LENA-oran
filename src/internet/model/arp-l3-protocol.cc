@@ -131,7 +131,7 @@ void
 ArpL3Protocol::DoDispose()
 {
     NS_LOG_FUNCTION(this);
-    for (CacheList::iterator i = m_cacheList.begin(); i != m_cacheList.end(); ++i)
+    for (auto i = m_cacheList.begin(); i != m_cacheList.end(); ++i)
     {
         Ptr<ArpCache> cache = *i;
         cache->Dispose();
@@ -160,7 +160,7 @@ Ptr<ArpCache>
 ArpL3Protocol::FindCache(Ptr<NetDevice> device)
 {
     NS_LOG_FUNCTION(this << device);
-    for (CacheList::const_iterator i = m_cacheList.begin(); i != m_cacheList.end(); i++)
+    for (auto i = m_cacheList.begin(); i != m_cacheList.end(); i++)
     {
         if ((*i)->GetDevice() == device)
         {
@@ -276,7 +276,7 @@ ArpL3Protocol::Receive(Ptr<NetDevice> device,
             break;
         }
     }
-    if (found == false)
+    if (!found)
     {
         NS_LOG_LOGIC("node=" << m_node->GetId() << ", got request from "
                              << arp.GetSourceIpv4Address() << " for unknown address "

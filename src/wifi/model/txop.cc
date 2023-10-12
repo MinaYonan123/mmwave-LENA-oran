@@ -68,8 +68,7 @@ Txop::GetTypeId()
                 "The minimum values of the contention window for all the links",
                 TypeId::ATTR_GET | TypeId::ATTR_SET, // do not set at construction time
                 AttributeContainerValue<UintegerValue>(),
-                MakeAttributeContainerAccessor<UintegerValue, std::list>(&Txop::SetMinCws,
-                                                                         &Txop::GetMinCws),
+                MakeAttributeContainerAccessor<UintegerValue>(&Txop::SetMinCws, &Txop::GetMinCws),
                 MakeAttributeContainerChecker<UintegerValue>(MakeUintegerChecker<uint32_t>()))
             .AddAttribute("MaxCw",
                           "The maximum value of the contention window (just for the first link, "
@@ -84,8 +83,7 @@ Txop::GetTypeId()
                 "The maximum values of the contention window for all the links",
                 TypeId::ATTR_GET | TypeId::ATTR_SET, // do not set at construction time
                 AttributeContainerValue<UintegerValue>(),
-                MakeAttributeContainerAccessor<UintegerValue, std::list>(&Txop::SetMaxCws,
-                                                                         &Txop::GetMaxCws),
+                MakeAttributeContainerAccessor<UintegerValue>(&Txop::SetMaxCws, &Txop::GetMaxCws),
                 MakeAttributeContainerChecker<UintegerValue>(MakeUintegerChecker<uint32_t>()))
             .AddAttribute(
                 "Aifsn",
@@ -101,8 +99,7 @@ Txop::GetTypeId()
                 "The values of AIFSN for all the links",
                 TypeId::ATTR_GET | TypeId::ATTR_SET, // do not set at construction time
                 AttributeContainerValue<UintegerValue>(),
-                MakeAttributeContainerAccessor<UintegerValue, std::list>(&Txop::SetAifsns,
-                                                                         &Txop::GetAifsns),
+                MakeAttributeContainerAccessor<UintegerValue>(&Txop::SetAifsns, &Txop::GetAifsns),
                 MakeAttributeContainerChecker<UintegerValue>(MakeUintegerChecker<uint8_t>()))
             .AddAttribute("TxopLimit",
                           "The TXOP limit: the default value conforms to non-QoS "
@@ -112,14 +109,13 @@ Txop::GetTypeId()
                           MakeTimeAccessor((void(Txop::*)(Time)) & Txop::SetTxopLimit,
                                            (Time(Txop::*)() const) & Txop::GetTxopLimit),
                           MakeTimeChecker())
-            .AddAttribute(
-                "TxopLimits",
-                "The values of TXOP limit for all the links",
-                TypeId::ATTR_GET | TypeId::ATTR_SET, // do not set at construction time
-                AttributeContainerValue<TimeValue>(),
-                MakeAttributeContainerAccessor<TimeValue, std::list>(&Txop::SetTxopLimits,
-                                                                     &Txop::GetTxopLimits),
-                MakeAttributeContainerChecker<TimeValue>(MakeTimeChecker()))
+            .AddAttribute("TxopLimits",
+                          "The values of TXOP limit for all the links",
+                          TypeId::ATTR_GET | TypeId::ATTR_SET, // do not set at construction time
+                          AttributeContainerValue<TimeValue>(),
+                          MakeAttributeContainerAccessor<TimeValue>(&Txop::SetTxopLimits,
+                                                                    &Txop::GetTxopLimits),
+                          MakeAttributeContainerChecker<TimeValue>(MakeTimeChecker()))
             .AddAttribute("Queue",
                           "The WifiMacQueue object",
                           PointerValue(),
@@ -173,15 +169,33 @@ Txop::CreateLinkEntity() const
 Txop::LinkEntity&
 Txop::GetLink(uint8_t linkId) const
 {
-    NS_ASSERT(linkId < m_links.size());
-    NS_ASSERT(m_links.at(linkId)); // check that the pointer owns an object
-    return *m_links.at(linkId);
+    auto it = m_links.find(linkId);
+    NS_ASSERT(it != m_links.cend());
+    NS_ASSERT(it->second); // check that the pointer owns an object
+    return *it->second;
 }
 
-uint8_t
-Txop::GetNLinks() const
+const std::map<uint8_t, std::unique_ptr<Txop::LinkEntity>>&
+Txop::GetLinks() const
 {
-    return m_links.size();
+    return m_links;
+}
+
+void
+Txop::SwapLinks(std::map<uint8_t, uint8_t> links)
+{
+    NS_LOG_FUNCTION(this);
+
+    decltype(m_links) tmp;
+    tmp.swap(m_links); // move all links to temporary map
+    for (const auto& [from, to] : links)
+    {
+        auto nh = tmp.extract(from);
+        nh.key() = to;
+        m_links.insert(std::move(nh));
+    }
+    // move links remaining in tmp to m_links
+    m_links.merge(tmp);
 }
 
 void
@@ -196,12 +210,9 @@ Txop::SetWifiMac(const Ptr<WifiMac> mac)
 {
     NS_LOG_FUNCTION(this << mac);
     m_mac = mac;
-    m_links.resize(m_mac->GetNLinks());
-    uint8_t linkId = 0;
-    for (auto& link : m_links)
+    for (const auto linkId : m_mac->GetLinkIds())
     {
-        link = CreateLinkEntity();
-        link->id = linkId++;
+        m_links.emplace(linkId, CreateLinkEntity());
     }
 }
 
@@ -233,9 +244,10 @@ void
 Txop::SetMinCws(std::vector<uint32_t> minCws)
 {
     NS_ABORT_IF(minCws.size() != m_links.size());
-    for (std::size_t linkId = 0; linkId < minCws.size(); linkId++)
+    std::size_t i = 0;
+    for (const auto& [id, link] : m_links)
     {
-        SetMinCw(minCws[linkId], linkId);
+        SetMinCw(minCws[i++], id);
     }
 }
 
@@ -246,7 +258,7 @@ Txop::SetMinCw(uint32_t minCw, uint8_t linkId)
     auto& link = GetLink(linkId);
     bool changed = (link.cwMin != minCw);
     link.cwMin = minCw;
-    if (changed == true)
+    if (changed)
     {
         ResetCw(linkId);
     }
@@ -262,9 +274,10 @@ void
 Txop::SetMaxCws(std::vector<uint32_t> maxCws)
 {
     NS_ABORT_IF(maxCws.size() != m_links.size());
-    for (std::size_t linkId = 0; linkId < maxCws.size(); linkId++)
+    std::size_t i = 0;
+    for (const auto& [id, link] : m_links)
     {
-        SetMaxCw(maxCws[linkId], linkId);
+        SetMaxCw(maxCws[i++], id);
     }
 }
 
@@ -275,7 +288,7 @@ Txop::SetMaxCw(uint32_t maxCw, uint8_t linkId)
     auto& link = GetLink(linkId);
     bool changed = (link.cwMax != maxCw);
     link.cwMax = maxCw;
-    if (changed == true)
+    if (changed)
     {
         ResetCw(linkId);
     }
@@ -359,9 +372,10 @@ void
 Txop::SetAifsns(std::vector<uint8_t> aifsns)
 {
     NS_ABORT_IF(aifsns.size() != m_links.size());
-    for (std::size_t linkId = 0; linkId < aifsns.size(); linkId++)
+    std::size_t i = 0;
+    for (const auto& [id, link] : m_links)
     {
-        SetAifsn(aifsns[linkId], linkId);
+        SetAifsn(aifsns[i++], id);
     }
 }
 
@@ -385,9 +399,10 @@ Txop::SetTxopLimits(const std::vector<Time>& txopLimits)
                     "The size of the given vector (" << txopLimits.size()
                                                      << ") does not match the number of links ("
                                                      << m_links.size() << ")");
-    for (std::size_t linkId = 0; linkId < txopLimits.size(); linkId++)
+    std::size_t i = 0;
+    for (const auto& [id, link] : m_links)
     {
-        SetTxopLimit(txopLimits[linkId], linkId);
+        SetTxopLimit(txopLimits[i++], id);
     }
 }
 
@@ -410,9 +425,10 @@ std::vector<uint32_t>
 Txop::GetMinCws() const
 {
     std::vector<uint32_t> ret;
-    for (std::size_t linkId = 0; linkId < m_links.size(); linkId++)
+    ret.reserve(m_links.size());
+    for (const auto& [id, link] : m_links)
     {
-        ret.push_back(GetMinCw(linkId));
+        ret.push_back(link->cwMin);
     }
     return ret;
 }
@@ -433,9 +449,10 @@ std::vector<uint32_t>
 Txop::GetMaxCws() const
 {
     std::vector<uint32_t> ret;
-    for (std::size_t linkId = 0; linkId < m_links.size(); linkId++)
+    ret.reserve(m_links.size());
+    for (const auto& [id, link] : m_links)
     {
-        ret.push_back(GetMaxCw(linkId));
+        ret.push_back(link->cwMax);
     }
     return ret;
 }
@@ -456,9 +473,10 @@ std::vector<uint8_t>
 Txop::GetAifsns() const
 {
     std::vector<uint8_t> ret;
-    for (std::size_t linkId = 0; linkId < m_links.size(); linkId++)
+    ret.reserve(m_links.size());
+    for (const auto& [id, link] : m_links)
     {
-        ret.push_back(GetAifsn(linkId));
+        ret.push_back(link->aifsn);
     }
     return ret;
 }
@@ -479,9 +497,10 @@ std::vector<Time>
 Txop::GetTxopLimits() const
 {
     std::vector<Time> ret;
-    for (std::size_t linkId = 0; linkId < m_links.size(); linkId++)
+    ret.reserve(m_links.size());
+    for (const auto& [id, link] : m_links)
     {
-        ret.push_back(GetTxopLimit(linkId));
+        ret.push_back(link->txopLimit);
     }
     return ret;
 }
@@ -515,9 +534,7 @@ void
 Txop::Queue(Ptr<WifiMpdu> mpdu)
 {
     NS_LOG_FUNCTION(this << *mpdu);
-    const auto linkIds =
-        m_mac->GetMacQueueScheduler()->GetLinkIds(m_queue->GetAc(),
-                                                  WifiMacQueueContainer::GetQueueId(mpdu));
+    const auto linkIds = m_mac->GetMacQueueScheduler()->GetLinkIds(m_queue->GetAc(), mpdu);
     for (const auto linkId : linkIds)
     {
         if (m_mac->GetChannelAccessManager(linkId)->NeedBackoffUponAccess(this))
@@ -554,10 +571,10 @@ void
 Txop::DoInitialize()
 {
     NS_LOG_FUNCTION(this);
-    for (std::size_t linkId = 0; linkId < m_links.size(); linkId++)
+    for (const auto& [id, link] : m_links)
     {
-        ResetCw(linkId);
-        GenerateBackoff(linkId);
+        ResetCw(id);
+        GenerateBackoff(id);
     }
 }
 
@@ -636,9 +653,9 @@ void
 Txop::NotifyOn()
 {
     NS_LOG_FUNCTION(this);
-    for (std::size_t linkId = 0; linkId < m_links.size(); linkId++)
+    for (const auto& [id, link] : m_links)
     {
-        StartAccessIfNeeded(linkId);
+        StartAccessIfNeeded(id);
     }
 }
 

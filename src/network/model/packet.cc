@@ -89,7 +89,7 @@ ByteTagIterator::ByteTagIterator(ByteTagList::Iterator i)
 {
 }
 
-PacketTagIterator::PacketTagIterator(const struct PacketTagList::TagData* head)
+PacketTagIterator::PacketTagIterator(const PacketTagList::TagData* head)
     : m_current(head)
 {
 }
@@ -104,12 +104,12 @@ PacketTagIterator::Item
 PacketTagIterator::Next()
 {
     NS_ASSERT(HasNext());
-    const struct PacketTagList::TagData* prev = m_current;
+    const PacketTagList::TagData* prev = m_current;
     m_current = m_current->next;
     return PacketTagIterator::Item(prev);
 }
 
-PacketTagIterator::Item::Item(const struct PacketTagList::TagData* data)
+PacketTagIterator::Item::Item(const PacketTagList::TagData* data)
     : m_data(data)
 {
 }
@@ -471,8 +471,8 @@ Packet::Print(std::ostream& os) const
                 os << item.tid.GetName();
                 break;
             }
-            os << " Fragment [" << item.currentTrimedFromStart << ":"
-               << (item.currentTrimedFromStart + item.currentSize) << "]";
+            os << " Fragment [" << item.currentTrimmedFromStart << ":"
+               << (item.currentTrimmedFromStart + item.currentSize) << "]";
         }
         else
         {
@@ -490,7 +490,7 @@ Packet::Print(std::ostream& os) const
                     NS_ASSERT(!constructor.IsNull());
                     ObjectBase* instance = constructor();
                     NS_ASSERT(instance != nullptr);
-                    Chunk* chunk = dynamic_cast<Chunk*>(instance);
+                    auto chunk = dynamic_cast<Chunk*>(instance);
                     NS_ASSERT(chunk != nullptr);
                     if (item.type == PacketMetadata::Item::HEADER)
                     {
@@ -540,8 +540,8 @@ Packet::Print(std::ostream& os) const
               os << item.tid.GetName ();
               break;
             }
-          os << " Fragment [" << item.currentTrimedFromStart<<":"
-             << (item.currentTrimedFromStart + item.currentSize) << "]";
+          os << " Fragment [" << item.currentTrimmedFromStart<<":"
+             << (item.currentTrimmedFromStart + item.currentSize) << "]";
         }
       else
         {
@@ -662,7 +662,7 @@ Packet::GetSerializedSize() const
 uint32_t
 Packet::Serialize(uint8_t* buffer, uint32_t maxSize) const
 {
-    uint32_t* p = reinterpret_cast<uint32_t*>(buffer);
+    auto p = reinterpret_cast<uint32_t*>(buffer);
     uint32_t size = 0;
 
     // if nix-vector exists, serialize it
@@ -825,7 +825,7 @@ Packet::Deserialize(const uint8_t* buffer, uint32_t size)
 {
     NS_LOG_FUNCTION(this);
 
-    const uint32_t* p = reinterpret_cast<const uint32_t*>(buffer);
+    auto p = reinterpret_cast<const uint32_t*>(buffer);
 
     // read nix-vector
     NS_ASSERT(!m_nixVector);
@@ -934,7 +934,7 @@ void
 Packet::AddByteTag(const Tag& tag) const
 {
     NS_LOG_FUNCTION(this << tag.GetInstanceTypeId().GetName() << tag.GetSerializedSize());
-    ByteTagList* list = const_cast<ByteTagList*>(&m_byteTagList);
+    auto list = const_cast<ByteTagList*>(&m_byteTagList);
     TagBuffer buffer = list->Add(tag.GetInstanceTypeId(), tag.GetSerializedSize(), 0, GetSize());
     tag.Serialize(buffer);
 }
@@ -944,7 +944,7 @@ Packet::AddByteTag(const Tag& tag, uint32_t start, uint32_t end) const
 {
     NS_LOG_FUNCTION(this << tag.GetInstanceTypeId().GetName() << tag.GetSerializedSize());
     NS_ABORT_MSG_IF(end < start, "Invalid byte range");
-    ByteTagList* list = const_cast<ByteTagList*>(&m_byteTagList);
+    auto list = const_cast<ByteTagList*>(&m_byteTagList);
     TagBuffer buffer = list->Add(tag.GetInstanceTypeId(),
                                  tag.GetSerializedSize(),
                                  static_cast<int32_t>(start),

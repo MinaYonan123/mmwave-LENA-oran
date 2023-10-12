@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
-# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
 #
-# Copyright (c) 2021 Universidade de Brasília
+# Copyright (c) 2021-2023 Universidade de Brasília
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -127,7 +126,7 @@ def get_programs_list():
     @return list of programs.
     """
     values = {}
-    with open(ns3_lock_filename) as f:
+    with open(ns3_lock_filename, encoding="utf-8") as f:
         exec(f.read(), globals(), values)
 
     programs_list = values["ns3_runnable_programs"]
@@ -164,7 +163,7 @@ def read_lock_entry(entry):
     @return value of the requested entry.
     """
     values = {}
-    with open(ns3_lock_filename) as f:
+    with open(ns3_lock_filename, encoding="utf-8") as f:
         exec(f.read(), globals(), values)
     return values.get(entry, None)
 
@@ -207,7 +206,7 @@ class DockerContainerManager:
             currentTestCase.skipTest("python-on-whales was not found")
 
         # Import rootless docker settings from .bashrc
-        with open(os.path.expanduser("~/.bashrc"), "r") as f:
+        with open(os.path.expanduser("~/.bashrc"), "r", encoding="utf-8") as f:
             docker_settings = re.findall("(DOCKER_.*=.*)", f.read())
             for setting in docker_settings:
                 key, value = setting.split("=")
@@ -286,7 +285,7 @@ class NS3UnusedSourcesTestCase(unittest.TestCase):
                 continue
 
             # Open the examples CMakeLists.txt and read it
-            with open(os.path.join(example_directory, "CMakeLists.txt"), "r") as f:
+            with open(os.path.join(example_directory, "CMakeLists.txt"), "r", encoding="utf-8") as f:
                 cmake_contents = f.read()
 
             # For each file, check if it is in the CMake contents
@@ -320,7 +319,7 @@ class NS3UnusedSourcesTestCase(unittest.TestCase):
                 cmake_path = os.path.join(parent_directory, os.path.basename(cmake_path))
 
             # Open the module CMakeLists.txt and read it
-            with open(cmake_path, "r") as f:
+            with open(cmake_path, "r", encoding="utf-8") as f:
                 cmake_contents = f.read()
 
             # For each file, check if it is in the CMake contents
@@ -359,7 +358,7 @@ class NS3UnusedSourcesTestCase(unittest.TestCase):
                 cmake_path = os.path.join(parent_directory, os.path.basename(cmake_path))
 
             # Open the module CMakeLists.txt and read it
-            with open(cmake_path, "r") as f:
+            with open(cmake_path, "r", encoding="utf-8") as f:
                 cmake_contents = f.read()
 
             # For each file, check if it is in the CMake contents
@@ -390,7 +389,7 @@ class NS3DependenciesTestCase(unittest.TestCase):
         for path in module_paths:
             # Open the module CMakeLists.txt and read it
             cmake_path = os.path.join(path, "CMakeLists.txt")
-            with open(cmake_path, "r") as f:
+            with open(cmake_path, "r", encoding="utf-8") as f:
                 cmake_contents = f.readlines()
 
             module_name = os.path.relpath(path, ns3_path)
@@ -958,7 +957,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
             ns3rc_template = ns3rc_str(ns3rc_type)
 
             # Now we repeat the command line tests but with the ns3rc file.
-            with open(ns3rc_script, "w") as f:
+            with open(ns3rc_script, "w", encoding="utf-8") as f:
                 f.write(ns3rc_template.format(modules="'lte'", examples="False", tests="True"))
 
             # Reconfigure.
@@ -970,10 +969,10 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
             self.assertLess(len(get_enabled_modules()), len(self.ns3_modules))
             self.assertIn("ns3-lte", enabled_modules)
             self.assertTrue(get_test_enabled())
-            self.assertGreaterEqual(len(get_programs_list()), len(self.ns3_executables))
+            self.assertLessEqual(len(get_programs_list()), len(self.ns3_executables))
 
             # Replace the ns3rc file with the wifi module, enabling examples and disabling tests
-            with open(ns3rc_script, "w") as f:
+            with open(ns3rc_script, "w", encoding="utf-8") as f:
                 f.write(ns3rc_template.format(modules="'wifi'", examples="True", tests="False"))
 
             # Reconfigure
@@ -988,7 +987,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
             self.assertGreater(len(get_programs_list()), len(self.ns3_executables))
 
             # Replace the ns3rc file with multiple modules
-            with open(ns3rc_script, "w") as f:
+            with open(ns3rc_script, "w", encoding="utf-8") as f:
                 f.write(ns3rc_template.format(modules="'core','network'", examples="True", tests="False"))
 
             # Reconfigure
@@ -1005,7 +1004,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
 
             # Replace the ns3rc file with multiple modules,
             # in various different ways and with comments
-            with open(ns3rc_script, "w") as f:
+            with open(ns3rc_script, "w", encoding="utf-8") as f:
                 if ns3rc_type == "python":
                     f.write(ns3rc_template.format(modules="""'core', #comment
                     'lte',
@@ -1127,7 +1126,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
 
         # Cause a sigsegv
         sigsegv_example = os.path.join(ns3_path, "scratch", "sigsegv.cc")
-        with open(sigsegv_example, "w") as f:
+        with open(sigsegv_example, "w", encoding="utf-8") as f:
             f.write("""
                     int main (int argc, char *argv[])
                     {
@@ -1145,7 +1144,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
 
         # Cause an abort
         abort_example = os.path.join(ns3_path, "scratch", "abort.cc")
-        with open(abort_example, "w") as f:
+        with open(abort_example, "w", encoding="utf-8") as f:
             f.write("""
                     #include "ns3/core-module.h"
 
@@ -1210,14 +1209,15 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
         test_files = ["scratch/main.cc",
                       "scratch/empty.cc",
                       "scratch/subdir1/main.cc",
-                      "scratch/subdir2/main.cc"]
+                      "scratch/subdir2/main.cc",
+                      "scratch/main.test.dots.in.name.cc"]
         backup_files = ["scratch/.main.cc"]  # hidden files should be ignored
 
         # Create test scratch files
         for path in test_files + backup_files:
             filepath = os.path.join(ns3_path, path)
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            with open(filepath, "w") as f:
+            with open(filepath, "w", encoding="utf-8") as f:
                 if "main" in path:
                     f.write("int main (int argc, char *argv[]){}")
                 else:
@@ -1253,6 +1253,25 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
             else:
                 self.assertEqual(return_code, 1)
 
+        # Now test them in CMake 3.10
+        run_ns3("clean")
+        with DockerContainerManager(self, "ubuntu:18.04") as container:
+            container.execute("apt-get update")
+            container.execute("apt-get install -y python3 cmake g++-8 ninja-build")
+            try:
+                container.execute(
+                    "./ns3 configure --enable-modules=core,network,internet -- -DCMAKE_CXX_COMPILER=/usr/bin/g++-8")
+            except DockerException as e:
+                self.fail()
+            for path in test_files:
+                path = path.replace(".cc", "")
+                try:
+                    container.execute(f"./ns3 run {path}")
+                except DockerException as e:
+                    if "main" in path:
+                        self.fail()
+        run_ns3("clean")
+
         # Delete the test files and reconfigure to clean them up
         for path in test_files + backup_files:
             source_absolute_path = os.path.join(ns3_path, path)
@@ -1267,7 +1286,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
                                    )[0]
 
             os.remove(os.path.join(executable_absolute_path, executable_name))
-            if path not in ["scratch/main.cc", "scratch/empty.cc"]:
+            if not os.listdir(os.path.dirname(path)):
                 os.rmdir(os.path.dirname(source_absolute_path))
 
         return_code, stdout, stderr = run_ns3("configure -G \"{generator}\"")
@@ -1339,10 +1358,10 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
         os.makedirs("contrib/borked/examples", exist_ok=True)
 
         # Test if configuration succeeds and building the module library fails
-        with open("contrib/borked/examples/CMakeLists.txt", "w") as f:
+        with open("contrib/borked/examples/CMakeLists.txt", "w", encoding="utf-8") as f:
             f.write("")
         for invalid_or_nonexistent_library in ["", "gsd", "lib", "libfi", "calibre"]:
-            with open("contrib/borked/CMakeLists.txt", "w") as f:
+            with open("contrib/borked/CMakeLists.txt", "w", encoding="utf-8") as f:
                 f.write("""
                         build_lib(
                             LIBNAME borked
@@ -1368,10 +1387,10 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
                 self.assertIn("Invalid library name: %s" % invalid_or_nonexistent_library, stderr)
             elif invalid_or_nonexistent_library in ["gsd", "libfi", "calibre"]:
                 self.assertEqual(return_code, 2)  # should fail due to missing library
-                # GCC's LD says cannot find
-                # LLVM's LLD says unable to find
                 if "lld" in stdout + stderr:
                     self.assertIn("unable to find library -l%s" % invalid_or_nonexistent_library, stderr)
+                elif "mold" in stdout + stderr:
+                    self.assertIn("library not found: %s" % invalid_or_nonexistent_library, stderr)
                 else:
                     self.assertIn("cannot find -l%s" % invalid_or_nonexistent_library, stderr)
             else:
@@ -1381,7 +1400,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
         # - no additional library (should work)
         # - invalid library names (should fail to configure)
         # - valid library names but nonexistent libraries (should not create a target)
-        with open("contrib/borked/CMakeLists.txt", "w") as f:
+        with open("contrib/borked/CMakeLists.txt", "w", encoding="utf-8") as f:
             f.write("""
                     build_lib(
                         LIBNAME borked
@@ -1390,7 +1409,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
                     )
                     """)
         for invalid_or_nonexistent_library in ["", "gsd", "lib", "libfi", "calibre"]:
-            with open("contrib/borked/examples/CMakeLists.txt", "w") as f:
+            with open("contrib/borked/examples/CMakeLists.txt", "w", encoding="utf-8") as f:
                 f.write("""
                         build_lib_example(
                             NAME borked-example
@@ -1433,9 +1452,9 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
         os.makedirs("contrib/calibre/examples", exist_ok=True)
 
         # Now test if we can have a library with "lib" in it
-        with open("contrib/calibre/examples/CMakeLists.txt", "w") as f:
+        with open("contrib/calibre/examples/CMakeLists.txt", "w", encoding="utf-8") as f:
             f.write("")
-        with open("contrib/calibre/CMakeLists.txt", "w") as f:
+        with open("contrib/calibre/CMakeLists.txt", "w", encoding="utf-8") as f:
             f.write("""
                 build_lib(
                     LIBNAME calibre
@@ -1520,7 +1539,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
                                       "VERSION_TAG_DISTANCE = '0'\n"
                                       "VERSION_BUILD_PROFILE = 'debug'\n"
                                       )
-            with open(version_cache_file, "w") as version:
+            with open(version_cache_file, "w", encoding="utf-8") as version:
                 version.write(version_cache_contents)
 
             # Configuration should now succeed
@@ -1530,7 +1549,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
             self.assertTrue(os.path.exists(os.path.join(ns3_path, "cmake-cache", "build.ninja")))
 
             # And contents of version cache should be unchanged
-            with open(version_cache_file, "r") as version:
+            with open(version_cache_file, "r", encoding="utf-8") as version:
                 self.assertEqual(version.read(), version_cache_contents)
 
             # Third case: we rename the .git directory temporarily and reconfigure
@@ -1552,7 +1571,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
             container.execute("./ns3 configure -G Ninja --enable-build-version")
             container.execute("./ns3 build core")
             self.assertTrue(os.path.exists(os.path.join(ns3_path, "cmake-cache", "build.ninja")))
-            with open(version_cache_file, "r") as version:
+            with open(version_cache_file, "r", encoding="utf-8") as version:
                 self.assertNotEqual(version.read(), version_cache_contents)
 
             # Remove version cache file if it exists
@@ -1619,7 +1638,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
 
             # Check if configuration properly detected lld
             self.assertTrue(os.path.exists(os.path.join(ns3_path, "cmake-cache", "build.ninja")))
-            with open(os.path.join(ns3_path, "cmake-cache", "build.ninja"), "r") as f:
+            with open(os.path.join(ns3_path, "cmake-cache", "build.ninja"), "r", encoding="utf-8") as f:
                 self.assertIn("-fuse-ld=lld", f.read())
 
             # Try to build using the lld linker
@@ -1640,7 +1659,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
 
             # Check if configuration properly detected mold
             self.assertTrue(os.path.exists(os.path.join(ns3_path, "cmake-cache", "build.ninja")))
-            with open(os.path.join(ns3_path, "cmake-cache", "build.ninja"), "r") as f:
+            with open(os.path.join(ns3_path, "cmake-cache", "build.ninja"), "r", encoding="utf-8") as f:
                 self.assertIn("-fuse-ld=mold", f.read())
 
             # Try to build using the lld linker
@@ -1657,7 +1676,7 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
 
             # Check if configuration properly disabled lld/mold usage
             self.assertTrue(os.path.exists(os.path.join(ns3_path, "cmake-cache", "build.ninja")))
-            with open(os.path.join(ns3_path, "cmake-cache", "build.ninja"), "r") as f:
+            with open(os.path.join(ns3_path, "cmake-cache", "build.ninja"), "r", encoding="utf-8") as f:
                 self.assertNotIn("-fuse-ld=mold", f.read())
 
     def test_21_ClangTimeTrace(self):
@@ -1839,6 +1858,21 @@ class NS3ConfigureTestCase(NS3BaseTestCase):
             except DockerException as e:
                 self.assertTrue(False, "Precompiled headers should have been enabled")
 
+    def test_24_CheckTestSettings(self):
+        """!
+        Check for regressions in test object build.
+        @return None
+        """
+        return_code, stdout, stderr = run_ns3('configure')
+        self.assertEqual(return_code, 0)
+
+        test_module_cache = os.path.join(ns3_path, "cmake-cache", "src", "test")
+        self.assertFalse(os.path.exists(test_module_cache))
+
+        return_code, stdout, stderr = run_ns3('configure --enable-tests')
+        self.assertEqual(return_code, 0)
+        self.assertTrue(os.path.exists(test_module_cache))
+
 
 class NS3BuildBaseTestCase(NS3BaseTestCase):
     """!
@@ -1924,7 +1958,7 @@ class NS3BuildBaseTestCase(NS3BaseTestCase):
         self.ns3_libraries = get_libraries_list()
 
         version_file = os.sep.join([ns3_path, "VERSION"])
-        with open(version_file, "w") as f:
+        with open(version_file, "w", encoding="utf-8") as f:
             f.write("3-00\n")
 
         # Reconfigure.
@@ -1956,7 +1990,7 @@ class NS3BuildBaseTestCase(NS3BaseTestCase):
             self.assertTrue(os.path.exists(library))
 
         # Restore version file.
-        with open(version_file, "w") as f:
+        with open(version_file, "w", encoding="utf-8") as f:
             f.write("3-dev\n")
 
     def test_07_OutputDirectory(self):
@@ -2043,7 +2077,7 @@ class NS3BuildBaseTestCase(NS3BaseTestCase):
 
         # 3-dev version format is not supported by CMake, so we use 3.01.
         version_file = os.sep.join([ns3_path, "VERSION"])
-        with open(version_file, "w") as f:
+        with open(version_file, "w", encoding="utf-8") as f:
             f.write("3-01\n")
 
         # Reconfigure setting the installation folder to ns-3-dev/build/install.
@@ -2079,7 +2113,7 @@ class NS3BuildBaseTestCase(NS3BaseTestCase):
 
         # Now create a test CMake project and try to find_package ns-3.
         test_main_file = os.sep.join([install_prefix, "main.cpp"])
-        with open(test_main_file, "w") as f:
+        with open(test_main_file, "w", encoding="utf-8") as f:
             f.write("""
             #include <ns3/core-module.h>
             using namespace ns3;
@@ -2129,7 +2163,7 @@ class NS3BuildBaseTestCase(NS3BaseTestCase):
                                      """ + import_method
 
                 test_cmake_project_file = os.sep.join([install_prefix, "CMakeLists.txt"])
-                with open(test_cmake_project_file, "w") as f:
+                with open(test_cmake_project_file, "w", encoding="utf-8") as f:
                     f.write(test_cmake_project)
 
                 # Configure the test project
@@ -2181,7 +2215,7 @@ class NS3BuildBaseTestCase(NS3BaseTestCase):
 
         # Restore 3-dev version file
         os.remove(version_file)
-        with open(version_file, "w") as f:
+        with open(version_file, "w", encoding="utf-8") as f:
             f.write("3-dev\n")
 
     def test_09_Scratches(self):
@@ -2303,7 +2337,7 @@ class NS3BuildBaseTestCase(NS3BaseTestCase):
 
         # First enable examples and static build
         return_code, stdout, stderr = run_ns3(
-            "configure -G \"{generator}\" --enable-python-bindings")
+            "configure -G \"{generator}\" --enable-examples --enable-python-bindings")
 
         # If configuration passes, we are half way done
         self.assertEqual(return_code, 0)
@@ -2319,6 +2353,58 @@ class NS3BuildBaseTestCase(NS3BaseTestCase):
         # Then try to run a specific test with the full relative path
         return_code, stdout, stderr = run_program("test.py", "-p ./examples/wireless/mixed-wired-wireless", python=True)
         self.assertEqual(return_code, 0)
+
+    def test_13_FetchOptionalComponents(self):
+        """!
+        Test if we had regressions with brite, click and openflow modules
+        that depend on homonymous libraries
+        @return None
+        """
+        if shutil.which("git") is None:
+            self.skipTest("Missing git")
+
+        # First enable automatic components fetching
+        return_code, stdout, stderr = run_ns3("configure -- -DNS3_FETCH_OPTIONAL_COMPONENTS=ON")
+        self.assertEqual(return_code, 0)
+
+        # Build the optional components to check if their dependencies were fetched
+        # and there were no build regressions
+        return_code, stdout, stderr = run_ns3("build brite click openflow")
+        self.assertEqual(return_code, 0)
+
+    def test_14_LinkContribModuleToSrcModule(self):
+        """!
+        Test if we can link contrib modules to src modules
+        @return None
+        """
+        if shutil.which("git") is None:
+            self.skipTest("Missing git")
+
+        destination_contrib = os.path.join(ns3_path, "contrib/test-contrib-dependency")
+        destination_src = os.path.join(ns3_path, "src/test-src-dependant-on-contrib")
+        # Remove pre-existing directories
+        if os.path.exists(destination_contrib):
+            shutil.rmtree(destination_contrib)
+        if os.path.exists(destination_src):
+            shutil.rmtree(destination_src)
+
+        # Always use a fresh copy
+        shutil.copytree(os.path.join(ns3_path, "build-support/test-files/test-contrib-dependency"),
+                        destination_contrib)
+        shutil.copytree(os.path.join(ns3_path, "build-support/test-files/test-src-dependant-on-contrib"),
+                        destination_src)
+
+        # Then configure
+        return_code, stdout, stderr = run_ns3("configure --enable-examples")
+        self.assertEqual(return_code, 0)
+
+        # Build the src module that depend on a contrib module
+        return_code, stdout, stderr = run_ns3("run source-example")
+        self.assertEqual(return_code, 0)
+
+        # Remove module copies
+        shutil.rmtree(destination_contrib)
+        shutil.rmtree(destination_src)
 
 
 class NS3ExpectedUseTestCase(NS3BaseTestCase):
@@ -2748,6 +2834,98 @@ class NS3ExpectedUseTestCase(NS3BaseTestCase):
         self.assertIn("scratch-simulator", stdout)
         self.assertIn("(lldb) target create", stdout)
 
+    def test_18_CpmAndVcpkgManagers(self):
+        """!
+        Test if CPM and Vcpkg package managers are working properly
+        @return None
+        """
+        # Clean the ns-3 configuration
+        return_code, stdout, stderr = run_ns3("clean")
+        self.assertEqual(return_code, 0)
+
+        # Cleanup VcPkg leftovers
+        if os.path.exists("vcpkg"):
+            shutil.rmtree("vcpkg")
+
+        # Copy a test module that consumes armadillo
+        destination_src = os.path.join(ns3_path, "src/test-package-managers")
+        # Remove pre-existing directories
+        if os.path.exists(destination_src):
+            shutil.rmtree(destination_src)
+
+        # Always use a fresh copy
+        shutil.copytree(os.path.join(ns3_path, "build-support/test-files/test-package-managers"),
+                        destination_src)
+
+        with DockerContainerManager(self, "ubuntu:22.04") as container:
+            # Install toolchain
+            container.execute("apt-get update")
+            container.execute("apt-get install -y python3 cmake g++ ninja-build")
+
+            # Verify that Armadillo is not available and that we did not
+            # add any new unnecessary dependency when features are not used
+            try:
+                container.execute(
+                    "./ns3 configure -- -DTEST_PACKAGE_MANAGER:STRING=ON")
+                self.skipTest("Armadillo is already installed")
+            except DockerException as e:
+                pass
+
+            # Clean cache to prevent dumb errors
+            return_code, stdout, stderr = run_ns3("clean")
+            self.assertEqual(return_code, 0)
+
+            # Install CPM and VcPkg shared dependency
+            container.execute("apt-get install -y git")
+
+            # Install Armadillo with CPM
+            try:
+                container.execute(
+                    "./ns3 configure -- -DNS3_CPM=ON -DTEST_PACKAGE_MANAGER:STRING=CPM")
+            except DockerException as e:
+                self.fail()
+
+            # Try to build module using CPM's Armadillo
+            try:
+                container.execute(
+                    "./ns3 build test-package-managers")
+            except DockerException as e:
+                self.fail()
+
+            # Clean cache to prevent dumb errors
+            return_code, stdout, stderr = run_ns3("clean")
+            self.assertEqual(return_code, 0)
+
+            # Install VcPkg dependencies
+            container.execute("apt-get install -y zip unzip tar curl")
+
+            # Install Armadillo dependencies
+            container.execute("apt-get install -y pkg-config gfortran")
+
+            # Install VcPkg
+            try:
+                container.execute(
+                    "./ns3 configure -- -DNS3_VCPKG=ON")
+            except DockerException as e:
+                self.fail()
+
+            # Install Armadillo with VcPkg
+            try:
+                container.execute("./ns3 configure -- -DTEST_PACKAGE_MANAGER:STRING=VCPKG")
+            except DockerException as e:
+                self.fail()
+
+            # Try to build module using VcPkg's Armadillo
+            try:
+                container.execute(
+                    "./ns3 build test-package-managers")
+            except DockerException as e:
+                self.fail()
+
+        # Remove test module
+        if os.path.exists(destination_src):
+            shutil.rmtree(destination_src)
+
 
 class NS3QualityControlTestCase(unittest.TestCase):
     """!
@@ -2810,13 +2988,18 @@ class NS3QualityControlTestCase(unittest.TestCase):
                 if "build" in root or "_static" in root or "source-temp" in root or 'html' in root:
                     continue
                 for file in files:
+                    filepath = os.path.join(root, file)
+
+                    # skip everything that isn't a file
+                    if not os.path.isfile(filepath):
+                        continue
+
                     # skip svg files
                     if file.endswith(".svg"):
                         continue
-                    filepath = os.path.join(root, file)
 
                     try:
-                        with open(filepath, "r") as f:
+                        with open(filepath, "r", encoding="utf-8") as f:
                             matches = regex.findall(f.read())
 
                             # Get first group for each match (containing the URL)

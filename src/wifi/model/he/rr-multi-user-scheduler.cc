@@ -180,7 +180,7 @@ RrMultiUserScheduler::SelectTxFormat()
 
 template <class Func>
 WifiTxVector
-RrMultiUserScheduler::GetTxVectorForUlMu(Func canbeSolicited)
+RrMultiUserScheduler::GetTxVectorForUlMu(Func canBeSolicited)
 {
     NS_LOG_FUNCTION(this);
 
@@ -214,7 +214,7 @@ RrMultiUserScheduler::GetTxVectorForUlMu(Func canbeSolicited)
     {
         NS_LOG_DEBUG("Next candidate STA (MAC=" << staIt->address << ", AID=" << staIt->aid << ")");
 
-        if (!canbeSolicited(*staIt))
+        if (!canBeSolicited(*staIt))
         {
             NS_LOG_DEBUG("Skipping station based on provided function object");
             staIt++;
@@ -708,7 +708,16 @@ RrMultiUserScheduler::TrySendingDlMuPpdu()
                     WifiTxVector suTxVector =
                         GetWifiRemoteStationManager(m_linkId)->GetDataTxVector(mpdu->GetHeader(),
                                                                                m_allowedWidth);
+
                     WifiTxVector txVectorCopy = m_txParams.m_txVector;
+
+                    // the first candidate STA determines the preamble type for the DL MU PPDU
+                    if (m_candidates.empty() &&
+                        suTxVector.GetPreambleType() == WIFI_PREAMBLE_EHT_MU)
+                    {
+                        m_txParams.m_txVector.SetPreambleType(WIFI_PREAMBLE_EHT_MU);
+                        m_txParams.m_txVector.SetEhtPpduType(0); // indicates DL OFDMA transmission
+                    }
 
                     m_txParams.m_txVector.SetHeMuUserInfo(staIt->aid,
                                                           {{currRuType, 1, true},
@@ -735,17 +744,6 @@ RrMultiUserScheduler::TrySendingDlMuPpdu()
                     NS_LOG_DEBUG("No frames to send to " << staIt->address << " with TID=" << +tid);
                 }
             }
-        }
-
-        // the first candidate STA determines the preamble type for the DL MU PPDU
-        if (m_candidates.size() == 1)
-        {
-            if (m_apMac->GetEhtSupported() && m_apMac->GetEhtSupported(staIt->address))
-            {
-                m_txParams.m_txVector.SetPreambleType(WIFI_PREAMBLE_EHT_MU);
-                m_txParams.m_txVector.SetEhtPpduType(0); // indicates DL OFDMA transmission
-            }
-            // TODO otherwise, make sure the TX width does not exceed 160 MHz
         }
 
         // move to the next station in the list

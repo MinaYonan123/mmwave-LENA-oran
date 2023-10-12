@@ -263,7 +263,7 @@ Here are some notes on how the spectrum module is expected to be used.
    is one of the main features of the
    spectrum module, to support inter-technology interference. For
    example, if you implement a WifiSpectrumPhy and a
-   BluetoohSpectrumPhy, and plug both on a SpectrumChannel, then you'll
+   BluetoothSpectrumPhy, and plug both on a SpectrumChannel, then you'll
    be able to simulate interference between wifi and bluetooth and
    vice versa.
 
@@ -593,6 +593,8 @@ test cases. The other used method generates random ECEF Cartesian points around
 the given geographic origin point, and is tested in the ``rand-cart-around-geo``
 test suite by verifying that the generated points do not exceed the given
 maximum distance radius from the origin point.
+
+.. _3gpp-fast-fading-model:
 
 3GPP TR 38.901 fast fading model
 ================================
@@ -1042,6 +1044,3 @@ References
    Mattias Frenne, Farshid Ghasemzadeh, Måns Hagström et al. Advanced Antenna Systems
    for 5G Network Deployments: Bridging the Gap Between Theory and Practice.
    Academic Press, 2020.
-
-.. [TR38901] 3GPP. 2018. TR 38.901. Study on channel for frequencies from 0.5 to
-   100 GHz. V.15.0.0. (2018-06).
