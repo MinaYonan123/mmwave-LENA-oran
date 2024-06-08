@@ -136,7 +136,7 @@ MmWaveEesmErrorModel::MappingSinrBler(double sinr, uint8_t mcs, uint32_t cbSizeB
     // Get the index of CBSIZE in the map
     NS_LOG_INFO("For sinr " << sinr << " and mcs " << +mcs << " CbSizebit " << cbSizeBit
                             << " we got bg type " << m_bgTypeName[bg_type]);
-    auto cbMap = GetSimulatedBlerFromSINR()->at(bg_type).at(mcs);
+    const auto& cbMap = GetSimulatedBlerFromSINR()->at(bg_type).at(mcs);
     auto cbIt = cbMap.upper_bound(cbSizeBit);
 
     if (cbIt != cbMap.begin())
