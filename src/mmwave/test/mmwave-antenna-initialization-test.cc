@@ -199,8 +199,7 @@ class MmWaveAntennaInitializationTestSuite : public TestSuite
 MmWaveAntennaInitializationTestSuite::MmWaveAntennaInitializationTestSuite()
     : TestSuite("mmwave-antenna-initialization-test", Type::UNIT)
 {
-    // TestDuration for TestCase can be QUICK, EXTENSIVE or TAKES_FOREVER
-    AddTestCase(new MmwaveThreeGppAntennaInitializationTestCase, TestCase::QUICK);
+    AddTestCase(new MmwaveThreeGppAntennaInitializationTestCase, Duration::QUICK);
 }
 
 // Do not forget to allocate an instance of this TestSuite

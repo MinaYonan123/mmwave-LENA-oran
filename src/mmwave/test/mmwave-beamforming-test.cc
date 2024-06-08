@@ -378,9 +378,8 @@ class MmWaveBeamformingTest : public TestSuite
 MmWaveBeamformingTest::MmWaveBeamformingTest()
     : TestSuite("mmwave-beamforming-test", Type::UNIT)
 {
-    // TestDuration for TestCase can be QUICK, EXTENSIVE or TAKES_FOREVER
-    AddTestCase(new MmWaveDftBeamformingTestCase, TestCase::QUICK);
-    AddTestCase(new MmWaveSvdBeamformingTestCase, TestCase::QUICK);
+    AddTestCase(new MmWaveDftBeamformingTestCase, Duration::QUICK);
+    AddTestCase(new MmWaveSvdBeamformingTestCase, Duration::QUICK);
 }
 
 // Do not forget to allocate an instance of this TestSuite

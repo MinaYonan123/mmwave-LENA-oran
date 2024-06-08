@@ -62,7 +62,7 @@ LteRlcUmE2eTestSuite::LteRlcUmE2eTestSuite()
         {
             std::ostringstream name;
             name << " Losses = " << losses[l] << "%. Seed = " << seeds[s];
-            TestCase::TestDuration testDuration;
+            Duration testDuration;
             if (l == 1 && s == 0)
             {
                 testDuration = Duration::QUICK;
