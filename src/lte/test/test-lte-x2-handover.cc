@@ -686,7 +686,7 @@ class LteX2HandoverTestSuite : public TestSuite
 };
 
 LteX2HandoverTestSuite::LteX2HandoverTestSuite()
-    : TestSuite("lte-x2-handover", SYSTEM)
+    : TestSuite("lte-x2-handover", Type::SYSTEM)
 {
     // in the following:
     // fwd means handover from enb 0 to enb 1
@@ -774,124 +774,124 @@ LteX2HandoverTestSuite::LteX2HandoverTestSuite()
             //                                     idealRrc
             AddTestCase(
                 new LteX2HandoverTestCase(1, 0, hel0, hel0name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 0, hel0, hel0name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 5, hel0, hel0name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 5, hel0, hel0name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 0, hel1, hel1name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 1, hel1, hel1name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 2, hel1, hel1name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 0, hel1, hel1name, *schedIt, false, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 1, hel1, hel1name, *schedIt, false, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 2, hel1, hel1name, *schedIt, false, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 0, hel1, hel1name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 1, hel1, hel1name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 2, hel1, hel1name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 0, hel1, hel1name, *schedIt, false, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 1, hel1, hel1name, *schedIt, false, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 2, hel1, hel1name, *schedIt, false, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 0, hel2, hel2name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 1, hel2, hel2name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 2, hel2, hel2name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 0, hel3, hel3name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 1, hel3, hel3name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(1, 2, hel3, hel3name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 0, hel3, hel3name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 1, hel3, hel3name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 2, hel3, hel3name, *schedIt, true, useIdealRrc),
-                TestCase::QUICK);
+                Duration::QUICK);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 0, hel4, hel4name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 1, hel4, hel4name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 2, hel4, hel4name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 0, hel5, hel5name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 1, hel5, hel5name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(2, 2, hel5, hel5name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(3, 0, hel3, hel3name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(3, 1, hel3, hel3name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(3, 2, hel3, hel3name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(3, 0, hel4, hel4name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(3, 1, hel4, hel4name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(3, 2, hel4, hel4name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(3, 0, hel5, hel5name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(3, 1, hel5, hel5name, *schedIt, true, useIdealRrc),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
             AddTestCase(
                 new LteX2HandoverTestCase(3, 2, hel5, hel5name, *schedIt, true, useIdealRrc),
-                TestCase::QUICK);
+                Duration::QUICK);
         }
     }
 }

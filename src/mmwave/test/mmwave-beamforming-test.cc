@@ -140,8 +140,8 @@ MmWaveDftBeamformingTestCase::DoRun(void)
             double vAngle = vIndex * angleStep / 2; // elevation [0, PI]
 
             // compute the steering vector
-            PhasedArrayModel::ComplexVector steeringVector(thisAntenna->GetNumberOfElements());
-            for (uint64_t eIndex = 0; eIndex < thisAntenna->GetNumberOfElements(); eIndex++)
+            PhasedArrayModel::ComplexVector steeringVector(thisAntenna->GetNumElems());
+            for (uint64_t eIndex = 0; eIndex < thisAntenna->GetNumElems(); eIndex++)
             {
                 Vector loc = thisAntenna->GetElementLocation(eIndex);
                 double phase = -2 * M_PI *
@@ -152,7 +152,7 @@ MmWaveDftBeamformingTestCase::DoRun(void)
 
             // compute the gain
             std::complex<double> arrayFactor = 0;
-            for (uint64_t eIndex = 0; eIndex < thisAntenna->GetNumberOfElements(); eIndex++)
+            for (uint64_t eIndex = 0; eIndex < thisAntenna->GetNumElems(); eIndex++)
             {
                 arrayFactor += bfVector[eIndex] * std::conj(steeringVector[eIndex]);
             }
@@ -178,7 +178,7 @@ MmWaveDftBeamformingTestCase::DoRun(void)
                               angleStep / 4,
                               "|AF| should be max in the LOS direction");
     NS_TEST_ASSERT_MSG_EQ_TOL(maxGain,
-                              std::sqrt(thisAntenna->GetNumberOfElements()),
+                              std::sqrt(thisAntenna->GetNumElems()),
                               0.05,
                               "|AF| should be equal to sqrt (N) in the LOS direction");
 }
@@ -218,7 +218,7 @@ MmWaveSvdBeamformingTestCase::~MmWaveSvdBeamformingTestCase()
 PhasedArrayModel::ComplexVector
 GetManualBfVector(Ptr<PhasedArrayModel> antenna, Angles angle)
 {
-    uint32_t numElements = antenna->GetNumberOfElements();
+    uint32_t numElements = antenna->GetNumElems();
 
     PhasedArrayModel::ComplexVector bfVector(numElements);
 
@@ -341,7 +341,7 @@ MmWaveSvdBeamformingTestCase::DoRun(void)
                               tol,
                               "There should not be a magnitude difference between the computed and "
                               "expected beamforming vector");
-    for (uint32_t i = 0; i < txAntenna->GetNumberOfElements(); ++i)
+    for (uint32_t i = 0; i < txAntenna->GetNumElems(); ++i)
     {
         std::complex<double> correctedBf = txBfVector[i] / txPhaseDifference;
         double magDiff = std::abs(correctedBf - manualTxBfVector[i]);
@@ -356,7 +356,7 @@ MmWaveSvdBeamformingTestCase::DoRun(void)
                               tol,
                               "There should not be a magnitude difference between the computed and "
                               "expected beamforming vector");
-    for (uint32_t i = 0; i < rxAntenna->GetNumberOfElements(); ++i)
+    for (uint32_t i = 0; i < rxAntenna->GetNumElems(); ++i)
     {
         std::complex<double> correctedBf = rxBfVector[i] / rxPhaseDifference;
         double magDiff = std::abs(correctedBf - manualRxBfVector[i]);
@@ -376,7 +376,7 @@ class MmWaveBeamformingTest : public TestSuite
 };
 
 MmWaveBeamformingTest::MmWaveBeamformingTest()
-    : TestSuite("mmwave-beamforming-test", UNIT)
+    : TestSuite("mmwave-beamforming-test", Type::UNIT)
 {
     // TestDuration for TestCase can be QUICK, EXTENSIVE or TAKES_FOREVER
     AddTestCase(new MmWaveDftBeamformingTestCase, TestCase::QUICK);

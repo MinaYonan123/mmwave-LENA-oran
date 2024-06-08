@@ -32,6 +32,9 @@
 
 #include <array>
 
+#undef NS_LOG_APPEND_CONTEXT
+#define NS_LOG_APPEND_CONTEXT WIFI_PHY_NS_LOG_APPEND_CONTEXT(m_wifiPhy)
+
 namespace ns3
 {
 
@@ -74,7 +77,7 @@ const std::array<uint64_t, 4>&
 GetDsssRatesBpsList()
 {
     return s_dsssRatesBpsList;
-};
+}
 
 DsssPhy::DsssPhy()
 {
@@ -311,7 +314,7 @@ DsssPhy::GetDsssRate(uint64_t rate)
     {                                                                                              \
         static WifiMode mode = CreateDsssMode(#x, WIFI_MOD_CLASS_##m);                             \
         return mode;                                                                               \
-    };
+    }
 
 // Clause 15 rates (DSSS)
 GET_DSSS_MODE(DsssRate1Mbps, DSSS)

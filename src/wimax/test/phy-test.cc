@@ -103,7 +103,7 @@ Ns3WimaxSimpleOFDMTestCase::DoRunOnce(double FrameDuration)
         }
     }
     Simulator::Destroy();
-    return (false); // Test was ok, all the SSs are registered
+    return false; // Test was ok, all the SSs are registered
 }
 
 void
@@ -188,10 +188,10 @@ class Ns3WimaxPhyTestSuite : public TestSuite
 };
 
 Ns3WimaxPhyTestSuite::Ns3WimaxPhyTestSuite()
-    : TestSuite("wimax-phy-layer", UNIT)
+    : TestSuite("wimax-phy-layer", Type::UNIT)
 {
-    AddTestCase(new Ns3WimaxSNRtoBLERTestCase, TestCase::QUICK);
-    AddTestCase(new Ns3WimaxSimpleOFDMTestCase, TestCase::QUICK);
+    AddTestCase(new Ns3WimaxSNRtoBLERTestCase, TestCase::Duration::QUICK);
+    AddTestCase(new Ns3WimaxSimpleOFDMTestCase, TestCase::Duration::QUICK);
 }
 
 static Ns3WimaxPhyTestSuite ns3WimaxPhyTestSuite; ///< the test suite

@@ -38,6 +38,9 @@
 
 #include <algorithm>
 
+#undef NS_LOG_APPEND_CONTEXT
+#define NS_LOG_APPEND_CONTEXT WIFI_PHY_NS_LOG_APPEND_CONTEXT(m_wifiPhy)
+
 namespace ns3
 {
 
@@ -382,7 +385,7 @@ HePhy::StartReceivePreamble(Ptr<const WifiPpdu> ppdu,
                         << GetDuration(WIFI_PPDU_FIELD_TRAINING, txVector).As(Time::NS));
             auto event = CreateInterferenceEvent(ppdu, rxDuration, rxPowersW, !hePortionStarted);
             uint16_t staId = GetStaId(ppdu);
-            NS_ASSERT(m_beginMuPayloadRxEvents.find(staId) == m_beginMuPayloadRxEvents.end());
+            NS_ASSERT(!m_beginMuPayloadRxEvents.contains(staId));
             m_beginMuPayloadRxEvents[staId] =
                 Simulator::Schedule(GetDuration(WIFI_PPDU_FIELD_TRAINING, txVector),
                                     &HePhy::StartReceiveMuPayload,
@@ -461,9 +464,8 @@ HePhy::DoGetEvent(Ptr<const WifiPpdu> ppdu, RxPowerWattPerChannelBand& rxPowersW
     // detection window. If a preamble is received after the preamble detection window, it is stored
     // anyway because this is needed for HE TB PPDUs in order to properly update the received power
     // in InterferenceHelper. The map is cleaned anyway at the end of the current reception.
-    const auto uidPreamblePair = std::make_pair(ppdu->GetUid(), ppdu->GetPreamble());
     const auto& currentPreambleEvents = GetCurrentPreambleEvents();
-    const auto it = currentPreambleEvents.find(uidPreamblePair);
+    const auto it = currentPreambleEvents.find({ppdu->GetUid(), ppdu->GetPreamble()});
     if (const auto isResponseToTrigger = (m_previouslyTxPpduUid == ppdu->GetUid());
         ppdu->GetType() == WIFI_PPDU_TYPE_UL_MU || isResponseToTrigger)
     {
@@ -531,14 +533,14 @@ HePhy::HandleRxPpduWithSameContent(Ptr<Event> event,
         (GetCurrentEvent()->GetPpdu()->GetUid() != ppdu->GetUid()))
     {
         NS_LOG_DEBUG("Drop packet because already receiving another HE TB PPDU");
-        m_wifiPhy->NotifyRxDrop(GetAddressedPsduInPpdu(ppdu), RXING);
+        m_wifiPhy->NotifyRxPpduDrop(ppdu, RXING);
     }
     else if (const auto isResponseToTrigger = (m_previouslyTxPpduUid == ppdu->GetUid());
              isResponseToTrigger && GetCurrentEvent() &&
              (GetCurrentEvent()->GetPpdu()->GetUid() != ppdu->GetUid()))
     {
         NS_LOG_DEBUG("Drop packet because already receiving another response to a trigger frame");
-        m_wifiPhy->NotifyRxDrop(GetAddressedPsduInPpdu(ppdu), RXING);
+        m_wifiPhy->NotifyRxPpduDrop(ppdu, RXING);
     }
 }
 
@@ -669,8 +671,7 @@ HePhy::ProcessSigA(Ptr<Event> event, PhyFieldRxStatus status)
                 return PhyFieldRxStatus(false, FILTERED, DROP);
             }
             uint16_t staId = ppdu->GetStaId();
-            if (m_trigVector->GetHeMuUserInfoMap().find(staId) ==
-                m_trigVector->GetHeMuUserInfoMap().end())
+            if (!m_trigVector->GetHeMuUserInfoMap().contains(staId))
             {
                 NS_LOG_DEBUG("TB PPDU received from un unexpected STA ID");
                 return PhyFieldRxStatus(false, FILTERED, DROP);
@@ -702,6 +703,12 @@ void
 HePhy::SetObssPdAlgorithm(const Ptr<ObssPdAlgorithm> algorithm)
 {
     m_obssPdAlgorithm = algorithm;
+}
+
+Ptr<ObssPdAlgorithm>
+HePhy::GetObssPdAlgorithm() const
+{
+    return m_obssPdAlgorithm;
 }
 
 void
@@ -825,7 +832,7 @@ HePhy::DoStartReceivePayload(Ptr<Event> event)
             Simulator::Schedule(timeToEndRx, &HePhy::ResetReceive, this, event));
         // Cancel all scheduled events for MU payload reception
         NS_ASSERT(!m_beginMuPayloadRxEvents.empty() &&
-                  m_beginMuPayloadRxEvents.begin()->second.IsRunning());
+                  m_beginMuPayloadRxEvents.begin()->second.IsPending());
         for (auto& beginMuPayloadRxEvent : m_beginMuPayloadRxEvents)
         {
             beginMuPayloadRxEvent.second.Cancel();
@@ -836,14 +843,14 @@ HePhy::DoStartReceivePayload(Ptr<Event> event)
     {
         NS_LOG_DEBUG("Receiving PSDU in HE TB PPDU");
         uint16_t staId = GetStaId(ppdu);
-        m_signalNoiseMap.insert({std::make_pair(ppdu->GetUid(), staId), SignalNoiseDbm()});
-        m_statusPerMpduMap.insert({std::make_pair(ppdu->GetUid(), staId), std::vector<bool>()});
+        m_signalNoiseMap.insert({{ppdu->GetUid(), staId}, SignalNoiseDbm()});
+        m_statusPerMpduMap.insert({{ppdu->GetUid(), staId}, std::vector<bool>()});
         // for HE TB PPDUs, ScheduleEndOfMpdus and EndReceive are scheduled by
         // StartReceiveMuPayload
         NS_ASSERT(!m_beginMuPayloadRxEvents.empty());
         for (auto& beginMuPayloadRxEvent : m_beginMuPayloadRxEvents)
         {
-            NS_ASSERT(beginMuPayloadRxEvent.second.IsRunning());
+            NS_ASSERT(beginMuPayloadRxEvent.second.IsPending());
         }
     }
 
@@ -858,7 +865,6 @@ HePhy::RxPayloadSucceeded(Ptr<const WifiPsdu> psdu,
                           const std::vector<bool>& statusPerMpdu)
 {
     NS_LOG_FUNCTION(this << *psdu << txVector);
-    m_state->NotifyRxPsduSucceeded(psdu, rxSignalInfo, txVector, staId, statusPerMpdu);
     if (!IsUlMu(txVector.GetPreambleType()))
     {
         m_state->SwitchFromRxEndOk();
@@ -873,7 +879,6 @@ void
 HePhy::RxPayloadFailed(Ptr<const WifiPsdu> psdu, double snr, const WifiTxVector& txVector)
 {
     NS_LOG_FUNCTION(this << *psdu << txVector << snr);
-    m_state->NotifyRxPsduFailed(psdu, snr);
     if (!txVector.IsUlMu())
     {
         m_state->SwitchFromRxEndError();
@@ -959,8 +964,8 @@ HePhy::StartReceiveMuPayload(Ptr<Event> event)
     m_endRxPayloadEvents.push_back(
         Simulator::Schedule(payloadDuration, &HePhy::EndReceivePayload, this, event));
     uint16_t staId = GetStaId(ppdu);
-    m_signalNoiseMap.insert({std::make_pair(ppdu->GetUid(), staId), SignalNoiseDbm()});
-    m_statusPerMpduMap.insert({std::make_pair(ppdu->GetUid(), staId), std::vector<bool>()});
+    m_signalNoiseMap.insert({{ppdu->GetUid(), staId}, SignalNoiseDbm()});
+    m_statusPerMpduMap.insert({{ppdu->GetUid(), staId}, std::vector<bool>()});
     // Notify the MAC about the start of a new HE TB PPDU, so that it can reschedule the timeout
     NotifyPayloadBegin(ppdu->GetTxVector(), payloadDuration);
 }
@@ -990,14 +995,12 @@ HePhy::GetRuBandForTx(const WifiTxVector& txVector, uint16_t staId) const
         channelWidth,
         ru.GetRuType(),
         ru.GetPhyIndex(channelWidth, m_wifiPhy->GetOperatingChannel().GetPrimaryChannelIndex(20)));
-    HeRu::SubcarrierRange subcarrierRange =
-        std::make_pair(group.front().first, group.back().second);
     // for a TX spectrum, the guard bandwidth is a function of the transmission channel width
     // and the spectrum width equals the transmission channel width (hence bandIndex equals 0)
     auto indices = ConvertHeRuSubcarriers(channelWidth,
                                           GetGuardBandwidth(channelWidth),
                                           m_wifiPhy->GetSubcarrierSpacing(),
-                                          subcarrierRange,
+                                          {group.front().first, group.back().second},
                                           0);
     auto frequencies = m_wifiPhy->ConvertIndicesToFrequencies(indices);
     return {indices, frequencies};
@@ -1014,15 +1017,13 @@ HePhy::GetRuBandForRx(const WifiTxVector& txVector, uint16_t staId) const
         channelWidth,
         ru.GetRuType(),
         ru.GetPhyIndex(channelWidth, m_wifiPhy->GetOperatingChannel().GetPrimaryChannelIndex(20)));
-    HeRu::SubcarrierRange subcarrierRange =
-        std::make_pair(group.front().first, group.back().second);
     // for an RX spectrum, the guard bandwidth is a function of the operating channel width
     // and the spectrum width equals the operating channel width
     auto indices = ConvertHeRuSubcarriers(
         channelWidth,
         GetGuardBandwidth(m_wifiPhy->GetChannelWidth()),
         m_wifiPhy->GetSubcarrierSpacing(),
-        subcarrierRange,
+        {group.front().first, group.back().second},
         m_wifiPhy->GetOperatingChannel().GetPrimaryChannelIndex(channelWidth));
     auto frequencies = m_wifiPhy->ConvertIndicesToFrequencies(indices);
     return {indices, frequencies};
@@ -1047,13 +1048,11 @@ HePhy::GetNonOfdmaBand(const WifiTxVector& txVector, uint16_t staId) const
         nonOfdmaRu.GetRuType(),
         nonOfdmaRu.GetPhyIndex(channelWidth,
                                m_wifiPhy->GetOperatingChannel().GetPrimaryChannelIndex(20)));
-    HeRu::SubcarrierRange subcarrierRange =
-        std::make_pair(groupPreamble.front().first, groupPreamble.back().second);
     auto indices = ConvertHeRuSubcarriers(
         channelWidth,
         GetGuardBandwidth(m_wifiPhy->GetChannelWidth()),
         m_wifiPhy->GetSubcarrierSpacing(),
-        subcarrierRange,
+        {groupPreamble.front().first, groupPreamble.back().second},
         m_wifiPhy->GetOperatingChannel().GetPrimaryChannelIndex(channelWidth));
     auto frequencies = m_wifiPhy->ConvertIndicesToFrequencies(indices);
     return {indices, frequencies};
@@ -1520,8 +1519,7 @@ HePhy::CalculateTxDuration(WifiConstPsduMap psduMap,
         if (txVector.IsDlMu())
         {
             NS_ASSERT(txVector.GetModulationClass() >= WIFI_MOD_CLASS_HE);
-            WifiTxVector::HeMuUserInfoMap userInfoMap = txVector.GetHeMuUserInfoMap();
-            NS_ABORT_MSG_IF(userInfoMap.find(staIdPsdu.first) == userInfoMap.end(),
+            NS_ABORT_MSG_IF(!txVector.GetHeMuUserInfoMap().contains(staIdPsdu.first),
                             "STA-ID in psduMap (" << staIdPsdu.first
                                                   << ") should be referenced in txVector");
         }
@@ -1580,7 +1578,7 @@ HePhy::GetHeMcs(uint8_t index)
     {                                                                                              \
         static WifiMode mcs = CreateHeMcs(x);                                                      \
         return mcs;                                                                                \
-    };
+    }
 
 GET_HE_MCS(0)
 GET_HE_MCS(1)
@@ -1764,7 +1762,7 @@ HePhy::GetWifiConstPsduMap(Ptr<const WifiPsdu> psdu, const WifiTxVector& txVecto
         staId = txVector.GetHeMuUserInfoMap().begin()->first;
     }
 
-    return WifiConstPsduMap({std::make_pair(staId, psdu)});
+    return WifiConstPsduMap({{staId, psdu}});
 }
 
 uint32_t

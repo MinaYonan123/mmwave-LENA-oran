@@ -24,6 +24,8 @@
 
 namespace ns3
 {
+namespace lrwpan
+{
 
 /***********************************************************
  *                Beacon MAC Payload
@@ -55,7 +57,7 @@ uint32_t
 BeaconPayloadHeader::GetSerializedSize() const
 {
     uint32_t size = 0;
-    size += m_superframeField.GetSerializedSize();
+    size += sizeof(m_superframeField);
     size += m_gtsFields.GetSerializedSize();
     size += m_pndAddrFields.GetSerializedSize();
 
@@ -66,7 +68,7 @@ void
 BeaconPayloadHeader::Serialize(Buffer::Iterator start) const
 {
     Buffer::Iterator i = start;
-    i = m_superframeField.Serialize(i);
+    i.WriteU16(m_superframeField);
     i = m_gtsFields.Serialize(i);
     i = m_pndAddrFields.Serialize(i);
 }
@@ -75,7 +77,7 @@ uint32_t
 BeaconPayloadHeader::Deserialize(Buffer::Iterator start)
 {
     Buffer::Iterator i = start;
-    i = m_superframeField.Deserialize(i);
+    m_superframeField = i.ReadU16();
     i = m_gtsFields.Deserialize(i);
     i = m_pndAddrFields.Deserialize(i);
 
@@ -91,7 +93,7 @@ BeaconPayloadHeader::Print(std::ostream& os) const
 }
 
 void
-BeaconPayloadHeader::SetSuperframeSpecField(SuperframeField sf)
+BeaconPayloadHeader::SetSuperframeSpecField(uint16_t sf)
 {
     m_superframeField = sf;
 }
@@ -108,7 +110,7 @@ BeaconPayloadHeader::SetPndAddrFields(PendingAddrFields pndAddrFields)
     m_pndAddrFields = pndAddrFields;
 }
 
-SuperframeField
+uint16_t
 BeaconPayloadHeader::GetSuperframeSpecField() const
 {
     return m_superframeField;
@@ -166,26 +168,21 @@ CommandPayloadHeader::GetSerializedSize() const
     switch (m_cmdFrameId)
     {
     case ASSOCIATION_REQ:
-        size += m_capabilityInfo.GetSerializedSize();
+        size += 1; // (Capability field)
         break;
     case ASSOCIATION_RESP:
         size += 3; // (short address + Association Status)
         break;
     case DISASSOCIATION_NOTIF:
-        break;
     case DATA_REQ:
-        break;
     case PANID_CONFLICT:
-        break;
     case ORPHAN_NOTIF:
-        break;
     case BEACON_REQ:
         break;
     case COOR_REALIGN:
         size += 8;
         break;
     case GTS_REQ:
-        break;
     case CMD_RESERVED:
         break;
     }
@@ -201,20 +198,16 @@ CommandPayloadHeader::Serialize(Buffer::Iterator start) const
     switch (m_cmdFrameId)
     {
     case ASSOCIATION_REQ:
-        i = m_capabilityInfo.Serialize(i);
+        i.WriteU8(m_capabilityInfo);
         break;
     case ASSOCIATION_RESP:
         WriteTo(i, m_shortAddr);
         i.WriteU8(m_assocStatus);
         break;
     case DISASSOCIATION_NOTIF:
-        break;
     case DATA_REQ:
-        break;
     case PANID_CONFLICT:
-        break;
     case ORPHAN_NOTIF:
-        break;
     case BEACON_REQ:
         break;
     case COOR_REALIGN:
@@ -225,7 +218,6 @@ CommandPayloadHeader::Serialize(Buffer::Iterator start) const
         i.WriteU8(m_logChPage);
         break;
     case GTS_REQ:
-        break;
     case CMD_RESERVED:
         break;
     }
@@ -240,20 +232,16 @@ CommandPayloadHeader::Deserialize(Buffer::Iterator start)
     switch (m_cmdFrameId)
     {
     case ASSOCIATION_REQ:
-        i = m_capabilityInfo.Deserialize(i);
+        m_capabilityInfo = i.ReadU8();
         break;
     case ASSOCIATION_RESP:
         ReadFrom(i, m_shortAddr);
-        m_assocStatus = static_cast<AssocStatus>(i.ReadU8());
+        m_assocStatus = i.ReadU8();
         break;
     case DISASSOCIATION_NOTIF:
-        break;
     case DATA_REQ:
-        break;
     case PANID_CONFLICT:
-        break;
     case ORPHAN_NOTIF:
-        break;
     case BEACON_REQ:
         break;
     case COOR_REALIGN:
@@ -264,7 +252,6 @@ CommandPayloadHeader::Deserialize(Buffer::Iterator start)
         m_logChPage = i.ReadU8();
         break;
     case GTS_REQ:
-        break;
     case CMD_RESERVED:
         break;
     }
@@ -278,25 +265,23 @@ CommandPayloadHeader::Print(std::ostream& os) const
     os << "| MAC Command Frame ID | = " << static_cast<uint32_t>(m_cmdFrameId);
     switch (m_cmdFrameId)
     {
-    case ASSOCIATION_REQ:
-        os << "| Device Type FFD | = " << m_capabilityInfo.IsDeviceTypeFfd()
-           << "| Alternative Power Source available | = " << m_capabilityInfo.IsPowSrcAvailable()
-           << "| Receiver on when Idle | = " << m_capabilityInfo.IsReceiverOnWhenIdle()
-           << "| Security capable | = " << m_capabilityInfo.IsSecurityCapability()
-           << "| Allocate address on | = " << m_capabilityInfo.IsShortAddrAllocOn();
+    case ASSOCIATION_REQ: {
+        CapabilityField capability(m_capabilityInfo);
+        os << "| Device Type FFD | = " << capability.IsDeviceTypeFfd()
+           << "| Alternative Power Source available | = " << capability.IsPowSrcAvailable()
+           << "| Receiver on when Idle | = " << capability.IsReceiverOnWhenIdle()
+           << "| Security capable | = " << capability.IsSecurityCapability()
+           << "| Allocate address on | = " << capability.IsShortAddrAllocOn();
         break;
+    }
     case ASSOCIATION_RESP:
         os << "| Assigned Short Address | = " << m_shortAddr
            << "| Status Response | = " << m_assocStatus;
         break;
     case DISASSOCIATION_NOTIF:
-        break;
     case DATA_REQ:
-        break;
     case PANID_CONFLICT:
-        break;
     case ORPHAN_NOTIF:
-        break;
     case BEACON_REQ:
         break;
     case COOR_REALIGN:
@@ -307,8 +292,8 @@ CommandPayloadHeader::Print(std::ostream& os) const
            << "| Page Num.| = " << static_cast<uint32_t>(m_logChPage);
         break;
     case GTS_REQ:
-        break;
     case CMD_RESERVED:
+    default:
         break;
     }
 }
@@ -320,7 +305,7 @@ CommandPayloadHeader::SetCommandFrameType(MacCommand macCommand)
 }
 
 void
-CommandPayloadHeader::SetCapabilityField(CapabilityField cap)
+CommandPayloadHeader::SetCapabilityField(uint8_t cap)
 {
     NS_ASSERT(m_cmdFrameId == ASSOCIATION_REQ);
     m_capabilityInfo = cap;
@@ -390,7 +375,7 @@ CommandPayloadHeader::SetShortAddr(Mac16Address shortAddr)
 }
 
 void
-CommandPayloadHeader::SetAssociationStatus(AssocStatus status)
+CommandPayloadHeader::SetAssociationStatus(uint8_t status)
 {
     NS_ASSERT(m_cmdFrameId == ASSOCIATION_RESP);
     m_assocStatus = status;
@@ -402,14 +387,14 @@ CommandPayloadHeader::GetShortAddr() const
     return m_shortAddr;
 }
 
-CommandPayloadHeader::AssocStatus
+uint8_t
 CommandPayloadHeader::GetAssociationStatus() const
 {
     NS_ASSERT(m_cmdFrameId == ASSOCIATION_RESP);
     return m_assocStatus;
 }
 
-CapabilityField
+uint8_t
 CommandPayloadHeader::GetCapabilityField() const
 {
     NS_ASSERT(m_cmdFrameId == ASSOCIATION_REQ);
@@ -444,4 +429,5 @@ CommandPayloadHeader::GetPanId() const
     return m_panid;
 }
 
+} // namespace lrwpan
 } // namespace ns3

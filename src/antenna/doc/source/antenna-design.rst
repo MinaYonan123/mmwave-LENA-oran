@@ -113,7 +113,9 @@ pattern.
 ParabolicAntennaModel
 +++++++++++++++++++++
 
-This model is based on the parabolic approximation of the main lobe radiation pattern. It is often used in the context of cellular system to model the radiation pattern of a cell sector, see for instance [R4-092042a]_ and [Calcev]_. The antenna gain in dB is determined as:
+This model is based on the parabolic approximation of the main lobe radiation pattern. It is often
+used in the context of cellular system to model the radiation pattern of a cell sector, see for
+instance [R4-092042a]_ and [Calcev]_. The antenna gain in dB is determined as:
 
 .. math::
 
@@ -146,7 +148,7 @@ For details on Phased Array Antennas see for instance [Mailloux]_.
 
 Derived classes must implement the following functions:
 
-* GetNumberOfElements: returns the number of antenna elements
+* GetNumElems: returns the number of antenna elements
 * GetElementLocation: returns the location of the antenna element with the specified index, normalized with respect to the wavelength
 * GetElementFieldPattern: returns the horizontal and vertical components of the antenna element field pattern at the specified direction. Same polarization (configurable) for all antenna elements of the array is considered.
 
@@ -160,10 +162,10 @@ UniformPlanarArray
 
 The class UniformPlanarArray is a generic implementation of Uniform Planar Arrays (UPAs),
 supporting rectangular and linear regular lattices.
-It loosely follows the implementation described in the 3GPP TR 38.901 [38901]_,
-considering only a single a single panel, i.e., :math:`N_{g} = M_{g} = 1`.
+It closely follows the implementation described in the 3GPP TR 38.901 [38901]_,
+considering only a single panel, i.e., :math:`N_{g} = M_{g} = 1`.
 
-By default, the array is orthogonal to the x-axis, pointing towards the positive
+By default, the antenna array is orthogonal to the x-axis, pointing towards the positive
 direction, but the orientation can be changed through the attributes "BearingAngle",
 which adjusts the azimuth angle, and "DowntiltAngle", which adjusts the elevation angle.
 The slant angle is instead fixed and assumed to be 0.
@@ -173,8 +175,58 @@ through the attributes "NumRows" and "NumColumns", while the spacing between the
 and vertical elements can be configured through the attributes "AntennaHorizontalSpacing"
 and "AntennaVerticalSpacing".
 
-The polarization of each antenna element in the array is determined by the polarization
-slant angle through the attribute "PolSlantAngle", as described in [38901]_ (i.e., :math:`{\zeta}`).
+UniformPlannarArray supports the concept of antenna ports following the sub-array partition
+model for TXRU virtualization, as described in Section 5.2.2 of 3GPP TR 36.897 [3GPP_TR36897]_.
+The number of antenna ports in vertical and horizontal directions can be configured through
+the attributes "NumVerticalPorts" and "NumHorizontalPorts", respectively. For example,
+if "NumRows" and "NumColumns" are configured to 2 and 4, and the number of
+"NumVerticalPorts" and "NumHorizontalPorts" to 1 and 2, then the antenna elements belonging
+to the first two columns of the antenna array will belong to the first antenna port,
+and the third and the fourth columns will belong to the second antenna port. Note that
+"NumRows" and "NumColumns" must be a multiple of "NumVerticalPorts" and "NumHorizontalPorts",
+respectively.
+
+Whether the antenna is dual-polarized or not is configured through the attribute
+"IsDualPolarized". In case the antenna array is dual polarized, the total number
+of antenna elements is doubled and the two polarizations are overlapped in space.
+The polarization slant angle of the antenna elements belonging to the first polarization
+are configured through the attribute "PolSlantAngle"; while the antenna elements of
+the second polarization have the polarization slant angle minus 90 degrees,
+as described in [38901]_ (i.e., :math:`{\zeta}`).
+
+CircularApertureAntennaModel
+++++++++++++++++++++++++++++
+
+The class CircularApertureAntennaModel implements the radiation pattern described in [38811]_.
+Specifically, the latter represents parabolic antennas, i.e., antennas which are typically used
+for achieving long range communications such as earth-to-satellite links.
+The default boresight orientation is parallel to the positive z-axis, and it can be tuned by
+using the AntennaInclination and AntennaAzimuth parameters.
+This implementation provides an exact characterization of the antenna field pattern, by leveraging
+the standard library Bessel functions implementation introduced with C++17.
+Accordingly, the antenna gain :math:`G` at an angle :math:`\theta` from the boresight main beam
+is evaluated as:
+
+.. math::
+   G \cdot 4\left | \frac{J_{1}\left ( k\cdot a\cdot sin\theta \right )}{k\cdot a\cdot sin\theta} \right
+   |^{2}\;\;\;\;\; for\; 0<\left | \theta \right |\leq 90^{\circ} \\
+   G \cdot 1\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\; for\; \theta=0
+
+where :math:`J_{1}()` is the Bessel function of the first kind and first order, and :math:`a` is
+the radius of the antenna's circular aperture.
+The parameter :math:`k` is equal to :math:`k=\frac{2\pi f}{x}`, where :math:`f` is the carrier
+frequency, and :math:`c` is the speed of light in vacuum.
+The parameters :math:`G` (in logarithmic scale), :math:`a` and :math:`f` can be configured by using
+the attributes "AntennaMaxGainDb", "AntennaCircularApertureRadius" and "OperatingFrequency", respectively.
+This type of antennas features a symmetric radiation pattern, meaning that a single angle, measured
+from the boresight direction, is sufficient to characterize the radiation strength along a given direction.
+
+.. _fig-circular-antenna-pattern:
+
+.. figure:: figures/circular-antenna-pattern.png
+   :align: center
+
+   Circular aperture antenna radiation pattern with :math:`G =` 38.5 dB and :math:`a =` 10 :math:`\frac{c}{f}.`
 
 
 .. [Balanis] C.A. Balanis, "Antenna Theory - Analysis and Design",  Wiley, 2nd Ed.
@@ -192,4 +244,9 @@ slant angle through the attribute "PolSlantAngle", as described in [38901]_ (i.e
 
 .. [38901] 3GPP. 2018. TR 38.901, Study on channel model for frequencies from 0.5 to 100 GHz, V15.0.0. (2018-06).
 
+.. [38811] 3GPP. 2018. TR 38.811, Study on New Radio (NR) to support non-terrestrial networks, V15.4.0. (2020-09).
+
 .. [Mailloux] Robert J. Mailloux, "Phased Array Antenna Handbook", Artech House, 2nd Ed.
+
+.. [3GPP_TR36897] 3GPP. 2015. TR 36.897. Study on elevation beamforming / Full-Dimension (FD)
+   Multiple Input Multiple Output (MIMO) for LTE. V13.0.0. (2015-06)

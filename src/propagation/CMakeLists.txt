@@ -30,8 +30,7 @@ build_lib(
     model/propagation-loss-model.h
     model/three-gpp-propagation-loss-model.h
     model/three-gpp-v2v-propagation-loss-model.h
-  LIBRARIES_TO_LINK ${libnetwork}
-                    ${libmobility}
+  LIBRARIES_TO_LINK ${libmobility}
   TEST_SOURCES
     test/channel-condition-model-test-suite.cc
     test/itu-r-1411-los-test-suite.cc
@@ -41,5 +40,5 @@ build_lib(
     test/probabilistic-v2v-channel-condition-model-test.cc
     test/propagation-loss-model-test-suite.cc
     test/three-gpp-propagation-loss-model-test-suite.cc
-    test/three-gpp-propagation-loss-model-test-suite.cc
+    test/three-gpp-ntn-propagation-loss-model-test-suite.cc
 )

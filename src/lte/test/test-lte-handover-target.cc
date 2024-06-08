@@ -393,7 +393,7 @@ class LteHandoverTargetTestSuite : public TestSuite
 };
 
 LteHandoverTargetTestSuite::LteHandoverTargetTestSuite()
-    : TestSuite("lte-handover-target", SYSTEM)
+    : TestSuite("lte-handover-target", Type::SYSTEM)
 {
     // LogComponentEnable ("LteHandoverTargetTest", LOG_PREFIX_ALL);
     // LogComponentEnable ("LteHandoverTargetTest", LOG_LEVEL_ALL);
@@ -415,7 +415,7 @@ LteHandoverTargetTestSuite::LteHandoverTargetTestSuite()
                                               1,
                                               3,
                                               "ns3::A2A4RsrqHandoverAlgorithm"),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteHandoverTargetTestCase("4 cells and strongest cell algorithm",
                                               Vector(20, 40, 0),
                                               2,
@@ -423,7 +423,7 @@ LteHandoverTargetTestSuite::LteHandoverTargetTestSuite()
                                               1,
                                               3,
                                               "ns3::A3RsrpHandoverAlgorithm"),
-                TestCase::QUICK);
+                Duration::QUICK);
 
     /*
      *    4 --- 5 --- 6
@@ -438,7 +438,7 @@ LteHandoverTargetTestSuite::LteHandoverTargetTestSuite()
                                               5,
                                               2,
                                               "ns3::A2A4RsrqHandoverAlgorithm"),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
     AddTestCase(new LteHandoverTargetTestCase("6 cells and strongest cell algorithm",
                                               Vector(150, 90, 0),
                                               3,
@@ -446,7 +446,7 @@ LteHandoverTargetTestSuite::LteHandoverTargetTestSuite()
                                               5,
                                               2,
                                               "ns3::A3RsrpHandoverAlgorithm"),
-                TestCase::EXTENSIVE);
+                Duration::EXTENSIVE);
 
 } // end of LteHandoverTargetTestSuite ()
 

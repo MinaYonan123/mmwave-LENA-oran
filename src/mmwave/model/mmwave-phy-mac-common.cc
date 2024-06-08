@@ -47,8 +47,8 @@ MmWavePhyMacCommon::GetTypeId(void)
             .AddAttribute(
                 "Numerology",
                 "The PHY layer numerology",
-                EnumValue(2),
-                MakeEnumAccessor(&MmWavePhyMacCommon::SetNumerology),
+                EnumValue<Numerology>(NrNumerology2),
+                MakeEnumAccessor<Numerology>(&MmWavePhyMacCommon::SetNumerology),
                 MakeEnumChecker(NrNumerology2, "NrNumerology2", NrNumerology3, "NrNumerology3"))
             .AddAttribute("Bandwidth",
                           "The carrier bandwidth in Hz",

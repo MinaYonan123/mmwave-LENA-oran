@@ -271,9 +271,10 @@ class Time
      * - `d`  (days)
      * - `y`  (years)
      *
-     * There can be no white space between the numerical portion
-     * and the units.  Any otherwise malformed string causes a fatal error to
-     * occur.
+     * There must be no whitespace between the numerical portion
+     * and the unit. If the string only contains a number, it is treated as seconds.
+     * Any otherwise malformed string causes a fatal error to occur.
+     *
      * \param [in] s The string to parse into a Time
      */
     explicit Time(const std::string& s);
@@ -838,13 +839,6 @@ namespace TracedValueCallback
 typedef void (*Time)(Time oldValue, Time newValue);
 
 } // namespace TracedValueCallback
-
-/**
- * Force static initialization order of Time in each compilation unit.
- * This is internal to the Time implementation.
- * \relates Time
- */
-static bool g_TimeStaticInit [[maybe_unused]] = Time::StaticInit();
 
 /**
  * Equality operator for Time.
@@ -1413,9 +1407,9 @@ ATTRIBUTE_VALUE_DEFINE(Time);
 ATTRIBUTE_ACCESSOR_DEFINE(Time);
 
 /**
- *  \ingroup attribute_time
- *  Helper to make a Time checker with bounded range.
- *  Both limits are inclusive
+ * \ingroup attribute_Time
+ * Helper to make a Time checker with bounded range.
+ * Both limits are inclusive
  *
  * \param [in] min Minimum allowed value.
  * \param [in] max Maximum allowed value.
@@ -1424,7 +1418,7 @@ ATTRIBUTE_ACCESSOR_DEFINE(Time);
 Ptr<const AttributeChecker> MakeTimeChecker(const Time min, const Time max);
 
 /**
- * \ingroup attribute_time
+ * \ingroup attribute_Time
  * Helper to make an unbounded Time checker.
  *
  * \return The AttributeChecker
@@ -1436,7 +1430,7 @@ MakeTimeChecker()
 }
 
 /**
- * \ingroup attribute_time
+ * \ingroup attribute_Time
  * Helper to make a Time checker with a lower bound.
  *
  * \param [in] min Minimum allowed value.
@@ -1488,6 +1482,27 @@ class TimeWithUnit
  * \returns The type name as a string.
  */
 TYPENAMEGET_DEFINE(Time);
+
+/**
+ * \ingroup time
+ *
+ * \brief Helper class to force static initialization
+ * of Time in each compilation unit, ensuring it is
+ * initialized before usage.
+ * This is internal to the Time implementation.
+ * \relates Time
+ */
+class TimeInitializationHelper
+{
+  public:
+    /** Default constructor calls Time::StaticInit */
+    TimeInitializationHelper()
+    {
+        Time::StaticInit();
+    }
+};
+
+static TimeInitializationHelper g_timeInitHelper; ///< Instance of Time static initialization helper
 
 } // namespace ns3
 

@@ -872,7 +872,7 @@ FlushTest::DoRun()
     Ptr<Ipv4Interface> iface = DynamicCast<Ipv4L3Protocol>(v4)->GetInterface(index);
     Ptr<ArpCache> arpCache = iface->GetArpCache();
     ArpCache::Entry* arpCacheEntry = arpCache->Add(Ipv4Address("10.1.1.4"));
-    arpCacheEntry->SetMacAddress(Mac48Address("04-06-00:00:00:00:00:01"));
+    arpCacheEntry->SetMacAddress(Mac48Address("00:00:00:00:00:01"));
     arpCacheEntry->MarkPermanent();
 
     // Manually add an PERMANENT ndisc entry
@@ -882,7 +882,7 @@ FlushTest::DoRun()
     Ptr<Ipv6Interface> ifacev6 = DynamicCast<Ipv6L3Protocol>(v6)->GetInterface(index);
     Ptr<NdiscCache> ndiscCache = ifacev6->GetNdiscCache();
     NdiscCache::Entry* ndiscCacheEntry = ndiscCache->Add(Ipv6Address("2001::200:ff:fe00:4"));
-    ndiscCacheEntry->SetMacAddress(Mac48Address("04-06-00:00:00:00:00:01"));
+    ndiscCacheEntry->SetMacAddress(Mac48Address("00:00:00:00:00:01"));
     ndiscCacheEntry->MarkPermanent();
 
     // flush auto-generated cache
@@ -1230,15 +1230,15 @@ class NeighborCacheTestSuite : public TestSuite
 {
   public:
     NeighborCacheTestSuite()
-        : TestSuite("neighbor-cache", UNIT)
+        : TestSuite("neighbor-cache", Type::UNIT)
     {
-        AddTestCase(new DynamicNeighborCacheTest, TestCase::QUICK);
-        AddTestCase(new ChannelTest, TestCase::QUICK);
-        AddTestCase(new NetDeviceContainerTest, TestCase::QUICK);
-        AddTestCase(new InterfaceContainerTest, TestCase::QUICK);
-        AddTestCase(new FlushTest, TestCase::QUICK);
-        AddTestCase(new DuplicateTest, TestCase::QUICK);
-        AddTestCase(new DynamicPartialTest, TestCase::QUICK);
+        AddTestCase(new DynamicNeighborCacheTest, TestCase::Duration::QUICK);
+        AddTestCase(new ChannelTest, TestCase::Duration::QUICK);
+        AddTestCase(new NetDeviceContainerTest, TestCase::Duration::QUICK);
+        AddTestCase(new InterfaceContainerTest, TestCase::Duration::QUICK);
+        AddTestCase(new FlushTest, TestCase::Duration::QUICK);
+        AddTestCase(new DuplicateTest, TestCase::Duration::QUICK);
+        AddTestCase(new DynamicPartialTest, TestCase::Duration::QUICK);
     }
 };
 

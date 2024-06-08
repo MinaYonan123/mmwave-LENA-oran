@@ -166,8 +166,16 @@ class Simulator
      * or equal to the stop time.  The stop time is relative to the
      * current simulation time.
      * @param [in] delay The stop time, relative to the current time.
+     * @return The stop EventId.
      */
-    static void Stop(const Time& delay);
+    static EventId Stop(const Time& delay);
+
+    /**
+     * Returns the Stop Event, or an invalid event if the simulation
+     * does not have a scheduled stop time.
+     * @return The stop EventId.
+     */
+    static EventId GetStopEvent();
 
     /**
      * Get the current simulation context.
@@ -418,7 +426,7 @@ class Simulator
      * Note that it is not possible to test for the expiration of
      * events which were scheduled for the "destroy" time. Doing so
      * will result in a program error (crash).
-     * An event is said to "expire" when it starts being scheduled
+     * An event is said to "expire" when it starts being executed,
      * which means that if the code executed by the event calls
      * this function, it will get true.
      *
@@ -519,6 +527,11 @@ class Simulator
      * @return The EventId.
      */
     static EventId DoScheduleDestroy(EventImpl* event);
+
+    /**
+     * Stop event (if present)
+     */
+    static EventId m_stopEvent;
 
 }; // class Simulator
 

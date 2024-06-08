@@ -265,8 +265,8 @@ MmWaveSvdBeamforming::SetBeamformingVectorForDevice(Ptr<NetDevice> otherDevice,
         {
             NS_LOG_LOGIC("Channel has no MPCs");
 
-            uint64_t thisAntennaNumElements = m_antenna->GetNumberOfElements();
-            uint64_t otherAntennaNumElements = otherAntenna->GetNumberOfElements();
+            uint64_t thisAntennaNumElements = m_antenna->GetNumElems();
+            uint64_t otherAntennaNumElements = otherAntenna->GetNumElems();
             PhasedArrayModel::ComplexVector thisBf(thisAntennaNumElements);
             PhasedArrayModel::ComplexVector otherBf(otherAntennaNumElements);
 
@@ -287,12 +287,12 @@ MmWaveSvdBeamforming::SetBeamformingVectorForDevice(Ptr<NetDevice> otherDevice,
     // configure the antenna to use the new beamforming vector
     m_antenna->SetBeamformingVector(std::get<0>(bfVectors));
     NS_LOG_LOGIC("antenna " << m_antenna << " set BF vector"
-                            << " numAntennaElem " << m_antenna->GetNumberOfElements()
+                            << " numAntennaElem " << m_antenna->GetNumElems()
                             << " this device ID=" << m_device->GetNode()->GetId()
                             << " otherDevice ID=" << otherDevice->GetNode()->GetId());
     otherAntenna->SetBeamformingVector(std::get<1>(bfVectors));
     NS_LOG_LOGIC("antenna " << otherAntenna << " set BF vector"
-                            << " numAntennaElem " << otherAntenna->GetNumberOfElements()
+                            << " numAntennaElem " << otherAntenna->GetNumElems()
                             << " this device ID=" << otherDevice->GetNode()->GetId()
                             << " otherDevice ID=" << m_device->GetNode()->GetId());
 
@@ -521,7 +521,7 @@ MmWaveCodebookBeamforming::DoInitialize(void)
     cb->Initialize();
 
     NS_ASSERT_MSG(cb->GetCodebookSize() > 0, "Empty codebook");
-    NS_ASSERT_MSG(cb->GetCodeword(0).GetSize() == m_antenna->GetNumberOfElements(),
+    NS_ASSERT_MSG(cb->GetCodeword(0).GetSize() == m_antenna->GetNumElems(),
                   "Inappropriate codebook for the given PhasedArrayModel");
     m_antenna->AggregateObject(cb);
 
@@ -534,8 +534,8 @@ MmWaveCodebookBeamforming::SetBeamformingVectorForDevice(Ptr<NetDevice> otherDev
 {
     NS_LOG_FUNCTION(this << otherDevice << otherAntenna);
 
-    uint32_t thisCbIdx;  // index of the codeword selected for this antenna
-    uint32_t otherCbIdx; // index of the codeword selected for the other antenna
+    uint32_t thisCbIdx = 0;  // index of the codeword selected for this antenna
+    uint32_t otherCbIdx = 0; // index of the codeword selected for the other antenna
 
     // check if the best beam pair has already been computed
     bool notFound = true;
@@ -646,25 +646,28 @@ MmWaveCodebookBeamforming::ComputeBeamformingCodebookMatrix(
         for (uint32_t otherIdx = 0; otherIdx < otherCodebook->GetCodebookSize(); otherIdx++)
         {
             otherAntenna->SetBeamformingVector(otherCodebook->GetCodeword(otherIdx));
-
-            Ptr<SpectrumValue> rxPsd;
-            Ptr<SpectrumSignalParameters> rxParams = Create<SpectrumSignalParameters>();
-            rxParams->psd = Copy<SpectrumValue>(m_txPsd); // PSD needs to be initialized
+            double avgRxPsd = 0;          
 
             if (m_splm)
-            {
-                rxPsd = m_splm->CalcRxPowerSpectralDensity(rxParams, thisMob, otherMob);
+            {   
+                auto rxParams = Create<SpectrumSignalParameters>();
+                rxParams->psd = Copy<SpectrumValue>(m_txPsd); // PSD needs to be initialized
+                auto rxPsd = m_splm->CalcRxPowerSpectralDensity(rxParams, thisMob, otherMob);
+                avgRxPsd = Sum(*rxPsd) / (rxPsd->GetSpectrumModel()->GetNumBands());
             }
             else if (m_pSplm)
             {
-                rxPsd = m_pSplm->CalcRxPowerSpectralDensity(rxParams,
+                auto rxParams = Create<SpectrumSignalParameters>();
+                rxParams->psd = Copy<SpectrumValue>(m_txPsd); // PSD needs to be initialized
+                auto returnedRxParams = m_pSplm->CalcRxPowerSpectralDensity(rxParams,
                                                             thisMob,
                                                             otherMob,
                                                             m_antenna,
                                                             otherAntenna);
+                auto rxPsd = returnedRxParams->psd;
+                avgRxPsd = Sum(*rxPsd) / (rxPsd->GetSpectrumModel()->GetNumBands());
             }
 
-            double avgRxPsd = Sum(*rxPsd) / (rxPsd->GetSpectrumModel()->GetNumBands());
             matrix[thisIdx].push_back(avgRxPsd);
         }
     }

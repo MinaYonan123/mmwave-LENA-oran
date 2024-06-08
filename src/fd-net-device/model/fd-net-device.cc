@@ -106,7 +106,7 @@ FdNetDevice::GetTypeId()
             .AddAttribute("EncapsulationMode",
                           "The link-layer encapsulation type to use.",
                           EnumValue(DIX),
-                          MakeEnumAccessor(&FdNetDevice::m_encapMode),
+                          MakeEnumAccessor<EncapsulationMode>(&FdNetDevice::m_encapMode),
                           MakeEnumChecker(DIX, "Dix", LLC, "Llc", DIXPI, "DixPi"))
             .AddAttribute("RxQueueSize",
                           "Maximum size of the read queue.  "
@@ -752,7 +752,7 @@ FdNetDevice::SetIsBroadcast(bool broadcast)
 Address
 FdNetDevice::GetBroadcast() const
 {
-    return Mac48Address("ff:ff:ff:ff:ff:ff");
+    return Mac48Address::GetBroadcast();
 }
 
 bool

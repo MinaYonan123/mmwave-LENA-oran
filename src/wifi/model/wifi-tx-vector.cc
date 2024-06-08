@@ -123,11 +123,6 @@ WifiTxVector::WifiTxVector(const WifiTxVector& txVector)
     }
 }
 
-WifiTxVector::~WifiTxVector()
-{
-    m_muUserInfos.clear();
-}
-
 bool
 WifiTxVector::GetModeInitialized() const
 {
@@ -210,7 +205,7 @@ WifiTxVector::GetNss(uint16_t staId) const
     if (IsMu())
     {
         NS_ABORT_MSG_IF(staId > 2048, "STA-ID should be correctly set for MU (" << staId << ")");
-        NS_ASSERT(m_muUserInfos.find(staId) != m_muUserInfos.end());
+        NS_ASSERT(m_muUserInfos.contains(staId));
         return m_muUserInfos.at(staId).nss;
     }
     return m_nss;
@@ -451,7 +446,7 @@ WifiTxVector::GetEhtPpduType() const
 }
 
 bool
-WifiTxVector::IsValid() const
+WifiTxVector::IsValid(WifiPhyBand band) const
 {
     if (!GetModeInitialized())
     {
@@ -522,6 +517,16 @@ WifiTxVector::IsValid() const
             return false;
         }
     }
+
+    if (band != WIFI_PHY_BAND_UNSPECIFIED)
+    {
+        NS_ABORT_MSG_IF(GetModulationClass() == WIFI_MOD_CLASS_OFDM && band == WIFI_PHY_BAND_2_4GHZ,
+                        "Cannot use OFDM modulation class in the 2.4 GHz band");
+        NS_ABORT_MSG_IF(GetModulationClass() == WIFI_MOD_CLASS_ERP_OFDM &&
+                            band != WIFI_PHY_BAND_2_4GHZ,
+                        "ERP-OFDM modulation class can only be used in the 2.4 GHz band");
+    }
+
     return true;
 }
 
@@ -600,7 +605,7 @@ WifiTxVector::GetNumStasInRu(const HeRu::RuSpec& ru) const
 bool
 WifiTxVector::IsAllocated(uint16_t staId) const
 {
-    return m_muUserInfos.count(staId) > 0;
+    return m_muUserInfos.contains(staId);
 }
 
 HeRu::RuSpec

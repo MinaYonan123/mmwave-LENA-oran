@@ -298,7 +298,7 @@ class MmWaveTestL2smEesm : public TestSuite
 {
   public:
     MmWaveTestL2smEesm()
-        : TestSuite("mmwave-l2sm-test", UNIT)
+        : TestSuite("mmwave-l2sm-test", Type::UNIT)
     {
         AddTestCase(new MmWaveL2smEesmTestCase("First test"), QUICK);
     }

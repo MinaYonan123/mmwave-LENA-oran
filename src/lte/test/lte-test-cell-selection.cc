@@ -61,7 +61,7 @@ NS_LOG_COMPONENT_DEFINE("LteCellSelectionTest");
  */
 
 LteCellSelectionTestSuite::LteCellSelectionTestSuite()
-    : TestSuite("lte-cell-selection", SYSTEM)
+    : TestSuite("lte-cell-selection", Type::SYSTEM)
 {
     std::vector<LteCellSelectionTestCase::UeSetup_t> w;
 
@@ -78,7 +78,7 @@ LteCellSelectionTestSuite::LteCellSelectionTestSuite()
     w.push_back(LteCellSelectionTestCase::UeSetup_t(1.0, 0.45, true, MilliSeconds(283), 4, 0));
 
     AddTestCase(new LteCellSelectionTestCase("EPC, real RRC", true, false, 60.0 /* isd */, w),
-                TestCase::QUICK);
+                Duration::QUICK);
 
     // IDEAL RRC PROTOCOL
 
@@ -93,7 +93,7 @@ LteCellSelectionTestSuite::LteCellSelectionTestSuite()
     w.push_back(LteCellSelectionTestCase::UeSetup_t(1.0, 0.45, true, MilliSeconds(266), 4, 0));
 
     AddTestCase(new LteCellSelectionTestCase("EPC, ideal RRC", true, true, 60.0 /* isd */, w),
-                TestCase::QUICK);
+                Duration::QUICK);
 
 } // end of LteCellSelectionTestSuite::LteCellSelectionTestSuite ()
 

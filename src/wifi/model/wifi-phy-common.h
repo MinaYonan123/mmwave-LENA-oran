@@ -22,11 +22,11 @@
 #ifndef WIFI_PHY_COMMON_H
 #define WIFI_PHY_COMMON_H
 
+#include "wifi-spectrum-value-helper.h"
 #include "wifi-standards.h"
 
 #include "ns3/fatal-error.h"
 #include "ns3/ptr.h"
-#include "ns3/wifi-spectrum-value-helper.h"
 
 #include <ostream>
 
@@ -47,6 +47,9 @@ namespace ns3
 class WifiNetDevice;
 class WifiMode;
 class Time;
+
+/// maximum propagation delay
+static constexpr uint8_t MAX_PROPAGATION_DELAY_USEC = 1;
 
 /**
  * typedef for a pair of start and stop frequencies in Hz to represent a band
@@ -425,7 +428,8 @@ enum WifiPhyRxfailureReason
     PPDU_TOO_LATE,
     FILTERED,
     DMG_HEADER_FAILURE,
-    DMG_ALLOCATION_ENDED
+    DMG_ALLOCATION_ENDED,
+    SIGNAL_DETECTION_ABORTED_BY_TX
 };
 
 /**
@@ -486,6 +490,8 @@ operator<<(std::ostream& os, const WifiPhyRxfailureReason& reason)
         return (os << "DMG_HEADER_FAILURE");
     case DMG_ALLOCATION_ENDED:
         return (os << "DMG_ALLOCATION_ENDED");
+    case SIGNAL_DETECTION_ABORTED_BY_TX:
+        return (os << "SIGNAL_DETECTION_ABORTED_BY_TX");
     case UNKNOWN:
     default:
         NS_FATAL_ERROR("Unknown reason");

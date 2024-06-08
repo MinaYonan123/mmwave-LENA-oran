@@ -44,6 +44,43 @@ NS_LOG_COMPONENT_DEFINE("Ipv6Address");
 extern "C"
 { /* } */
 #endif
+    /**
+     * \brief Mix hash keys in-place for lookuphash
+     *
+     * \param a first word of the hash key
+     * \param b second word of the hash key
+     * \param c third word of the hash key
+     */
+    void mixHashKey(uint32_t& a, uint32_t& b, uint32_t& c)
+    {
+        (a) -= (b);
+        (a) -= (c);
+        (a) ^= ((c) >> 13);
+        (b) -= (c);
+        (b) -= (a);
+        (b) ^= ((a) << 8);
+        (c) -= (a);
+        (c) -= (b);
+        (c) ^= ((b) >> 13);
+        (a) -= (b);
+        (a) -= (c);
+        (a) ^= ((c) >> 12);
+        (b) -= (c);
+        (b) -= (a);
+        (b) ^= ((a) << 16);
+        (c) -= (a);
+        (c) -= (b);
+        (c) ^= ((b) >> 5);
+        (a) -= (b);
+        (a) -= (c);
+        (a) ^= ((c) >> 3);
+        (b) -= (c);
+        (b) -= (a);
+        (b) ^= ((a) << 10);
+        (c) -= (a);
+        (c) -= (b);
+        (c) ^= ((b) >> 15);
+    }
 
     /**
      * \brief Get a hash key.
@@ -56,36 +93,6 @@ extern "C"
     static uint32_t lookuphash(unsigned char* k, uint32_t length, uint32_t level)
     {
         NS_LOG_FUNCTION(k << length << level);
-#define mix(a, b, c)                                                                               \
-    ({                                                                                             \
-        (a) -= (b);                                                                                \
-        (a) -= (c);                                                                                \
-        (a) ^= ((c) >> 13);                                                                        \
-        (b) -= (c);                                                                                \
-        (b) -= (a);                                                                                \
-        (b) ^= ((a) << 8);                                                                         \
-        (c) -= (a);                                                                                \
-        (c) -= (b);                                                                                \
-        (c) ^= ((b) >> 13);                                                                        \
-        (a) -= (b);                                                                                \
-        (a) -= (c);                                                                                \
-        (a) ^= ((c) >> 12);                                                                        \
-        (b) -= (c);                                                                                \
-        (b) -= (a);                                                                                \
-        (b) ^= ((a) << 16);                                                                        \
-        (c) -= (a);                                                                                \
-        (c) -= (b);                                                                                \
-        (c) ^= ((b) >> 5);                                                                         \
-        (a) -= (b);                                                                                \
-        (a) -= (c);                                                                                \
-        (a) ^= ((c) >> 3);                                                                         \
-        (b) -= (c);                                                                                \
-        (b) -= (a);                                                                                \
-        (b) ^= ((a) << 10);                                                                        \
-        (c) -= (a);                                                                                \
-        (c) -= (b);                                                                                \
-        (c) ^= ((b) >> 15);                                                                        \
-    })
 
         typedef uint32_t ub4; /* unsigned 4-byte quantities */
         uint32_t a = 0;
@@ -104,7 +111,7 @@ extern "C"
             a += (k[0] + ((ub4)k[1] << 8) + ((ub4)k[2] << 16) + ((ub4)k[3] << 24));
             b += (k[4] + ((ub4)k[5] << 8) + ((ub4)k[6] << 16) + ((ub4)k[7] << 24));
             c += (k[8] + ((ub4)k[9] << 8) + ((ub4)k[10] << 16) + ((ub4)k[11] << 24));
-            mix(a, b, c);
+            mixHashKey(a, b, c);
             k += 12;
             len -= 12;
         }
@@ -137,9 +144,7 @@ extern "C"
             a += k[0];
             /* case 0: nothing left to add */
         }
-        mix(a, b, c);
-
-#undef mix
+        mixHashKey(a, b, c);
 
         /* report the result */
         return c;
@@ -260,7 +265,7 @@ Ipv6Address::MakeIpv4MappedAddress(Ipv4Address addr)
         0x00,
     };
     addr.Serialize(&buf[12]);
-    return (Ipv6Address(buf));
+    return Ipv6Address(buf);
 }
 
 Ipv4Address
@@ -272,7 +277,7 @@ Ipv6Address::GetIpv4MappedAddress() const
 
     Serialize(buf);
     v4Addr = Ipv4Address::Deserialize(&buf[12]);
-    return (v4Addr);
+    return v4Addr;
 }
 
 Ipv6Address
@@ -568,11 +573,7 @@ Ipv6Address::IsIpv4MappedAddress() const
     NS_LOG_FUNCTION(this);
     static uint8_t v4MappedPrefix[12] =
         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff};
-    if (memcmp(m_address, v4MappedPrefix, sizeof(v4MappedPrefix)) == 0)
-    {
-        return (true);
-    }
-    return (false);
+    return memcmp(m_address, v4MappedPrefix, sizeof(v4MappedPrefix)) == 0;
 }
 
 Ipv6Address
@@ -651,7 +652,7 @@ Ipv6Address::HasPrefix(const Ipv6Prefix& prefix) const
     Ipv6Address masked = CombinePrefix(prefix);
     Ipv6Address reference = Ipv6Address::GetOnes().CombinePrefix(prefix);
 
-    return (masked == reference);
+    return masked == reference;
 }
 
 bool
@@ -768,7 +769,7 @@ bool
 Ipv6Address::IsInitialized() const
 {
     NS_LOG_FUNCTION(this);
-    return (m_initialized);
+    return m_initialized;
 }
 
 std::ostream&

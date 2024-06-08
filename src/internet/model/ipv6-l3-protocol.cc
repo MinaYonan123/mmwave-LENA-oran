@@ -88,12 +88,6 @@ Ipv6L3Protocol::GetTypeId()
                           MakeBooleanAccessor(&Ipv6L3Protocol::SetSendIcmpv6Redirect,
                                               &Ipv6L3Protocol::GetSendIcmpv6Redirect),
                           MakeBooleanChecker())
-            .AddAttribute("StrongEndSystemModel",
-                          "Reject packets for an address not configured on the interface they're "
-                          "coming from (RFC1122, section 3.3.4.2).",
-                          BooleanValue(true),
-                          MakeBooleanAccessor(&Ipv6L3Protocol::m_strongEndSystemModel),
-                          MakeBooleanChecker())
             .AddTraceSource("Tx",
                             "Send IPv6 packet to outgoing interface.",
                             MakeTraceSourceAccessor(&Ipv6L3Protocol::m_txTrace),
@@ -197,7 +191,6 @@ Ipv6L3Protocol::SetRoutingProtocol(Ptr<Ipv6RoutingProtocol> routingProtocol)
 Ptr<Ipv6RoutingProtocol>
 Ipv6L3Protocol::GetRoutingProtocol() const
 {
-    NS_LOG_FUNCTION(this);
     return m_routingProtocol;
 }
 
@@ -241,8 +234,6 @@ Ipv6L3Protocol::AddIpv6Interface(Ptr<Ipv6Interface> interface)
 Ptr<Ipv6Interface>
 Ipv6L3Protocol::GetInterface(uint32_t index) const
 {
-    NS_LOG_FUNCTION(this << index);
-
     if (index < m_interfaces.size())
     {
         return m_interfaces[index];
@@ -253,14 +244,12 @@ Ipv6L3Protocol::GetInterface(uint32_t index) const
 uint32_t
 Ipv6L3Protocol::GetNInterfaces() const
 {
-    NS_LOG_FUNCTION(this);
     return m_nInterfaces;
 }
 
 int32_t
 Ipv6L3Protocol::GetInterfaceForAddress(Ipv6Address address) const
 {
-    NS_LOG_FUNCTION(this << address);
     int32_t index = 0;
 
     for (auto it = m_interfaces.begin(); it != m_interfaces.end(); it++)
@@ -283,7 +272,6 @@ Ipv6L3Protocol::GetInterfaceForAddress(Ipv6Address address) const
 int32_t
 Ipv6L3Protocol::GetInterfaceForPrefix(Ipv6Address address, Ipv6Prefix mask) const
 {
-    NS_LOG_FUNCTION(this << address << mask);
     int32_t index = 0;
 
     for (auto it = m_interfaces.begin(); it != m_interfaces.end(); it++)
@@ -305,15 +293,12 @@ Ipv6L3Protocol::GetInterfaceForPrefix(Ipv6Address address, Ipv6Prefix mask) cons
 Ptr<NetDevice>
 Ipv6L3Protocol::GetNetDevice(uint32_t i)
 {
-    NS_LOG_FUNCTION(this << i);
     return GetInterface(i)->GetDevice();
 }
 
 int32_t
 Ipv6L3Protocol::GetInterfaceForDevice(Ptr<const NetDevice> device) const
 {
-    NS_LOG_FUNCTION(this << device);
-
     auto iter = m_reverseInterfacesContainer.find(device);
     if (iter != m_reverseInterfacesContainer.end())
     {
@@ -465,7 +450,6 @@ Ipv6L3Protocol::AddAddress(uint32_t i, Ipv6InterfaceAddress address, bool addOnL
 uint32_t
 Ipv6L3Protocol::GetNAddresses(uint32_t i) const
 {
-    NS_LOG_FUNCTION(this << i);
     Ptr<Ipv6Interface> interface = GetInterface(i);
     return interface->GetNAddresses();
 }
@@ -473,7 +457,6 @@ Ipv6L3Protocol::GetNAddresses(uint32_t i) const
 Ipv6InterfaceAddress
 Ipv6L3Protocol::GetAddress(uint32_t i, uint32_t addressIndex) const
 {
-    NS_LOG_FUNCTION(this << i << addressIndex);
     Ptr<Ipv6Interface> interface = GetInterface(i);
     return interface->GetAddress(addressIndex);
 }
@@ -530,7 +513,6 @@ Ipv6L3Protocol::SetMetric(uint32_t i, uint16_t metric)
 uint16_t
 Ipv6L3Protocol::GetMetric(uint32_t i) const
 {
-    NS_LOG_FUNCTION(this << i);
     Ptr<Ipv6Interface> interface = GetInterface(i);
     return interface->GetMetric();
 }
@@ -538,8 +520,6 @@ Ipv6L3Protocol::GetMetric(uint32_t i) const
 uint16_t
 Ipv6L3Protocol::GetMtu(uint32_t i) const
 {
-    NS_LOG_FUNCTION(this << i);
-
     // RFC 1981, if PMTU is disabled, return the minimum MTU
     if (!m_mtuDiscover)
     {
@@ -560,7 +540,6 @@ Ipv6L3Protocol::SetPmtu(Ipv6Address dst, uint32_t pmtu)
 bool
 Ipv6L3Protocol::IsUp(uint32_t i) const
 {
-    NS_LOG_FUNCTION(this << i);
     Ptr<Ipv6Interface> interface = GetInterface(i);
     return interface->IsUp();
 }
@@ -651,7 +630,6 @@ Ipv6L3Protocol::SetupLoopback()
 bool
 Ipv6L3Protocol::IsForwarding(uint32_t i) const
 {
-    NS_LOG_FUNCTION(this << i);
     Ptr<Ipv6Interface> interface = GetInterface(i);
 
     NS_LOG_LOGIC("Forwarding state: " << interface->IsForwarding());
@@ -728,7 +706,6 @@ Ipv6L3Protocol::SetIpForward(bool forward)
 bool
 Ipv6L3Protocol::GetIpForward() const
 {
-    NS_LOG_FUNCTION(this);
     return m_ipForward;
 }
 
@@ -742,7 +719,6 @@ Ipv6L3Protocol::SetMtuDiscover(bool mtuDiscover)
 bool
 Ipv6L3Protocol::GetMtuDiscover() const
 {
-    NS_LOG_FUNCTION(this);
     return m_mtuDiscover;
 }
 
@@ -756,7 +732,6 @@ Ipv6L3Protocol::SetSendIcmpv6Redirect(bool sendIcmpv6Redirect)
 bool
 Ipv6L3Protocol::GetSendIcmpv6Redirect() const
 {
-    NS_LOG_FUNCTION(this);
     return m_sendIcmpv6Redirect;
 }
 
@@ -854,16 +829,12 @@ Ipv6L3Protocol::Remove(Ptr<IpL4Protocol> protocol, uint32_t interfaceIndex)
 Ptr<IpL4Protocol>
 Ipv6L3Protocol::GetProtocol(int protocolNumber) const
 {
-    NS_LOG_FUNCTION(this << protocolNumber);
-
     return GetProtocol(protocolNumber, -1);
 }
 
 Ptr<IpL4Protocol>
 Ipv6L3Protocol::GetProtocol(int protocolNumber, int32_t interfaceIndex) const
 {
-    NS_LOG_FUNCTION(this << protocolNumber << interfaceIndex);
-
     if (interfaceIndex >= 0)
     {
         // try the interface-specific protocol.
@@ -913,7 +884,6 @@ Ipv6L3Protocol::DeleteRawSocket(Ptr<Socket> socket)
 Ptr<Icmpv6L4Protocol>
 Ipv6L3Protocol::GetIcmpv6() const
 {
-    NS_LOG_FUNCTION(this);
     Ptr<IpL4Protocol> protocol = GetProtocol(Icmpv6L4Protocol::GetStaticProtocolNumber());
 
     if (protocol)
@@ -1132,12 +1102,8 @@ Ipv6L3Protocol::Receive(Ptr<NetDevice> device,
         }
     }
 
-    if (hdr.GetDestination().IsAllNodesMulticast())
-    {
-        LocalDeliver(packet, hdr, interface);
-        return;
-    }
-    else if (hdr.GetDestination().IsAllRoutersMulticast() && ipv6Interface->IsForwarding())
+    if (hdr.GetDestination().IsAllNodesMulticast() ||
+        (hdr.GetDestination().IsAllRoutersMulticast() && ipv6Interface->IsForwarding()))
     {
         LocalDeliver(packet, hdr, interface);
         return;
@@ -1169,20 +1135,22 @@ Ipv6L3Protocol::Receive(Ptr<NetDevice> device,
                     LocalDeliver(packet, hdr, interface);
                     return;
                 }
-                else if (!m_strongEndSystemModel)
+                else if (!GetStrongEndSystemModel())
                 {
                     NS_LOG_LOGIC("For me (destination "
-                                 << addr << " match) on another interface with Weak ES Model"
+                                 << addr
+                                 << " match) on another interface with Weak End System Model"
                                  << hdr.GetDestination());
                     LocalDeliver(packet, hdr, interface);
                     return;
                 }
                 else
                 {
-                    NS_LOG_LOGIC("For me (destination "
-                                 << addr
-                                 << " match) on another interface with Strong ES Model - discarding"
-                                 << hdr.GetDestination());
+                    NS_LOG_LOGIC(
+                        "For me (destination "
+                        << addr
+                        << " match) on another interface with Strong End System Model - discarding"
+                        << hdr.GetDestination());
                     m_dropTrace(hdr, packet, DROP_NO_ROUTE, this, interface);
                     return;
                 }
@@ -1566,32 +1534,37 @@ Ipv6L3Protocol::LocalDeliver(Ptr<const Packet> packet, const Ipv6Header& ip, uin
                 p->RemoveAtStart(nextHeaderPosition);
                 /* protocol->Receive (p, src, dst, incomingInterface); */
 
+                // Options have been processed, and the packet is good.
+                // We need to adjust the IP header fields
+                Ipv6Header newIpHeader = ip;
+                newIpHeader.SetNextHeader(nextHeader);
+                newIpHeader.SetPayloadLength(p->GetSize());
+
                 /* L4 protocol */
                 Ptr<Packet> copy = p->Copy();
 
-                m_localDeliverTrace(ip, p, iif);
+                m_localDeliverTrace(newIpHeader, p, iif);
 
-                IpL4Protocol::RxStatus status = protocol->Receive(p, ip, GetInterface(iif));
+                IpL4Protocol::RxStatus status =
+                    protocol->Receive(p, newIpHeader, GetInterface(iif));
 
                 switch (status)
                 {
                 case IpL4Protocol::RX_OK:
-                    break;
                 case IpL4Protocol::RX_CSUM_FAILED:
-                    break;
                 case IpL4Protocol::RX_ENDPOINT_CLOSED:
                     break;
                 case IpL4Protocol::RX_ENDPOINT_UNREACH:
-                    if (ip.GetDestination().IsMulticast())
+                    if (newIpHeader.GetDestination().IsMulticast())
                     {
                         /* do not rely on multicast address */
                         break;
                     }
 
-                    copy->AddHeader(ip);
+                    copy->AddHeader(newIpHeader);
                     GetIcmpv6()->SendErrorDestinationUnreachable(
                         copy,
-                        ip.GetSource(),
+                        newIpHeader.GetSource(),
                         Icmpv6Header::ICMPV6_PORT_UNREACHABLE);
                 }
             }
@@ -1772,8 +1745,6 @@ Ipv6L3Protocol::RemoveMulticastAddress(Ipv6Address address)
 bool
 Ipv6L3Protocol::IsRegisteredMulticastAddress(Ipv6Address address, uint32_t interface) const
 {
-    NS_LOG_FUNCTION(address << interface);
-
     Ipv6RegisteredMulticastAddressKey_t key = std::make_pair(address, interface);
     auto iter = m_multicastAddresses.find(key);
 
@@ -1783,8 +1754,6 @@ Ipv6L3Protocol::IsRegisteredMulticastAddress(Ipv6Address address, uint32_t inter
 bool
 Ipv6L3Protocol::IsRegisteredMulticastAddress(Ipv6Address address) const
 {
-    NS_LOG_FUNCTION(address);
-
     auto iter = m_multicastAddressesNoInterface.find(address);
 
     return iter != m_multicastAddressesNoInterface.end();
@@ -1837,6 +1806,19 @@ Ipv6L3Protocol::ReachabilityHint(uint32_t ipInterfaceIndex, Ipv6Address address)
     }
 
     return true;
+}
+
+void
+Ipv6L3Protocol::SetStrongEndSystemModel(bool model)
+{
+    NS_LOG_FUNCTION(this << model);
+    m_strongEndSystemModel = model;
+}
+
+bool
+Ipv6L3Protocol::GetStrongEndSystemModel() const
+{
+    return m_strongEndSystemModel;
 }
 
 } /* namespace ns3 */

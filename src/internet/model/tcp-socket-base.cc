@@ -164,7 +164,7 @@ TcpSocketBase::GetTypeId()
             .AddAttribute("UseEcn",
                           "Parameter to set ECN functionality",
                           EnumValue(TcpSocketState::Off),
-                          MakeEnumAccessor(&TcpSocketBase::SetUseEcn),
+                          MakeEnumAccessor<TcpSocketState::UseEcn_t>(&TcpSocketBase::SetUseEcn),
                           MakeEnumChecker(TcpSocketState::Off,
                                           "Off",
                                           TcpSocketState::On,
@@ -575,7 +575,6 @@ TcpSocketBase::Bind(const Address& address)
         InetSocketAddress transport = InetSocketAddress::ConvertFrom(address);
         Ipv4Address ipv4 = transport.GetIpv4();
         uint16_t port = transport.GetPort();
-        SetIpTos(transport.GetTos());
         if (ipv4 == Ipv4Address::GetAny() && port == 0)
         {
             m_endPoint = m_tcp->Allocate();
@@ -690,7 +689,6 @@ TcpSocketBase::Connect(const Address& address)
         }
         InetSocketAddress transport = InetSocketAddress::ConvertFrom(address);
         m_endPoint->SetPeer(transport.GetIpv4(), transport.GetPort());
-        SetIpTos(transport.GetTos());
         m_endPoint6 = nullptr;
 
         // Get the appropriate local address and port number from the routing protocol and set up
@@ -871,7 +869,7 @@ TcpSocketBase::Send(Ptr<Packet> p, uint32_t flags)
         if ((m_state == ESTABLISHED || m_state == CLOSE_WAIT) && AvailableWindow() > 0)
         { // Try to send the data out: Add a little step to allow the application
             // to fill the buffer
-            if (!m_sendPendingDataEvent.IsRunning())
+            if (!m_sendPendingDataEvent.IsPending())
             {
                 m_sendPendingDataEvent = Simulator::Schedule(TimeStep(1),
                                                              &TcpSocketBase::SendPendingData,
@@ -1138,7 +1136,7 @@ TcpSocketBase::CloseAndNotify()
         NotifyNormalClose();
         m_closeNotified = true;
     }
-    if (m_lastAckEvent.IsRunning())
+    if (m_lastAckEvent.IsPending())
     {
         m_lastAckEvent.Cancel();
     }
@@ -1475,7 +1473,7 @@ TcpSocketBase::DoForwardUp(Ptr<Packet> packet, const Address& fromAddress, const
         break;
     }
 
-    if (m_rWnd.Get() != 0 && m_persistEvent.IsRunning())
+    if (m_rWnd.Get() != 0 && m_persistEvent.IsPending())
     { // persist probes end, the other end has increased the window
         NS_ASSERT(m_connected);
         NS_LOG_LOGIC(this << " Leaving zerowindow persist state");
@@ -1538,13 +1536,13 @@ TcpSocketBase::ProcessEstablished(Ptr<Packet> packet, const TcpHeader& tcpHeader
             ReceivedAck(packet, tcpHeader);
         }
     }
-    else if (tcpflags == TcpHeader::SYN)
-    { // Received SYN, old NS-3 behaviour is to set state to SYN_RCVD and
-      // respond with a SYN+ACK. But it is not a legal state transition as of
-      // RFC793. Thus this is ignored.
-    }
-    else if (tcpflags == (TcpHeader::SYN | TcpHeader::ACK))
-    { // No action for received SYN+ACK, it is probably a duplicated packet
+    else if (tcpflags == TcpHeader::SYN || tcpflags == (TcpHeader::SYN | TcpHeader::ACK))
+    {
+        // (a) Received SYN, old NS-3 behaviour is to set state to SYN_RCVD and
+        // respond with a SYN+ACK. But it is not a legal state transition as of
+        // RFC793. Thus this is ignored.
+
+        // (b) No action for received SYN+ACK, it is probably a duplicated packet
     }
     else if (tcpflags == TcpHeader::FIN || tcpflags == (TcpHeader::FIN | TcpHeader::ACK))
     { // Received FIN or FIN+ACK, bring down this socket nicely
@@ -1689,7 +1687,8 @@ TcpSocketBase::EnterRecovery(uint32_t currentDelivered)
     }
 
     // (4.3) Retransmit the first data segment presumed dropped
-    DoRetransmit();
+    uint32_t sz = SendDataPacket(m_highRxAckMark, m_tcb->m_segmentSize, true);
+    NS_ASSERT_MSG(sz > 0, "SendDataPacket returned zero, indicating zero bytes were sent");
     // (4.4) Run SetPipe ()
     // (4.5) Proceed to step (C)
     // these steps are done after the ProcessAck function (SendPendingData)
@@ -1777,8 +1776,8 @@ TcpSocketBase::DupAck(uint32_t currentDelivered)
         // (2) If DupAcks < DupThresh but IsLost (HighACK + 1) returns true
         // (indicating at least three segments have arrived above the current
         // cumulative acknowledgment point, which is taken to indicate loss)
-        // go to step (4).
-        else if (m_txBuffer->IsLost(m_highRxAckMark + m_tcb->m_segmentSize))
+        // go to step (4).  Note that m_highRxAckMark is (HighACK + 1)
+        else if (m_txBuffer->IsLost(m_highRxAckMark))
         {
             EnterRecovery(currentDelivered);
             NS_ASSERT(m_tcb->m_congState == TcpSocketState::CA_RECOVERY);
@@ -3238,6 +3237,12 @@ TcpSocketBase::SendDataPacket(SequenceNumber32 seq, uint32_t maxSize, bool withA
                      << sz << " with remaining data " << remainingData << " via TcpL4Protocol to "
                      << m_endPoint6->GetPeerAddress() << ". Header " << header);
     }
+
+    // Signal to congestion control whether the cwnd is fully used
+    // This is a simple version of Linux tcp_cwnd_validate() but following
+    // the principle implemented in Linux that limits the updating of cwnd
+    // (in the congestion controls) when flight size is >= cwnd
+    m_tcb->m_isCwndLimited = (BytesInFlight() >= m_tcb->m_cWnd);
 
     UpdateRttHistory(seq, sz, isRetransmission);
 

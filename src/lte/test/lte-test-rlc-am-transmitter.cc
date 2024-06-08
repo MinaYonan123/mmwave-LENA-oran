@@ -36,16 +36,16 @@ NS_LOG_COMPONENT_DEFINE("LteRlcAmTransmitterTest");
  */
 
 LteRlcAmTransmitterTestSuite::LteRlcAmTransmitterTestSuite()
-    : TestSuite("lte-rlc-am-transmitter", SYSTEM)
+    : TestSuite("lte-rlc-am-transmitter", Type::SYSTEM)
 {
     // LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME | LOG_LEVEL_ALL);
     // LogComponentEnable ("LteRlcAmTransmitterTest", logLevel);
 
-    AddTestCase(new LteRlcAmTransmitterOneSduTestCase("One SDU, one PDU"), TestCase::QUICK);
-    AddTestCase(new LteRlcAmTransmitterSegmentationTestCase("Segmentation"), TestCase::QUICK);
-    AddTestCase(new LteRlcAmTransmitterConcatenationTestCase("Concatenation"), TestCase::QUICK);
+    AddTestCase(new LteRlcAmTransmitterOneSduTestCase("One SDU, one PDU"), Duration::QUICK);
+    AddTestCase(new LteRlcAmTransmitterSegmentationTestCase("Segmentation"), Duration::QUICK);
+    AddTestCase(new LteRlcAmTransmitterConcatenationTestCase("Concatenation"), Duration::QUICK);
     AddTestCase(new LteRlcAmTransmitterReportBufferStatusTestCase("ReportBufferStatus primitive"),
-                TestCase::QUICK);
+                Duration::QUICK);
 }
 
 static LteRlcAmTransmitterTestSuite lteRlcAmTransmitterTestSuite;

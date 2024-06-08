@@ -36,7 +36,6 @@
 #include "ns3/udp-echo-helper.h"
 #include "ns3/udp-socket-factory.h"
 #include "ns3/uinteger.h"
-#include "ns3/v4ping.h"
 #include "ns3/yans-wifi-helper.h"
 
 #include <sstream>
@@ -198,11 +197,11 @@ class AodvLoopbackTestSuite : public TestSuite
 {
   public:
     AodvLoopbackTestSuite()
-        : TestSuite("routing-aodv-loopback", SYSTEM)
+        : TestSuite("routing-aodv-loopback", Type::SYSTEM)
     {
         SetDataDir(NS_TEST_SOURCEDIR);
         // UDP Echo loopback test case
-        AddTestCase(new LoopbackTestCase(), TestCase::QUICK);
+        AddTestCase(new LoopbackTestCase(), TestCase::Duration::QUICK);
     }
 } g_aodvLoopbackTestSuite; ///< the test suite
 

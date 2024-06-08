@@ -46,7 +46,6 @@
  *
  */
 
-#include "ns3/config-store-module.h"
 #include "ns3/core-module.h"
 #include "ns3/energy-module.h"
 #include "ns3/internet-module.h"
@@ -61,6 +60,7 @@
 #include <vector>
 
 using namespace ns3;
+using namespace ns3::energy;
 
 NS_LOG_COMPONENT_DEFINE("EnergyWithHarvestingExample");
 

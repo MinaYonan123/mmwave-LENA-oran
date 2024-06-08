@@ -362,7 +362,7 @@ class CarrierAggregationConfigTestSuite : public TestSuite
 };
 
 CarrierAggregationConfigTestSuite::CarrierAggregationConfigTestSuite()
-    : TestSuite("lte-carrier-aggregation-configuration", SYSTEM)
+    : TestSuite("lte-carrier-aggregation-configuration", Type::SYSTEM)
 {
     std::vector<ConfigToCheck> configToCheck;
 
@@ -384,7 +384,7 @@ CarrierAggregationConfigTestSuite::CarrierAggregationConfigTestSuite()
                                                      numberOfComponentCarriers,
                                                      configToCheck,
                                                      simulationDuration),
-                TestCase::QUICK);
+                Duration::QUICK);
 
     //   configToCheck.erase(configToCheck.begin(), configToCheck.end());
     configToCheck.clear();
@@ -411,7 +411,7 @@ CarrierAggregationConfigTestSuite::CarrierAggregationConfigTestSuite()
                                                      numberOfComponentCarriers,
                                                      configToCheck,
                                                      simulationDuration),
-                TestCase::QUICK);
+                Duration::QUICK);
 }
 
 static CarrierAggregationConfigTestSuite g_carrierAggregationConfigTestSuite;

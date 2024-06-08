@@ -54,7 +54,7 @@ NS_LOG_COMPONENT_DEFINE("LteDownlinkPowerControlTest");
  */
 
 LteDownlinkPowerControlTestSuite::LteDownlinkPowerControlTestSuite()
-    : TestSuite("lte-downlink-power-control", SYSTEM)
+    : TestSuite("lte-downlink-power-control", Type::SYSTEM)
 {
     //  LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME | LOG_LEVEL_DEBUG);
     //  LogComponentEnable ("LteDownlinkPowerControlTest", logLevel);
@@ -104,7 +104,7 @@ LteDownlinkPowerControlTestSuite::LteDownlinkPowerControlTestSuite()
                         powerTxMap,
                         activeRbs_txpowdB30nrb6run1earfcn500,
                         spectrumValue_txpowdB30nrb6run1earfcn500),
-                    TestCase::QUICK);
+                    Duration::QUICK);
     }
     {
         // if power for RB not present, but RB is active, use powerTx
@@ -147,7 +147,7 @@ LteDownlinkPowerControlTestSuite::LteDownlinkPowerControlTestSuite()
                         powerTxMap,
                         activeRbs_txpowdB30nrb6run1earfcn500,
                         spectrumValue_txpowdB30nrb6run1earfcn500),
-                    TestCase::QUICK);
+                    Duration::QUICK);
     }
     {
         std::vector<int> activeRbs_txpowdB30nrb25run1earfcn500(15);
@@ -240,7 +240,7 @@ LteDownlinkPowerControlTestSuite::LteDownlinkPowerControlTestSuite()
                         powerTxMap,
                         activeRbs_txpowdB30nrb25run1earfcn500,
                         spectrumValue_txpowdB30nrb25run1earfcn500),
-                    TestCase::QUICK);
+                    Duration::QUICK);
     }
     {
         // if power for RB not present, but RB is active, use powerTx
@@ -324,56 +324,56 @@ LteDownlinkPowerControlTestSuite::LteDownlinkPowerControlTestSuite()
                         powerTxMap,
                         activeRbs_txpowdB30nrb25run1earfcn500,
                         spectrumValue_txpowdB30nrb25run1earfcn500),
-                    TestCase::QUICK);
+                    Duration::QUICK);
     }
 
     // Downlink DATA and CONTROL channels power comparison
     AddTestCase(new LteDownlinkPowerControlTestCase(false,
                                                     LteRrcSap::PdschConfigDedicated::dB0,
                                                     "DataCtrlPowerDifference_noChange"),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteDownlinkPowerControlTestCase(true,
                                                     LteRrcSap::PdschConfigDedicated::dB_6,
                                                     "DataCtrlPowerDifference_dB_6"),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteDownlinkPowerControlTestCase(true,
                                                     LteRrcSap::PdschConfigDedicated::dB_4dot77,
                                                     "DataCtrlPowerDifference_dB_4dot77"),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteDownlinkPowerControlTestCase(true,
                                                     LteRrcSap::PdschConfigDedicated::dB_3,
                                                     "DataCtrlPowerDifference_dB_3"),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteDownlinkPowerControlTestCase(true,
                                                     LteRrcSap::PdschConfigDedicated::dB_1dot77,
                                                     "DataCtrlPowerDifference_dB_1dot77"),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteDownlinkPowerControlTestCase(true,
                                                     LteRrcSap::PdschConfigDedicated::dB0,
                                                     "DataCtrlPowerDifference_dB0"),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteDownlinkPowerControlTestCase(true,
                                                     LteRrcSap::PdschConfigDedicated::dB1,
                                                     "DataCtrlPowerDifference_dB1"),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteDownlinkPowerControlTestCase(true,
                                                     LteRrcSap::PdschConfigDedicated::dB2,
                                                     "DataCtrlPowerDifference_dB2"),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteDownlinkPowerControlTestCase(true,
                                                     LteRrcSap::PdschConfigDedicated::dB3,
                                                     "DataCtrlPowerDifference_dB3"),
-                TestCase::QUICK);
+                Duration::QUICK);
 
     // RrcConnectionReconfiguration test
     AddTestCase(
         new LteDownlinkPowerControlRrcConnectionReconfigurationTestCase(false,
                                                                         "RrcConnReconf-IdealRrc"),
-        TestCase::QUICK);
+        Duration::QUICK);
     AddTestCase(
         new LteDownlinkPowerControlRrcConnectionReconfigurationTestCase(true,
                                                                         "RrcConnReconf-RealRrc"),
-        TestCase::QUICK);
+        Duration::QUICK);
 }
 
 double

@@ -185,6 +185,7 @@ MmWaveEnbPhy::DoInitialize(void)
     }
     SetSubChannels(m_channelChunks);
 
+    NS_ASSERT(m_phyMacConfig->GetSlotsPerSubframe() != 0);
     m_slotPeriod = m_phyMacConfig->GetSubframePeriod() / m_phyMacConfig->GetSlotsPerSubframe();
 
     for (unsigned i = 0; i < m_phyMacConfig->GetSlotsPerSubframe(); i++)
@@ -675,16 +676,17 @@ MmWaveEnbPhy::UpdateUeSinrEstimate()
         }
         else if (m_phasedArraySpectrumPropagationLossModel)
         {
-            rxPsd = m_phasedArraySpectrumPropagationLossModel->CalcRxPowerSpectralDensity(rxParams,
+            rxParams = m_phasedArraySpectrumPropagationLossModel->CalcRxPowerSpectralDensity(rxParams,
                                                                                           ueMob,
                                                                                           enbMob,
                                                                                           txPam,
                                                                                           rxPam);
+            rxPsd = rxParams->psd;
         }
 
         NS_LOG_LOGIC("RxPsd " << *rxPsd);
 
-        m_rxPsdMap[ue->first] = rxPsd;
+        m_rxPsdMap[ue->first] = txPsd->Copy();;
         *totalReceivedPsd += *rxPsd;
 
         // set back the bf vector to the main eNB

@@ -223,7 +223,7 @@ class MmWaveEnbMac : public Object
      */
     void TraceSchedInfo(MmWaveMacSchedSapUser::SchedConfigIndParameters ind);
 
-    Ptr<MmWavePhyMacCommon> m_phyMacConfig;
+    Ptr<MmWavePhyMacCommon> m_phyMacConfig {nullptr};
 
     LteMacSapProvider* m_macSapProvider;
     LteEnbCmacSapProvider* m_cmacSapProvider;

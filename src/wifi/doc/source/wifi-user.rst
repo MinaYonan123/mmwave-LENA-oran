@@ -804,6 +804,240 @@ There are many other |ns3| attributes that can be set on the above helpers to
 deviate from the default behavior; the example scripts show how to do some of
 this reconfiguration.
 
+WifiPhyRxTraceHelper
+====================
+The ``WifiPhyRxTraceHelper`` can be used to collect statistics and records of Wi-Fi
+reception events at the physical layer, such as whether a PPDU was received or was dropped for
+some reason, and whether a PPDU overlapped in time (collided) with one or more other PPDUs on the
+channel.  Two possible types of studies that may be helped by this feature are:
+
+1) Wi-Fi PPDU and MPDU reception outcomes to assess the performance of spatial reuse mechanisms
+
+2) Calculation of airtime fairness between contending stations on a network
+
+The trace helper works by hooking PHY-level traces on the applicable nodes, devices, and
+links and maintaining per-receiver records of all of the Wi-Fi PPDUs that are received,
+from each receiver's vantage point.  These records include a listing of all other PPDUs
+that may have overlapped in time and/or frequency for a given PPDU, and the received
+signal power of each PPDU involved, and the outcome of the attempt at reception (whether
+the PPDU was dropped entirely, or whether the PPDU was partially or fully decoded).
+
+This trace helper collects records of all Wi-Fi PPDus received on every PHY that is enabled
+for the helper.  As an example, consider the scenario in Figure :ref:`wifi-phy-rx-trace-helper`,
+depicting the arrival of three PPDUs that overlap in time.  The trace helper keeps a record
+of each PPDU arrival, on each enabled PHY, and also keeps track of the PPDUs that collided
+with it, if any.  In the figure, the first PPDU overlaps in time with both the second and
+third PPDU.   Likewise, the second PPDU overlaps in time with the first and third PPDUs, and
+the third PPDU overlaps in time with the first and second.  All of these relationships (each
+frame arrival, the frames that overlapped in time with it), from the perspective of each
+PHY, are stored in internal data structures.  Additionally, the reception outcome of each
+PPDU, and its constituent MPDUs, is tracked.  This database of reception events can be
+exported by the trace helper for fine-grained tabulation of spatial reuse events of interest,
+or can be summarized by some built-in statistics printing methods.
+
+.. _wifi-phy-rx-trace-helper:
+
+.. figure:: figures/wifi-phy-rx-trace-helper.*
+
+   *WifiPhyRxTraceHelper scenario of interest*
+
+The output of this trace helper is provided in three formats:
+
+1) Built-in print methods to allow printing of key statistics with a single C++ statement,
+
+2) Export of a trace statistics object allowing the user to post-process or format the
+   data according to the user's formatting choice, and
+
+3) Export of the complete reception records, allowing the user to perform their own
+   custom processing of the data.
+
+A sample usage of this trace helper is as follows, as demonstrated in the example program
+``src/wifi/examples/wifi-phy-rx-trace-helper-example.cc``.  First, declare an instance
+of it as one might do with other Wi-Fi helpers:
+
+.. sourcecode:: cpp
+
+  WifiPhyRxTraceHelper rxTraceHelper;
+
+You may need to include the trace helper's header if it is not otherwise included by the
+wifi module header:
+
+.. sourcecode:: cpp
+
+  #include "ns3/wifi-phy-rx-trace-helper.h"
+
+Next, enable the trace helper on some subset of the Wi-Fi nodes in the simulation.  This step
+will hook traces on all of the nodes enabled.  It is important to include all of the nodes
+within reception range of the nodes of interest, because PPDUs need to be traced at
+both transmission and reception times.  If you are only interested in statistics or records
+on a given receiver, you can later (as explained below) request for only the statistics
+of interest.  For example, if you are interested in a particular AP, in a particular BSS,
+and there is an interfering BSS nearby, you will want to enable all of the nodes within
+interference range of the AP of interest (even if not in the same BSS).  So, in general,
+you will want to ``Enable()`` the trace helper on all Wi-Fi nodes in the simulation,
+unless you want to explore pruning this set for runtime scaling reasons.
+
+In this example, we will enable on all of the Wi-Fi nodes:
+
+.. sourcecode:: cpp
+
+    NodeContainer c;
+    c.Create(2);
+
+    ...
+
+    NetDeviceContainer apDevice = wifi.Install(wifiPhy, wifiMac, c.Get(1));
+    NetDeviceContainer staDevice = wifi.Install(wifiPhy, wifiMac, c.Get(0));
+
+    ...
+
+    rxTraceHelper.Enable(c);
+
+The important thing to note in the above is that ``Enable()`` must be called after
+Wi-Fi devices are installed, because it will hook traces on what has been installed
+up to that point.
+
+The next configuration aspect is to establish a start and stop time for PPDU reception
+collection.  In the example program, application data is not sent before 1 second,
+and we want to capture all data PPDUs, so the ``Start()`` and ``Stop()`` times are set
+as follows:
+
+.. sourcecode:: cpp
+
+    rxTraceHelper.Start(Seconds(1));
+    // The last packet will be sent at time 1 sec. + (numPackets - 1) * interval
+    // Configure the stop time to be 1 sec. later than this.
+    Time stopTime = Seconds(1) + (numPackets - 1) * interval + Seconds(1);
+    rxTraceHelper.Stop(stopTime);
+
+The start and stop times can be tuned to whatever collection window is desired.  Furthermore,
+there is a ``Reset()`` method that will clear all of the PPDU records and restart collection;
+this can be used if one wants to periodically sample the statistics in different time
+intervals.
+
+Next, run the simulation, and either during the run or after the simulation has completed,
+harvest the statistics.  As noted above, there are three main ways to output data.
+Furthermore, there are C++ method overloads that allow users to narrow the scope of
+output data.
+
+The first option is to use ``PrintStatistics()``, which will dump some statistics with
+built-in formatting, such as follows:
+
+.. sourcecode:: cpp
+
+    traceHelper.PrintStatistics();
+
+This will result in a number of statistics being printed out.  The statistics will
+be aggregated for all nodes that are enabled.  The following is some of the default
+output of the sample program:
+
+.. sourcecode:: text
+
+   *** Print statistics for all nodes using built-in print method:
+   Total PPDUs Received: 1
+   Total Non-Overlapping PPDUs Received: 1
+   Total Overlapping PPDUs Received: 0
+
+   Successful PPDUs: 1
+   Failed PPDUs: 0
+
+   Total MPDUs: 1
+   Total Successful MPDUs: 1
+   Total Failed MPDUs: 0
+
+
+In the above simple case, there is one PPDU successfully received, and within this PPDU,
+there was one MPDU which was successfully decoded.  No other PPDUs overlapped in time
+with this PPDU.
+
+Although this is a PHY trace helper, there is one important aspect from the MAC layer
+that is used to classify PPDUs.  When reporting statistics for a given node, a PPDU
+is counted only if there was at least one MPDU intended for the node.  If the MPDU
+has a MAC address that is either broadcast or belongs to the device (unicast), that
+PPDU will be counted.  If, instead, a receiver locks onto and overhears a PPDU
+that ultimately will be discarded because the receiver was not an intended receiver, that
+PPDU reception or failure will be excluded from the statistics.
+
+The sample program next shows how ``PrintStatistics`` can take an argument:
+
+.. sourcecode:: cpp
+
+    rxTraceHelper.PrintStatistics(c.Get(0)->GetId());
+    rxTraceHelper.PrintStatistics(c.Get(1));
+
+In the above, the statistics can be limited to a particular node (either passed in
+by Node ID or by Node pointer).  Furthermore, although not shown in the example,
+the method can be further downscoped to also take a device index argument and
+(in the case of multi-link operation (MLO)) a specific link ID.  In the above example,
+all devices and all MLO links will be included in the output.
+
+Users can write their own printing methods or further process the statistics by
+calling ``GetStatistics()`` as the following example demonstrates:
+
+.. sourcecode:: cpp
+
+    auto stats = rxTraceHelper.GetStatistics();
+    std::cout << "  numOverlapppingPpdu: " << stats.m_numOverlappingPpdu << std::endl;
+    std::cout << "  numNonOverlapppingPpdu: " << stats.m_numNonOverlappingPpdu << std::endl;
+    std::cout << "  numPpduFailed: " << stats.m_numPpduFailed << std::endl;
+    std::cout << "  numPpduSuccess: " << stats.m_numPpduSuccess << std::endl;
+    std::cout << "  numMpduSuccess: " << stats.m_numMpduSuccess << std::endl;
+    std::cout << "  numMpduFailed: " << stats.m_numMpduFailed << std::endl;
+
+Similar to ``PrintStatistics()``, ``GetStatistics()`` with no arguments will collect
+a statistics output structure covering all nodes, while additional arguments of
+Node ID, device index, and link ID can be used to constrain the statistics report.
+
+Finally, the output of the internal data structure that tracks PPDU receptions can
+be exported, with the ``GetPpduRecords()`` method, which can be called
+without any arguments, and with arguments of nodeId, deviceId, and linkId:
+
+.. sourcecode:: cpp
+
+    auto optionalRecords = rxTraceHelper.GetPpduRecords(1);
+
+The above statements asks for records from receiving node 1 (the AP).  The example
+iterates the returned vector, printing out the size of this structure, as well
+as some data fields:
+
+.. sourcecode:: text
+
+  *** Records vector has size of 3
+  First record:
+    first PPDU's RSSI (dBm): -30.6633
+    first PPDU's receiver ID: 1
+    first PPDU's sender ID: 0
+    first PPDU's start time: 1
+    first PPDU's end time: 1.00008
+    first PPDU's number of MPDUs: 1
+    first PPDU's sender device ID: 0
+  Second record:
+    second PPDU's RSSI (dBm): -30.6633
+    second PPDU's receiver ID: 1
+    second PPDU's sender ID: 0
+    second PPDU's start time: 1.00027
+    second PPDU's end time: 1.00032
+    second PPDU's number of MPDUs: 1
+    second PPDU's sender device ID: 0
+  Third record:
+    third PPDU's RSSI (dBm): -30.6633
+    third PPDU's receiver ID: 1
+    third PPDU's sender ID: 0
+    third PPDU's start time: 1.00039
+    third PPDU's end time: 1.00072
+    third PPDU's number of MPDUs: 1
+    third PPDU's sender device ID: 0
+
+That the size of the vector is 3 may be surprising, considering that we have observed
+above in this example that only one PPDU is being counted in the statistics.  However,
+in this example, there is only one data PPDU but also additional management and control
+frames.  Specifically, the first PPDU is a Block ACK ADDBA_REQUEST frame, the second PPDU
+is an ACK of the AP's ADDBA_RESPONSE frame, and the third PPDU record corresponds to the
+actual data PPDU, starting at time 1.00039 and ending at 1.00072.
+The management and control frames (which also include beacons) are filtered out above by
+the ``GetStatistics()`` methods, but when the raw PPDU records are retrieved, all PPDUs
+received are available and the user is responsible for further filtering as they see fit.
+
 HT configuration
 ================
 
@@ -856,14 +1090,15 @@ attributes for 802.11ax devices.
  Ptr<HeConfiguration> heConfiguration = wnd->GetHeConfiguration();
  heConfiguration->SetGuardInterval(NanoSeconds(1600));
 
-802.11ax allows extended compressed Block ACKs containing a 256-bits bitmap, making
+802.11ax allows compressed Block ACKs containing a 256-bits bitmap, making
 possible transmissions of A-MPDUs containing up to 256 MPDUs, depending on the
 negotiated buffer size. In order to configure the buffer size of an 802.11ax device,
 the following line of code could be used:
 
 .. sourcecode:: cpp
 
- heConfiguration->SetMpduBufferSize(256);
+ WifiMacHelper mac;
+ mac.SetType("ns3::StaWifiMac", "MpduBufferSize", UintegerValue(256));
 
 For transmitting large MPDUs, it might also be needed to increase the maximum
 aggregation size (see above).
@@ -1081,3 +1316,73 @@ Multiple RF interfaces configuration
   mobility.Install(c);
 
   // other set up (e.g. InternetStack, Application)
+
+EMLSR configuration
++++++++++++++++++++
+
+**DISCLAIMER** EMLSR support is still experimental. Simulations with EMLSR activated may crash unexpectedly.
+
+Proper EMLSR operations require the configuration of multiple RF interfaces, as illustrated above.
+Therefore, in order to configure EMLSR operations, we can start from the configuration shown above
+and apply the changes described in the following. Firstly, we need to activate EMLSR on both the
+AP MLD and the EMLSR client. This can be done by configuring the appropriate ``EhtConfiguration``
+attribute through the wifi helper:
+
+.. sourcecode:: cpp
+
+  WifiHelper wifi;
+  wifi.SetStandard(WIFI_STANDARD_80211be);
+  wifi.ConfigEhtOptions("EmlsrActivated", BooleanValue(true));
+
+The ``EhtConfiguration`` class also provides attributes for the various EMLSR parameters that an
+AP MLD that supports EMLSR has to advertise. Given that these attributes are simply ignored by
+non-AP MLDs, we can use the same wifi helper to configure such parameters:
+
+.. sourcecode:: cpp
+
+  WifiHelper wifi;
+  wifi.SetStandard(WIFI_STANDARD_80211be);
+  wifi.ConfigEhtOptions("EmlsrActivated", BooleanValue(true));
+  wifi.ConfigEhtOptions("TransitionTimeout", TimeValue(MicroSeconds(1024)));
+  wifi.ConfigEhtOptions("MediumSyncDuration", TimeValue(MicroSeconds(3200)));
+  wifi.ConfigEhtOptions("MsdOfdmEdThreshold", IntegerValue(-72);
+  wifi.ConfigEhtOptions("MsdMaxNTxops", UintegerValue(0)); // unlimited attempts
+
+EMLSR parameters that are client specific can be configured through the attributes of the EMLSR
+Manager class and subclass. The ``WifiMacHelper`` class provides the ``SetEmlsrManager``
+method to conveniently set the type of EMLSR Manager and its attributes:
+
+.. sourcecode:: cpp
+
+  // setup STA.
+  wifiMac.SetType("ns3::StaWifiMac",
+                  "Ssid", SsidValue(ssid),
+                  "ActiveProbing", BooleanValue(false));
+  wifiMac.SetEmlsrManager("ns3::DefaultEmlsrManager",
+                          "EmlsrLinkSet",
+                          StringValue("0,1,2"),  // enable EMLSR on all EMLSR links
+                          "MainPhyId",
+                          UintegerValue(1),
+                          "EmlsrPaddingDelay",
+                          TimeValue(MicroSeconds(32)),
+                          "EmlsrTransitionDelay",
+                          TimeValue(MicroSeconds(128)),
+                          "SwitchAuxPhy",
+                          BooleanValue(false),
+                          "AuxPhyChannelWidth",
+                          UintegerValue(40));
+  NetDeviceContainer staDevice = wifi.Install(wifiPhy, wifiMac, sta);
+  devices.Add(staDevice);
+
+Note that the channel switch delay should be less than the transition delay:
+
+.. sourcecode:: cpp
+
+  // SpectrumWifiPhyHelper (3 links)
+  SpectrumWifiPhyHelper phy(3);
+  phy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
+  phy.AddChannel(spectrumChannel2_4Ghz, WIFI_SPECTRUM_2_4_GHZ);
+  phy.AddChannel(spectrumChannel5Ghz, WIFI_SPECTRUM_5_GHZ);
+  phy.AddChannel(spectrumChannel6Ghz, WIFI_SPECTRUM_6_GHZ);
+  phy.Set("ChannelSwitchDelay", TimeValue(MicroSeconds(100)));
+

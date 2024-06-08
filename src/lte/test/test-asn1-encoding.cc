@@ -50,14 +50,17 @@ class TestUtils
     static std::string sprintPacketContentsHex(Ptr<Packet> pkt)
     {
         uint32_t psize = pkt->GetSize();
-        uint8_t buffer[psize];
-        char sbuffer[psize * 3];
+        uint8_t *buffer = new uint8_t[psize];
+        char *sbuffer = new char[psize * 3];
         pkt->CopyData(buffer, psize);
         for (uint32_t i = 0; i < psize; i++)
         {
             sprintf(&sbuffer[i * 3], "%02x ", buffer[i]);
         }
-        return std::string(sbuffer);
+        auto textString = std::string(sbuffer);
+        delete[] sbuffer;
+        delete[] buffer;
+        return textString;
     }
 
     /**
@@ -68,13 +71,14 @@ class TestUtils
     static std::string sprintPacketContentsBin(Ptr<Packet> pkt)
     {
         uint32_t psize = pkt->GetSize();
-        uint8_t buffer[psize];
+        uint8_t *buffer = new uint8_t[psize];
         std::ostringstream oss(std::ostringstream::out);
         pkt->CopyData(buffer, psize);
         for (uint32_t i = 0; i < psize; i++)
         {
             oss << (std::bitset<8>(buffer[i]));
         }
+        delete[] buffer;
         return std::string(oss.str() + "\n");
     }
 
@@ -1264,20 +1268,20 @@ class Asn1EncodingSuite : public TestSuite
 };
 
 Asn1EncodingSuite::Asn1EncodingSuite()
-    : TestSuite("test-asn1-encoding", UNIT)
+    : TestSuite("test-asn1-encoding", Type::UNIT)
 {
     NS_LOG_FUNCTION(this);
-    AddTestCase(new RrcConnectionRequestTestCase(), TestCase::QUICK);
-    AddTestCase(new RrcConnectionSetupTestCase(), TestCase::QUICK);
-    AddTestCase(new RrcConnectionSetupCompleteTestCase(), TestCase::QUICK);
-    AddTestCase(new RrcConnectionReconfigurationCompleteTestCase(), TestCase::QUICK);
-    AddTestCase(new RrcConnectionReconfigurationTestCase(), TestCase::QUICK);
-    AddTestCase(new HandoverPreparationInfoTestCase(), TestCase::QUICK);
-    AddTestCase(new RrcConnectionReestablishmentRequestTestCase(), TestCase::QUICK);
-    AddTestCase(new RrcConnectionReestablishmentTestCase(), TestCase::QUICK);
-    AddTestCase(new RrcConnectionReestablishmentCompleteTestCase(), TestCase::QUICK);
-    AddTestCase(new RrcConnectionRejectTestCase(), TestCase::QUICK);
-    AddTestCase(new MeasurementReportTestCase(), TestCase::QUICK);
+    AddTestCase(new RrcConnectionRequestTestCase(), Duration::QUICK);
+    AddTestCase(new RrcConnectionSetupTestCase(), Duration::QUICK);
+    AddTestCase(new RrcConnectionSetupCompleteTestCase(), Duration::QUICK);
+    AddTestCase(new RrcConnectionReconfigurationCompleteTestCase(), Duration::QUICK);
+    AddTestCase(new RrcConnectionReconfigurationTestCase(), Duration::QUICK);
+    AddTestCase(new HandoverPreparationInfoTestCase(), Duration::QUICK);
+    AddTestCase(new RrcConnectionReestablishmentRequestTestCase(), Duration::QUICK);
+    AddTestCase(new RrcConnectionReestablishmentTestCase(), Duration::QUICK);
+    AddTestCase(new RrcConnectionReestablishmentCompleteTestCase(), Duration::QUICK);
+    AddTestCase(new RrcConnectionRejectTestCase(), Duration::QUICK);
+    AddTestCase(new MeasurementReportTestCase(), Duration::QUICK);
 }
 
 Asn1EncodingSuite asn1EncodingSuite;

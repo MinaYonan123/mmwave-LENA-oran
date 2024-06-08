@@ -153,11 +153,9 @@ UniformPlanarArrayTestCase::ComputeGain(Ptr<UniformPlanarArray> a)
 {
     // compute gain
     PhasedArrayModel::ComplexVector sv = a->GetSteeringVector(m_direction);
-    NS_TEST_EXPECT_MSG_EQ(sv.GetSize(), a->GetNumberOfElements(), "steering vector of wrong size");
+    NS_TEST_EXPECT_MSG_EQ(sv.GetSize(), a->GetNumElems(), "steering vector of wrong size");
     PhasedArrayModel::ComplexVector bf = a->GetBeamformingVector(m_direction);
-    NS_TEST_EXPECT_MSG_EQ(bf.GetSize(),
-                          a->GetNumberOfElements(),
-                          "beamforming vector of wrong size");
+    NS_TEST_EXPECT_MSG_EQ(bf.GetSize(), a->GetNumElems(), "beamforming vector of wrong size");
     std::pair<double, double> fp = a->GetElementFieldPattern(m_direction);
 
     // scalar product dot (sv, bf)
@@ -217,7 +215,7 @@ class UniformPlanarArrayTestSuite : public TestSuite
 };
 
 UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
-    : TestSuite("uniform-planar-array-test", UNIT)
+    : TestSuite("uniform-planar-array-test", Type::UNIT)
 {
     Ptr<AntennaModel> isotropic = CreateObject<IsotropicAntennaModel>();
     Ptr<AntennaModel> tgpp = CreateObject<ThreeGppAntennaModel>();
@@ -235,7 +233,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(0),
                                                Angles(DegreesToRadians(0), DegreesToRadians(90)),
                                                0.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                1,
                                                1,
@@ -245,7 +243,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(0),
                                                Angles(DegreesToRadians(0), DegreesToRadians(90)),
                                                8.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                1,
                                                1,
@@ -255,7 +253,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(0),
                                                Angles(DegreesToRadians(90), DegreesToRadians(90)),
                                                8.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                1,
                                                1,
@@ -265,7 +263,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(0),
                                                Angles(DegreesToRadians(-90), DegreesToRadians(90)),
                                                8.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                1,
                                                1,
@@ -275,7 +273,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(0),
                                                Angles(DegreesToRadians(180), DegreesToRadians(90)),
                                                8.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                1,
                                                1,
@@ -285,7 +283,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(0),
                                                Angles(DegreesToRadians(-180), DegreesToRadians(90)),
                                                8.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                1,
                                                1,
@@ -295,7 +293,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(45),
                                                Angles(DegreesToRadians(0), DegreesToRadians(135)),
                                                8.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                1,
                                                1,
@@ -305,7 +303,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(-45),
                                                Angles(DegreesToRadians(0), DegreesToRadians(45)),
                                                8.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                1,
                                                1,
@@ -315,7 +313,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(90),
                                                Angles(DegreesToRadians(0), DegreesToRadians(180)),
                                                8.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                1,
                                                1,
@@ -325,7 +323,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(-90),
                                                Angles(DegreesToRadians(0), DegreesToRadians(0)),
                                                8.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
 
     // linear array
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
@@ -337,7 +335,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(0),
                                                Angles(DegreesToRadians(0), DegreesToRadians(90)),
                                                18.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                10,
                                                1,
@@ -347,7 +345,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(0),
                                                Angles(DegreesToRadians(90), DegreesToRadians(90)),
                                                18.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                10,
                                                1,
@@ -357,7 +355,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(45),
                                                Angles(DegreesToRadians(0), DegreesToRadians(135)),
                                                18.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
 
     // planar array
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
@@ -369,7 +367,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(0),
                                                Angles(DegreesToRadians(0), DegreesToRadians(90)),
                                                28.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                10,
                                                10,
@@ -379,7 +377,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(0),
                                                Angles(DegreesToRadians(90), DegreesToRadians(90)),
                                                28.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
     AddTestCase(new UniformPlanarArrayTestCase(tgpp,
                                                10,
                                                10,
@@ -389,7 +387,7 @@ UniformPlanarArrayTestSuite::UniformPlanarArrayTestSuite()
                                                DegreesToRadians(45),
                                                Angles(DegreesToRadians(0), DegreesToRadians(135)),
                                                28.0),
-                TestCase::QUICK);
+                TestCase::Duration::QUICK);
 }
 
 static UniformPlanarArrayTestSuite staticUniformPlanarArrayTestSuiteInstance;

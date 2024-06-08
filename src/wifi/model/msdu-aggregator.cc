@@ -127,11 +127,16 @@ MsduAggregator::GetNextAmsdu(Ptr<WifiMpdu> peekedItem,
     uint8_t nMsdu = 1;
     peekedItem = queue->PeekByTidAndAddress(tid, recipient, peekedItem->GetOriginal());
 
-    while (peekedItem &&
+    // stop aggregation if we find an A-MSDU in the queue. This likely happens when an A-MSDU is
+    // prepared but not transmitted due to RTS/CTS failure
+    while (peekedItem && !peekedItem->GetHeader().IsQosAmsdu() &&
            m_htFem->TryAggregateMsdu(peekedItem = m_htFem->CreateAliasIfNeeded(peekedItem),
                                      txParams,
                                      availableTime))
     {
+        NS_ASSERT_MSG(!peekedItem->HasSeqNoAssigned(),
+                      "Found item with sequence number assignment after one without: perhaps "
+                      "sequence numbers were not released correctly?");
         // find the next MPDU before dequeuing the current one
         Ptr<const WifiMpdu> msdu = peekedItem->GetOriginal();
         peekedItem = queue->PeekByTidAndAddress(tid, recipient, msdu);
@@ -182,6 +187,7 @@ MsduAggregator::GetMaxAmsduSize(Mac48Address recipient,
 
     // Retrieve the Capabilities elements advertised by the recipient
     auto ehtCapabilities = stationManager->GetStationEhtCapabilities(recipient);
+    auto he6GhzCapabilities = stationManager->GetStationHe6GhzCapabilities(recipient);
     auto vhtCapabilities = stationManager->GetStationVhtCapabilities(recipient);
     auto htCapabilities = stationManager->GetStationHtCapabilities(recipient);
 
@@ -194,12 +200,16 @@ MsduAggregator::GetMaxAmsduSize(Mac48Address recipient,
     {
         maxMpduSize = ehtCapabilities->GetMaxMpduLength();
     }
+    else if (he6GhzCapabilities && m_mac->Is6GhzBand(m_linkId))
+    {
+        maxMpduSize = he6GhzCapabilities->GetMaxMpduLength();
+    }
     else if (vhtCapabilities && m_mac->GetWifiPhy(m_linkId)->GetPhyBand() != WIFI_PHY_BAND_2_4GHZ)
     {
         maxMpduSize = vhtCapabilities->GetMaxMpduLength();
     }
 
-    if (!htCapabilities)
+    if (!htCapabilities && !he6GhzCapabilities)
     {
         /* "A non-DMG STA shall not transmit an A-MSDU to a STA from which it has
          * not received a frame containing an HT Capabilities element" (Section

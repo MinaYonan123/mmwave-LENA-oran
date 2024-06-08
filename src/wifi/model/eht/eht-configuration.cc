@@ -23,6 +23,7 @@
 #include "ns3/attribute-container.h"
 #include "ns3/boolean.h"
 #include "ns3/enum.h"
+#include "ns3/integer.h"
 #include "ns3/log.h"
 #include "ns3/pair.h"
 #include "ns3/string.h"
@@ -34,6 +35,21 @@ namespace ns3
 NS_LOG_COMPONENT_DEFINE("EhtConfiguration");
 
 NS_OBJECT_ENSURE_REGISTERED(EhtConfiguration);
+
+std::ostream&
+operator<<(std::ostream& os, WifiTidToLinkMappingNegSupport negsupport)
+{
+    switch (negsupport)
+    {
+    case WifiTidToLinkMappingNegSupport::NOT_SUPPORTED:
+        return os << "NOT_SUPPORTED";
+    case WifiTidToLinkMappingNegSupport::SAME_LINK_SET:
+        return os << "SAME_LINK_SET";
+    case WifiTidToLinkMappingNegSupport::ANY_LINK_SET:
+        return os << "ANY_LINK_SET";
+    };
+    return os << "UNKNOWN(" << static_cast<uint32_t>(negsupport) << ")";
+}
 
 EhtConfiguration::EhtConfiguration()
 {
@@ -71,17 +87,39 @@ EhtConfiguration::GetTypeId()
                           MakeTimeAccessor(&EhtConfiguration::m_transitionTimeout),
                           MakeTimeChecker(MicroSeconds(0), MicroSeconds(65536)))
             .AddAttribute(
-                "TidToLinkMappingNegSupport",
-                "TID-to-Link Mapping Negotiation Support.",
-                EnumValue(WifiTidToLinkMappingNegSupport::WIFI_TID_TO_LINK_MAPPING_ANY_LINK_SET),
-                MakeEnumAccessor(&EhtConfiguration::m_tidLinkMappingSupport),
-                MakeEnumChecker(
-                    WifiTidToLinkMappingNegSupport::WIFI_TID_TO_LINK_MAPPING_NOT_SUPPORTED,
-                    "NOT_SUPPORTED",
-                    WifiTidToLinkMappingNegSupport::WIFI_TID_TO_LINK_MAPPING_SAME_LINK_SET,
-                    "SAME_LINK_SET",
-                    WifiTidToLinkMappingNegSupport::WIFI_TID_TO_LINK_MAPPING_ANY_LINK_SET,
-                    "ANY_LINK_SET"))
+                "MediumSyncDuration",
+                "The duration of the MediumSyncDelay timer (must be a multiple of 32 us). "
+                "The value of this attribute is only used by AP MLDs with EMLSR activated.",
+                TimeValue(MicroSeconds(DEFAULT_MSD_DURATION_USEC)),
+                MakeTimeAccessor(&EhtConfiguration::m_mediumSyncDuration),
+                MakeTimeChecker(MicroSeconds(0), MicroSeconds(255 * 32)))
+            .AddAttribute(
+                "MsdOfdmEdThreshold",
+                "Threshold (dBm) to be used instead of the normal CCA sensitivity for the primary "
+                "20 MHz channel if the MediumSyncDelay timer has a nonzero value. "
+                "The value of this attribute is only used by AP MLDs with EMLSR activated.",
+                IntegerValue(DEFAULT_MSD_OFDM_ED_THRESH),
+                MakeIntegerAccessor(&EhtConfiguration::m_msdOfdmEdThreshold),
+                MakeIntegerChecker<int8_t>(-72, -62))
+            .AddAttribute(
+                "MsdMaxNTxops",
+                "Maximum number of TXOPs that an EMLSR client is allowed to attempt to initiate "
+                "while the MediumSyncDelay timer is running (zero indicates no limit). "
+                "The value of this attribute is only used by AP MLDs with EMLSR activated.",
+                UintegerValue(DEFAULT_MSD_MAX_N_TXOPS),
+                MakeUintegerAccessor(&EhtConfiguration::m_msdMaxNTxops),
+                MakeUintegerChecker<uint8_t>(0, 15))
+            .AddAttribute("TidToLinkMappingNegSupport",
+                          "TID-to-Link Mapping Negotiation Support.",
+                          EnumValue(WifiTidToLinkMappingNegSupport::ANY_LINK_SET),
+                          MakeEnumAccessor<WifiTidToLinkMappingNegSupport>(
+                              &EhtConfiguration::m_tidLinkMappingSupport),
+                          MakeEnumChecker(WifiTidToLinkMappingNegSupport::NOT_SUPPORTED,
+                                          "NOT_SUPPORTED",
+                                          WifiTidToLinkMappingNegSupport::SAME_LINK_SET,
+                                          "SAME_LINK_SET",
+                                          WifiTidToLinkMappingNegSupport::ANY_LINK_SET,
+                                          "ANY_LINK_SET"))
             .AddAttribute(
                 "TidToLinkMappingDl",
                 "A list-of-TIDs-indexed map of the list of links where the TIDs are mapped to "

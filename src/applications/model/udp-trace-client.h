@@ -41,7 +41,7 @@ class Packet;
  *
  * Sends UDP packets based on a trace file of a MPEG4 stream.
  * Trace files can be downloaded from:
- * http://trace.eas.asu.edu/mpeg4/index.html
+ * https://web.archive.org/web/20210113211420/http://trace.eas.asu.edu/mpeg4/index.html
  * (the 2 first lines of the file should be removed) A valid trace file is a file with 4 columns:
  * \li -1- the first one represents the frame index
  * \li -2- the second one indicates the type of the frame: I, P or B
@@ -124,10 +124,10 @@ class UdpTraceClient : public Application
      */
     void SetTraceLoop(bool traceLoop);
 
-  protected:
-    void DoDispose() override;
-
   private:
+    void StartApplication() override;
+    void StopApplication() override;
+
     /**
      * \brief Load a trace file
      * \param filename the trace file path
@@ -137,8 +137,6 @@ class UdpTraceClient : public Application
      * \brief Load the default trace
      */
     void LoadDefaultTrace();
-    void StartApplication() override;
-    void StopApplication() override;
 
     /**
      * \brief Send a packet
@@ -166,6 +164,7 @@ class UdpTraceClient : public Application
     Ptr<Socket> m_socket;  //!< Socket
     Address m_peerAddress; //!< Remote peer address
     uint16_t m_peerPort;   //!< Remote peer port
+    uint8_t m_tos;         //!< The packets Type of Service
     EventId m_sendEvent;   //!< Event to send the next packet
 
     std::vector<TraceEntry> m_entries;    //!< Entries in the trace to send

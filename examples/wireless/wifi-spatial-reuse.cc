@@ -23,7 +23,7 @@
 //
 //  The geometry is as follows:
 //
-//                STA1          STA1
+//                STA1          STA2
 //                 |              |
 //              d1 |              |d2
 //                 |       d3     |
@@ -34,7 +34,7 @@
 //
 //  STA1 is continuously transmitting data to AP1, while STA2 is continuously sending data to AP2.
 //  Each STA has configurable traffic loads (inter packet interval and packet size).
-//  It is also possible to configure TX power per node as well as their CCA-ED tresholds.
+//  It is also possible to configure TX power per node as well as their CCA-ED thresholds.
 //  OBSS_PD spatial reuse feature can be enabled (default) or disabled, and the OBSS_PD
 //  threshold can be set as well (default: -72 dBm).
 //  A simple Friis path loss model is used and a constant PHY rate is considered.
@@ -79,8 +79,11 @@
 //  thus increasing the amount of generated traffic by setting the
 //  interval argument to a lower value is necessary to see the
 //  benefits of spatial reuse in this scenario. This can, for
-//  instance, be accomplished by setting --interval=0.0001.
+//  instance, be accomplished by setting --interval=100us.
 //
+//  Spatial reuse reset events are traced in two text files:
+//  - wifi-spatial-reuse-resets-bss-1.txt (for STA 1)
+//  - wifi-spatial-reuse-resets-bss-2.txt (for STA 2)
 
 #include "ns3/abort.h"
 #include "ns3/ap-wifi-mac.h"
@@ -89,8 +92,10 @@
 #include "ns3/config.h"
 #include "ns3/double.h"
 #include "ns3/he-configuration.h"
+#include "ns3/he-phy.h"
 #include "ns3/mobility-helper.h"
 #include "ns3/multi-model-spectrum-channel.h"
+#include "ns3/obss-pd-algorithm.h"
 #include "ns3/packet-socket-client.h"
 #include "ns3/packet-socket-helper.h"
 #include "ns3/packet-socket-server.h"
@@ -102,6 +107,8 @@
 using namespace ns3;
 
 std::vector<uint32_t> bytesReceived(4);
+std::ofstream g_resetFile1;
+std::ofstream g_resetFile2;
 
 uint32_t
 ContextToNodeId(std::string context)
@@ -118,32 +125,60 @@ SocketRx(std::string context, Ptr<const Packet> p, const Address& addr)
     bytesReceived[nodeId] += p->GetSize();
 }
 
+void
+ResetTrace(std::string context,
+           uint8_t bssColor,
+           double rssiDbm,
+           bool powerRestricted,
+           double txPowerMaxDbmSiso,
+           double txPowerMaxDbmMimo)
+{
+    if (context == "1")
+    {
+        g_resetFile1 << Simulator::Now().GetSeconds() << " bssColor: " << +bssColor
+                     << " rssiDbm: " << rssiDbm << " powerRestricted: " << powerRestricted
+                     << " txPowerMaxDbmSiso: " << txPowerMaxDbmSiso
+                     << " txPowerMaxDbmMimo: " << txPowerMaxDbmMimo << std::endl;
+    }
+    else if (context == "2")
+    {
+        g_resetFile2 << Simulator::Now().GetSeconds() << " bssColor: " << +bssColor
+                     << " rssiDbm: " << rssiDbm << " powerRestricted: " << powerRestricted
+                     << " txPowerMaxDbmSiso: " << txPowerMaxDbmSiso
+                     << " txPowerMaxDbmMimo: " << txPowerMaxDbmMimo << std::endl;
+    }
+    else
+    {
+        NS_FATAL_ERROR("Unknown context " << context);
+    }
+}
+
 int
 main(int argc, char* argv[])
 {
-    double duration = 10.0;      // seconds
-    double d1 = 30.0;            // meters
-    double d2 = 30.0;            // meters
-    double d3 = 150.0;           // meters
-    double powSta1 = 10.0;       // dBm
-    double powSta2 = 10.0;       // dBm
-    double powAp1 = 21.0;        // dBm
-    double powAp2 = 21.0;        // dBm
-    double ccaEdTrSta1 = -62;    // dBm
-    double ccaEdTrSta2 = -62;    // dBm
-    double ccaEdTrAp1 = -62;     // dBm
-    double ccaEdTrAp2 = -62;     // dBm
-    double minimumRssi = -82;    // dBm
-    int channelWidth = 20;       // MHz
-    uint32_t payloadSize = 1500; // bytes
-    uint32_t mcs = 0;            // MCS value
-    double interval = 0.001;     // seconds
-    bool enableObssPd = true;
-    double obssPdThreshold = -72.0; // dBm
+    Time duration{"10s"};
+    double d1{30.0};            // meters
+    double d2{30.0};            // meters
+    double d3{150.0};           // meters
+    double powSta1{10.0};       // dBm
+    double powSta2{10.0};       // dBm
+    double powAp1{21.0};        // dBm
+    double powAp2{21.0};        // dBm
+    double ccaEdTrSta1{-62};    // dBm
+    double ccaEdTrSta2{-62};    // dBm
+    double ccaEdTrAp1{-62};     // dBm
+    double ccaEdTrAp2{-62};     // dBm
+    double minimumRssi{-82};    // dBm
+    int channelWidth{20};       // MHz
+    uint32_t payloadSize{1500}; // bytes
+    uint32_t mcs{0};            // MCS value
+    Time interval{"1ms"};
+    bool enableObssPd{true};
+    double obssPdThreshold{-72.0}; // dBm
 
     CommandLine cmd(__FILE__);
-    cmd.AddValue("duration", "Duration of simulation (s)", duration);
-    cmd.AddValue("interval", "Inter packet interval (s)", interval);
+    cmd.AddValue("duration", "Duration of simulation", duration);
+    cmd.AddValue("interval", "Inter packet interval", interval);
     cmd.AddValue("enableObssPd", "Enable/disable OBSS_PD", enableObssPd);
     cmd.AddValue("d1", "Distance between STA1 and AP1 (m)", d1);
     cmd.AddValue("d2", "Distance between STA2 and AP2 (m)", d2);
@@ -163,6 +198,9 @@ main(int argc, char* argv[])
     cmd.AddValue("obssPdThreshold", "Threshold for the OBSS PD Algorithm", obssPdThreshold);
     cmd.AddValue("mcs", "The constant MCS value to transmit HE PPDUs", mcs);
     cmd.Parse(argc, argv);
+
+    g_resetFile1.open("wifi-spatial-reuse-resets-bss-1.txt", std::ofstream::out);
+    g_resetFile2.open("wifi-spatial-reuse-resets-bss-2.txt", std::ofstream::out);
 
     NodeContainer wifiStaNodes;
     wifiStaNodes.Create(2);
@@ -292,7 +330,7 @@ main(int argc, char* argv[])
         wifiStaNodes.Get(0)->AddApplication(client);
         client->SetAttribute("PacketSize", UintegerValue(payloadSize));
         client->SetAttribute("MaxPackets", UintegerValue(0));
-        client->SetAttribute("Interval", TimeValue(Seconds(interval)));
+        client->SetAttribute("Interval", TimeValue(interval));
         Ptr<PacketSocketServer> server = CreateObject<PacketSocketServer>();
         server->SetLocal(socketAddr);
         wifiApNodes.Get(0)->AddApplication(server);
@@ -309,7 +347,7 @@ main(int argc, char* argv[])
         wifiStaNodes.Get(1)->AddApplication(client);
         client->SetAttribute("PacketSize", UintegerValue(payloadSize));
         client->SetAttribute("MaxPackets", UintegerValue(0));
-        client->SetAttribute("Interval", TimeValue(Seconds(interval)));
+        client->SetAttribute("Interval", TimeValue(interval));
         Ptr<PacketSocketServer> server = CreateObject<PacketSocketServer>();
         server->SetLocal(socketAddr);
         wifiApNodes.Get(1)->AddApplication(server);
@@ -318,16 +356,31 @@ main(int argc, char* argv[])
     Config::Connect("/NodeList/*/ApplicationList/*/$ns3::PacketSocketServer/Rx",
                     MakeCallback(&SocketRx));
 
-    Simulator::Stop(Seconds(duration));
+    // Obtain pointers to the ObssPdAlgorithm objects and hook trace sinks
+    // to the Reset trace source on each STA.  Note that this trace connection
+    // cannot be done through the Config path system, so pointers are used.
+    auto deviceA = staDeviceA.Get(0)->GetObject<WifiNetDevice>();
+    auto hePhyA = DynamicCast<HePhy>(deviceA->GetPhy()->GetPhyEntity(WIFI_MOD_CLASS_HE));
+    // Pass in the context string "1" to allow the trace to distinguish objects
+    hePhyA->GetObssPdAlgorithm()->TraceConnect("Reset", "1", MakeCallback(&ResetTrace));
+    auto deviceB = staDeviceB.Get(0)->GetObject<WifiNetDevice>();
+    auto hePhyB = DynamicCast<HePhy>(deviceB->GetPhy()->GetPhyEntity(WIFI_MOD_CLASS_HE));
+    // Pass in the context string "2" to allow the trace to distinguish objects
+    hePhyB->GetObssPdAlgorithm()->TraceConnect("Reset", "2", MakeCallback(&ResetTrace));
+
+    Simulator::Stop(duration);
     Simulator::Run();
 
     Simulator::Destroy();
 
     for (uint32_t i = 0; i < 2; i++)
     {
-        double throughput = static_cast<double>(bytesReceived[2 + i]) * 8 / 1000 / 1000 / duration;
+        const auto throughput = bytesReceived[2 + i] * 8.0 / duration.GetMicroSeconds();
         std::cout << "Throughput for BSS " << i + 1 << ": " << throughput << " Mbit/s" << std::endl;
     }
+
+    g_resetFile1.close();
+    g_resetFile2.close();
 
     return 0;
 }

@@ -110,19 +110,14 @@ class LteRlcAmHeader : public Header
      */
     uint8_t GetFramingInfo() const;
 
-    /// FramingInfoFirstByte_t enumeration
-    typedef enum
+    /// FramingInfoByte_t enumeration
+    enum FramingInfoByte_t
     {
         FIRST_BYTE = 0x00,
-        NO_FIRST_BYTE = 0x02
-    } FramingInfoFirstByte_t; ///< FramingInfoFirstByte_t typedef
-
-    /// FramingInfoLastByte_t enumeration
-    typedef enum
-    {
+        NO_FIRST_BYTE = 0x02,
         LAST_BYTE = 0x00,
         NO_LAST_BYTE = 0x01
-    } FramingInfoLastByte_t; ///< FramingInfoLastByte_t typedef
+    };
 
     /**
      * Push extension bit function

@@ -22,11 +22,14 @@
 
 #include "energy-source.h"
 
+#include "ns3/deprecated.h"
 #include "ns3/event-id.h"
 #include "ns3/nstime.h"
 #include "ns3/traced-value.h"
 
 namespace ns3
+{
+namespace energy
 {
 
 /**
@@ -214,6 +217,7 @@ class LiIonEnergySource : public EnergySource
     double m_minVoltTh;          //!< minimum threshold voltage to consider the battery depleted
 };
 
+} // namespace energy
 } // namespace ns3
 
 #endif /* LI_ION_ENERGY_SOURCE_H */

@@ -52,7 +52,7 @@ NS_LOG_COMPONENT_DEFINE("LteInterferenceFrTest");
  */
 
 LteInterferenceFrTestSuite::LteInterferenceFrTestSuite()
-    : TestSuite("lte-interference-fr", SYSTEM)
+    : TestSuite("lte-interference-fr", Type::SYSTEM)
 {
     //  LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME | LOG_LEVEL_DEBUG);
     //  LogComponentEnable ("LteInterferenceFrTest", logLevel);
@@ -62,25 +62,25 @@ LteInterferenceFrTestSuite::LteInterferenceFrTestSuite()
                                                   20.000000,
                                                   356449.932732,
                                                   10803.280215),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteInterferenceHardFrTestCase("d1=50, d2=50",
                                                   50.000000,
                                                   50.000000,
                                                   356449.932732,
                                                   10803.280215),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteInterferenceHardFrTestCase("d1=50, d2=200",
                                                   50.000000,
                                                   200.000000,
                                                   356449.932732,
                                                   10803.280215),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteInterferenceHardFrTestCase("d1=50, d2=500",
                                                   50.000000,
                                                   500.000000,
                                                   356449.932732,
                                                   10803.280215),
-                TestCase::QUICK);
+                Duration::QUICK);
 
     AddTestCase(new LteInterferenceStrictFrTestCase("d1=50, d2=20",
                                                     50.000000,
@@ -90,7 +90,7 @@ LteInterferenceFrTestSuite::LteInterferenceFrTestSuite()
                                                     356449.932732,
                                                     10803.280215,
                                                     18),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteInterferenceStrictFrTestCase("d1=50, d2=50",
                                                     50.000000,
                                                     50.000000,
@@ -99,7 +99,7 @@ LteInterferenceFrTestSuite::LteInterferenceFrTestSuite()
                                                     356449.932732,
                                                     10803.280215,
                                                     28),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteInterferenceStrictFrTestCase("d1=50, d2=200",
                                                     50.000000,
                                                     200.000000,
@@ -108,7 +108,7 @@ LteInterferenceFrTestSuite::LteInterferenceFrTestSuite()
                                                     356449.932732,
                                                     10803.280215,
                                                     30),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteInterferenceStrictFrTestCase("d1=50, d2=500",
                                                     50.000000,
                                                     500.000000,
@@ -117,7 +117,7 @@ LteInterferenceFrTestSuite::LteInterferenceFrTestSuite()
                                                     356449.932732,
                                                     10803.280215,
                                                     30),
-                TestCase::QUICK);
+                Duration::QUICK);
 }
 
 static LteInterferenceFrTestSuite LteInterferenceFrTestSuite;

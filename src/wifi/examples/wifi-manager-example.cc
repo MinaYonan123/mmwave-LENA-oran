@@ -65,6 +65,7 @@
 #include "ns3/ssid.h"
 #include "ns3/tuple.h"
 #include "ns3/uinteger.h"
+#include "ns3/wifi-mac.h"
 #include "ns3/wifi-net-device.h"
 #include "ns3/yans-wifi-helper.h"
 
@@ -230,6 +231,9 @@ main(int argc, char* argv[])
     uint32_t maxSlrc = 7;
     uint32_t maxSsrc = 7;
 
+    RngSeedManager::SetSeed(1);
+    RngSeedManager::SetRun(2);
+
     CommandLine cmd(__FILE__);
     cmd.AddValue("maxSsrc",
                  "The maximum number of retransmission attempts for a RTS packet",
@@ -289,14 +293,14 @@ main(int argc, char* argv[])
         {
             serverChannelWidth = GetDefaultChannelWidth(WIFI_STANDARD_80211b, WIFI_PHY_BAND_2_4GHZ);
         }
-        NS_ABORT_MSG_IF(serverChannelWidth != 22 && serverChannelWidth != 22,
+        NS_ABORT_MSG_IF(serverChannelWidth != 22,
                         "Invalid channel width for standard " << standard);
         NS_ABORT_MSG_IF(serverNss != 1, "Invalid nss for standard " << standard);
         if (clientChannelWidth == 0)
         {
             clientChannelWidth = GetDefaultChannelWidth(WIFI_STANDARD_80211b, WIFI_PHY_BAND_2_4GHZ);
         }
-        NS_ABORT_MSG_IF(clientChannelWidth != 22 && clientChannelWidth != 22,
+        NS_ABORT_MSG_IF(clientChannelWidth != 22,
                         "Invalid channel width for standard " << standard);
         NS_ABORT_MSG_IF(clientNss != 1, "Invalid nss for standard " << standard);
     }
@@ -635,7 +639,7 @@ main(int argc, char* argv[])
     NetDeviceContainer serverDevice;
     NetDeviceContainer clientDevice;
 
-    TupleValue<UintegerValue, UintegerValue, EnumValue, UintegerValue> channelValue;
+    TupleValue<UintegerValue, UintegerValue, EnumValue<WifiPhyBand>, UintegerValue> channelValue;
 
     WifiMacHelper wifiMac;
     if (infrastructure)
@@ -673,10 +677,8 @@ main(int argc, char* argv[])
         clientDevice = wifi.Install(wifiPhy, wifiMac, clientNode);
     }
 
-    RngSeedManager::SetSeed(1);
-    RngSeedManager::SetRun(2);
     wifi.AssignStreams(serverDevice, 100);
-    wifi.AssignStreams(clientDevice, 100);
+    wifi.AssignStreams(clientDevice, 200);
 
     Config::Set("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/BE_MaxAmpduSize",
                 UintegerValue(maxAmpduSize));
@@ -798,6 +800,16 @@ main(int argc, char* argv[])
 
     Simulator::Stop(Seconds((steps + 1) * stepTime));
     Simulator::Run();
+
+    if (serverSelectedStandard.m_standard >= WIFI_STANDARD_80211n)
+    {
+        NS_ABORT_MSG_UNLESS(wndClient->GetMac()->GetBaAgreementEstablishedAsOriginator(
+                                wndServer->GetMac()->GetAddress(),
+                                0),
+                            "Expected BA agreement established for standard "
+                                << serverSelectedStandard.m_standard);
+    }
+
     Simulator::Destroy();
 
     gnuplot.AddDataset(rateDataset);

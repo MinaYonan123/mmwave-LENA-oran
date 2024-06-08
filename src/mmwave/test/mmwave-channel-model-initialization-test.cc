@@ -213,7 +213,7 @@ class MmWaveChannelModelInitializationTestSuite : public TestSuite
 };
 
 MmWaveChannelModelInitializationTestSuite::MmWaveChannelModelInitializationTestSuite()
-    : TestSuite("mmwave-channel-model-initialization-test", UNIT)
+    : TestSuite("mmwave-channel-model-initialization-test", Type::UNIT)
 {
     // TestDuration for TestCase can be QUICK, EXTENSIVE or TAKES_FOREVER
     AddTestCase(new MmwaveThreeGppChannelInitializationTestCase, TestCase::QUICK);

@@ -49,7 +49,7 @@ NS_LOG_COMPONENT_DEFINE("LteRlcUmE2eTest");
  */
 
 LteRlcUmE2eTestSuite::LteRlcUmE2eTestSuite()
-    : TestSuite("lte-rlc-um-e2e", SYSTEM)
+    : TestSuite("lte-rlc-um-e2e", Type::SYSTEM)
 {
     // NS_LOG_INFO ("Creating LteRlcUmE2eTestSuite");
 
@@ -65,11 +65,11 @@ LteRlcUmE2eTestSuite::LteRlcUmE2eTestSuite()
             TestCase::TestDuration testDuration;
             if (l == 1 && s == 0)
             {
-                testDuration = TestCase::QUICK;
+                testDuration = Duration::QUICK;
             }
             else
             {
-                testDuration = TestCase::EXTENSIVE;
+                testDuration = Duration::EXTENSIVE;
             }
             AddTestCase(new LteRlcUmE2eTestCase(name.str(), seeds[s], losses[l]), testDuration);
         }

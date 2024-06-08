@@ -47,7 +47,7 @@ NS_LOG_COMPONENT_DEFINE("LteDownlinkSinrTest");
  */
 
 LteDownlinkSinrTestSuite::LteDownlinkSinrTestSuite()
-    : TestSuite("lte-downlink-sinr", SYSTEM)
+    : TestSuite("lte-downlink-sinr", Type::SYSTEM)
 {
     /**
      * Build Spectrum Model values for the TX signal
@@ -82,9 +82,9 @@ LteDownlinkSinrTestSuite::LteDownlinkSinrTestSuite()
     (*theoreticalSinr1)[1] = 3.72255684126076;
 
     AddTestCase(new LteDownlinkDataSinrTestCase(rxPsd1, theoreticalSinr1, "sdBm = [-46 -48]"),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteDownlinkCtrlSinrTestCase(rxPsd1, theoreticalSinr1, "sdBm = [-46 -48]"),
-                TestCase::QUICK);
+                Duration::QUICK);
 
     /**
      * TX signal #2: Power Spectral Density (W/Hz) of the signal of interest = [-63 -61] dBm and BW
@@ -99,9 +99,9 @@ LteDownlinkSinrTestSuite::LteDownlinkSinrTestSuite()
     (*theoreticalSinr2)[1] = 0.1865697965291756;
 
     AddTestCase(new LteDownlinkDataSinrTestCase(rxPsd2, theoreticalSinr2, "sdBm = [-63 -61]"),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteDownlinkCtrlSinrTestCase(rxPsd2, theoreticalSinr2, "sdBm = [-63 -61]"),
-                TestCase::QUICK);
+                Duration::QUICK);
 }
 
 static LteDownlinkSinrTestSuite lteDownlinkSinrTestSuite;

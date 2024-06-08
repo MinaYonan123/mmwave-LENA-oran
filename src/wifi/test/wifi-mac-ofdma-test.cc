@@ -100,11 +100,12 @@ TestMultiUserScheduler::GetTypeId()
             .SetParent<MultiUserScheduler>()
             .SetGroupName("Wifi")
             .AddConstructor<TestMultiUserScheduler>()
-            .AddAttribute("ModulationClass",
-                          "Modulation class for DL MU PPDUs and TB PPDUs.",
-                          EnumValue(WIFI_MOD_CLASS_HE),
-                          MakeEnumAccessor(&TestMultiUserScheduler::m_modClass),
-                          MakeEnumChecker(WIFI_MOD_CLASS_HE, "HE", WIFI_MOD_CLASS_EHT, "EHT"));
+            .AddAttribute(
+                "ModulationClass",
+                "Modulation class for DL MU PPDUs and TB PPDUs.",
+                EnumValue(WIFI_MOD_CLASS_HE),
+                MakeEnumAccessor<WifiModulationClass>(&TestMultiUserScheduler::m_modClass),
+                MakeEnumChecker(WIFI_MOD_CLASS_HE, "HE", WIFI_MOD_CLASS_EHT, "EHT"));
     return tid;
 }
 
@@ -186,13 +187,14 @@ TestMultiUserScheduler::SelectTxFormat()
         m_txParams.Clear();
         // set the TXVECTOR used to send the Trigger Frame
         m_txParams.m_txVector =
-            m_apMac->GetWifiRemoteStationManager()->GetRtsTxVector(m_triggerHdr.GetAddr1());
+            m_apMac->GetWifiRemoteStationManager()->GetRtsTxVector(m_triggerHdr.GetAddr1(),
+                                                                   m_allowedWidth);
 
         if (!GetHeFem(SINGLE_LINK_OP_ID)->TryAddMpdu(item, m_txParams, m_availableTime) ||
             (m_availableTime != Time::Min() &&
-             m_txParams.m_protection->protectionTime + m_txParams.m_txDuration // TF tx time
+             *m_txParams.m_protection->protectionTime + *m_txParams.m_txDuration // TF tx time
                      + m_apMac->GetWifiPhy()->GetSifs() + duration +
-                     m_txParams.m_acknowledgment->acknowledgmentTime >
+                     *m_txParams.m_acknowledgment->acknowledgmentTime >
                  m_availableTime))
         {
             NS_LOG_DEBUG("Remaining TXOP duration is not enough for BSRP TF exchange");
@@ -365,7 +367,6 @@ TestMultiUserScheduler::ComputeUlMuInfo()
 
 /**
  * \ingroup wifi-test
- * \ingroup tests
  * The scenarios
  */
 enum class WifiOfdmaScenario : uint8_t
@@ -2282,7 +2283,7 @@ class WifiMacOfdmaTestSuite : public TestSuite
 };
 
 WifiMacOfdmaTestSuite::WifiMacOfdmaTestSuite()
-    : TestSuite("wifi-mac-ofdma", UNIT)
+    : TestSuite("wifi-mac-ofdma", Type::UNIT)
 {
     using MuEdcaParams = std::initializer_list<OfdmaAckSequenceTest::MuEdcaParameterSet>;
 
@@ -2300,7 +2301,7 @@ WifiMacOfdmaTestSuite::WifiMacOfdmaTestSuite()
                                                  15,
                                                  muEdcaParameterSet,
                                                  scenario),
-                        TestCase::QUICK);
+                        TestCase::Duration::QUICK);
             AddTestCase(new OfdmaAckSequenceTest(20,
                                                  WifiAcknowledgment::DL_MU_AGGREGATE_TF,
                                                  10000,
@@ -2308,7 +2309,7 @@ WifiMacOfdmaTestSuite::WifiMacOfdmaTestSuite()
                                                  15,
                                                  muEdcaParameterSet,
                                                  scenario),
-                        TestCase::QUICK);
+                        TestCase::Duration::QUICK);
             AddTestCase(new OfdmaAckSequenceTest(20,
                                                  WifiAcknowledgment::DL_MU_TF_MU_BAR,
                                                  10000,
@@ -2316,7 +2317,7 @@ WifiMacOfdmaTestSuite::WifiMacOfdmaTestSuite()
                                                  15,
                                                  muEdcaParameterSet,
                                                  scenario),
-                        TestCase::QUICK);
+                        TestCase::Duration::QUICK);
             AddTestCase(new OfdmaAckSequenceTest(40,
                                                  WifiAcknowledgment::DL_MU_BAR_BA_SEQUENCE,
                                                  10000,
@@ -2324,7 +2325,7 @@ WifiMacOfdmaTestSuite::WifiMacOfdmaTestSuite()
                                                  15,
                                                  muEdcaParameterSet,
                                                  scenario),
-                        TestCase::QUICK);
+                        TestCase::Duration::QUICK);
             AddTestCase(new OfdmaAckSequenceTest(40,
                                                  WifiAcknowledgment::DL_MU_AGGREGATE_TF,
                                                  10000,
@@ -2332,7 +2333,7 @@ WifiMacOfdmaTestSuite::WifiMacOfdmaTestSuite()
                                                  15,
                                                  muEdcaParameterSet,
                                                  scenario),
-                        TestCase::QUICK);
+                        TestCase::Duration::QUICK);
             AddTestCase(new OfdmaAckSequenceTest(40,
                                                  WifiAcknowledgment::DL_MU_TF_MU_BAR,
                                                  10000,
@@ -2340,7 +2341,7 @@ WifiMacOfdmaTestSuite::WifiMacOfdmaTestSuite()
                                                  15,
                                                  muEdcaParameterSet,
                                                  scenario),
-                        TestCase::QUICK);
+                        TestCase::Duration::QUICK);
         }
     }
 }

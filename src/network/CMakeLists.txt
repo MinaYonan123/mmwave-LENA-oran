@@ -1,5 +1,6 @@
 set(source_files
     helper/application-container.cc
+    helper/application-helper.cc
     helper/delay-jitter-estimation.cc
     helper/net-device-container.cc
     helper/node-container.cc
@@ -73,6 +74,7 @@ set(source_files
 
 set(header_files
     helper/application-container.h
+    helper/application-helper.h
     helper/delay-jitter-estimation.h
     helper/net-device-container.h
     helper/node-container.h
@@ -154,8 +156,7 @@ build_lib(
   LIBNAME network
   SOURCE_FILES ${source_files}
   HEADER_FILES ${header_files}
-  LIBRARIES_TO_LINK ${libcore}
-                    ${libstats}
+  LIBRARIES_TO_LINK ${libstats}
   TEST_SOURCES
     test/bit-serializer-test.cc
     test/buffer-test.cc

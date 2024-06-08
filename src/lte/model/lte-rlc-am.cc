@@ -332,7 +332,7 @@ LteRlcAm::DoNotifyTxOpportunity(LteMacSapUser::TxOpportunityParameters txOpParam
       return;
     }
 
-    if (m_statusPduRequested && !m_statusProhibitTimer.IsRunning() &&
+    if (m_statusPduRequested && !m_statusProhibitTimer.IsPending() &&
         txOpParams.componentCarrierId == 0) // only the PCC can send STATUS PDUs
     {
         if (txOpParams.bytes < m_statusPduBufferSize)
@@ -497,7 +497,7 @@ LteRlcAm::DoNotifyTxOpportunity(LteMacSapUser::TxOpportunityParameters txOpParam
                         m_pollSn = m_vtS - 1;
                         NS_LOG_LOGIC("New POLL_SN = " << m_pollSn);
 
-                        if (!m_pollRetransmitTimer.IsRunning())
+                        if (!m_pollRetransmitTimer.IsPending())
                         {
                             NS_LOG_LOGIC("Start PollRetransmit timer");
 
@@ -597,7 +597,7 @@ LteRlcAm::DoNotifyTxOpportunity(LteMacSapUser::TxOpportunityParameters txOpParam
                         m_pollSn = m_vtS - 1;
                         NS_LOG_LOGIC("New POLL_SN = " << m_pollSn);
 
-                        if (!m_pollRetransmitTimer.IsRunning())
+                        if (!m_pollRetransmitTimer.IsPending())
                         {
                             NS_LOG_LOGIC("Start PollRetransmit timer");
 
@@ -1009,7 +1009,7 @@ LteRlcAm::DoNotifyTxOpportunity(LteMacSapUser::TxOpportunityParameters txOpParam
     // LL HO tricky: store the complete version of the LAST incomplete Rlc SDU for forwarding to
     // target eNB in lossless HO. This will reduce the work of
     // reassemling the incomplete SDU later.
-    if (entireSdu != NULL)
+    if (entireSdu)
     {
         m_segmented_rlcsdu = entireSdu;
         NS_LOG_DEBUG("entireSdu = " << m_segmented_rlcsdu->GetSize() << " SEQ = " << m_vtS);
@@ -1100,7 +1100,7 @@ LteRlcAm::DoNotifyTxOpportunity(LteMacSapUser::TxOpportunityParameters txOpParam
         m_pollSn = m_vtS - 1;
         NS_LOG_LOGIC("New POLL_SN = " << m_pollSn);
 
-        if (!m_pollRetransmitTimer.IsRunning())
+        if (!m_pollRetransmitTimer.IsPending())
         {
             NS_LOG_LOGIC("Start PollRetransmit timer");
 
@@ -1959,7 +1959,7 @@ LteRlcAm::DoReceivePdu(LteMacSapUser::ReceivePduParameters rxPduParams)
             m_statusPduRequested = true;
             m_statusPduBufferSize = 4;
 
-            if (!m_statusProhibitTimer.IsRunning())
+            if (!m_statusProhibitTimer.IsPending())
             {
                 DoReportBufferStatus();
             }
@@ -2161,7 +2161,7 @@ LteRlcAm::DoReceivePdu(LteMacSapUser::ReceivePduParameters rxPduParams)
         //     - if VR(X) falls outside of the receiving window and VR(X) is not equal to VR(MR):
         //         - stop and reset t-Reordering;
 
-        if (m_reorderingTimer.IsRunning())
+        if (m_reorderingTimer.IsPending())
         {
             NS_LOG_LOGIC("Reordering timer is running");
             if ((m_vrX == m_vrR) || ((!IsInsideReceivingWindow(m_vrX)) && (m_vrX != m_vrMr)))
@@ -2178,7 +2178,7 @@ LteRlcAm::DoReceivePdu(LteMacSapUser::ReceivePduParameters rxPduParams)
         //         - start t-Reordering;
         //         - set VR(X) to VR(H).
 
-        if (!m_reorderingTimer.IsRunning())
+        if (!m_reorderingTimer.IsPending())
         {
             NS_LOG_LOGIC("Reordering timer is not running");
             if (m_vrH > m_vrR)
@@ -2219,7 +2219,7 @@ LteRlcAm::DoReceivePdu(LteMacSapUser::ReceivePduParameters rxPduParams)
 
             uint16_t seqNumberValue = sn.GetValue();
 
-            if (m_pollRetransmitTimer.IsRunning() && (seqNumberValue == m_pollSn.GetValue()))
+            if (m_pollRetransmitTimer.IsPending() && (seqNumberValue == m_pollSn.GetValue()))
             {
                 m_pollRetransmitTimer.Cancel();
             }
@@ -2841,7 +2841,7 @@ LteRlcAm::DoReportBufferStatus(void)
         r.txPacketDelays.push_back(holDelay.GetMicroSeconds());
     }
 
-    if (m_statusPduRequested && !m_statusProhibitTimer.IsRunning())
+    if (m_statusPduRequested && !m_statusProhibitTimer.IsPending())
     {
         r.statusPduSize = m_statusPduBufferSize;
     }

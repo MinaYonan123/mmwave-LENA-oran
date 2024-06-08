@@ -41,6 +41,7 @@
 #include "ns3/string.h"
 #include "ns3/test.h"
 #include "ns3/threshold-preamble-detection-model.h"
+#include "ns3/txop.h"
 #include "ns3/waveform-generator.h"
 #include "ns3/wifi-mac-header.h"
 #include "ns3/wifi-net-device.h"
@@ -822,13 +823,13 @@ TestDlOfdmaPhyTransmission::RunOne()
                                                                       WIFI_PHY_BAND_5GHZ));
 
     m_phyAp->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, m_channelWidth, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
     m_phySta1->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, m_channelWidth, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
     m_phySta2->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, m_channelWidth, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
     m_phySta3->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, m_channelWidth, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
 
     Simulator::Schedule(Seconds(0.5), &TestDlOfdmaPhyTransmission::ResetResults, this);
 
@@ -1922,7 +1923,7 @@ TestUlOfdmaPpduUid::DoSetup()
                                                                       WIFI_STANDARD_80211ax,
                                                                       WIFI_PHY_BAND_5GHZ));
     m_phyAp->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, DEFAULT_CHANNEL_WIDTH, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, DEFAULT_CHANNEL_WIDTH, WIFI_PHY_BAND_5GHZ, 0});
     m_phyAp->SetDevice(apDev);
     m_phyAp->TraceConnectWithoutContext("TxPpduUid",
                                         MakeCallback(&TestUlOfdmaPpduUid::TxPpduAp, this));
@@ -1944,7 +1945,7 @@ TestUlOfdmaPpduUid::DoSetup()
     m_phySta1->AddChannel(spectrumChannel);
     m_phySta1->ConfigureStandard(WIFI_STANDARD_80211ax);
     m_phySta1->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, DEFAULT_CHANNEL_WIDTH, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, DEFAULT_CHANNEL_WIDTH, WIFI_PHY_BAND_5GHZ, 0});
     m_phySta1->SetDevice(sta1Dev);
     m_phySta1->TraceConnectWithoutContext("TxPpduUid",
                                           MakeCallback(&TestUlOfdmaPpduUid::TxPpduSta1, this));
@@ -1964,7 +1965,7 @@ TestUlOfdmaPpduUid::DoSetup()
     m_phySta2->AddChannel(spectrumChannel);
     m_phySta2->ConfigureStandard(WIFI_STANDARD_80211ax);
     m_phySta2->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, DEFAULT_CHANNEL_WIDTH, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, DEFAULT_CHANNEL_WIDTH, WIFI_PHY_BAND_5GHZ, 0});
     m_phySta2->SetDevice(sta2Dev);
     m_phySta2->TraceConnectWithoutContext("TxPpduUid",
                                           MakeCallback(&TestUlOfdmaPpduUid::TxPpduSta2, this));
@@ -2501,7 +2502,9 @@ TestMultipleHeTbPreambles::DoSetup()
     m_phy = CreateObject<OfdmaSpectrumWifiPhy>(0);
     Ptr<InterferenceHelper> interferenceHelper = CreateObject<InterferenceHelper>();
     Ptr<ErrorRateModel> error = CreateObject<NistErrorRateModel>();
-    Ptr<ApWifiMac> mac = CreateObject<ApWifiMac>();
+    auto mac = CreateObjectWithAttributes<ApWifiMac>(
+        "Txop",
+        PointerValue(CreateObjectWithAttributes<Txop>("AcIndex", StringValue("AC_BE_NQOS"))));
     mac->SetAttribute("BeaconGeneration", BooleanValue(false));
     dev->SetMac(mac);
     m_phy->SetInterferenceHelper(interferenceHelper);
@@ -3180,7 +3183,7 @@ class TestUlOfdmaPhyTransmission : public TestCase
     Ptr<OfdmaSpectrumWifiPhy> m_phySta2; ///< PHY of STA 2
     Ptr<OfdmaSpectrumWifiPhy> m_phySta3; ///< PHY of STA 3
 
-    std::unique_ptr<OfdmaTestPhyListener>
+    std::shared_ptr<OfdmaTestPhyListener>
         m_apPhyStateListener; ///< listener for AP PHY state transitions
 
     Ptr<WaveformGenerator> m_phyInterferer; ///< PHY of interferer
@@ -3716,7 +3719,9 @@ TestUlOfdmaPhyTransmission::DoSetup()
     Ptr<Node> apNode = CreateObject<Node>();
     Ptr<WifiNetDevice> apDev = CreateObject<WifiNetDevice>();
     apDev->SetStandard(WIFI_STANDARD_80211ax);
-    Ptr<ApWifiMac> apMac = CreateObject<ApWifiMac>();
+    auto apMac = CreateObjectWithAttributes<ApWifiMac>(
+        "Txop",
+        PointerValue(CreateObjectWithAttributes<Txop>("AcIndex", StringValue("AC_BE_NQOS"))));
     apMac->SetAttribute("BeaconGeneration", BooleanValue(false));
     apDev->SetMac(apMac);
     m_phyAp = CreateObject<OfdmaSpectrumWifiPhy>(0);
@@ -3735,7 +3740,7 @@ TestUlOfdmaPhyTransmission::DoSetup()
     Ptr<ConstantPositionMobilityModel> apMobility = CreateObject<ConstantPositionMobilityModel>();
     m_phyAp->SetMobility(apMobility);
     m_apPhyStateListener = std::make_unique<OfdmaTestPhyListener>();
-    m_phyAp->RegisterListener(m_apPhyStateListener.get());
+    m_phyAp->RegisterListener(m_apPhyStateListener);
     apDev->SetPhy(m_phyAp);
     apMac->SetWifiPhys({m_phyAp});
     apNode->AggregateObject(apMobility);
@@ -4124,13 +4129,13 @@ TestUlOfdmaPhyTransmission::RunOne()
                                                                       WIFI_PHY_BAND_5GHZ));
 
     m_phyAp->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, m_channelWidth, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
     m_phySta1->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, m_channelWidth, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
     m_phySta2->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, m_channelWidth, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
     m_phySta3->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, m_channelWidth, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, m_channelWidth, WIFI_PHY_BAND_5GHZ, 0});
 
     Time delay = Seconds(0.0);
     Simulator::Schedule(delay, &TestUlOfdmaPhyTransmission::Reset, this);
@@ -5074,7 +5079,9 @@ TestPhyPaddingExclusion::DoSetup()
 
     Ptr<Node> apNode = CreateObject<Node>();
     Ptr<WifiNetDevice> apDev = CreateObject<WifiNetDevice>();
-    Ptr<ApWifiMac> apMac = CreateObject<ApWifiMac>();
+    auto apMac = CreateObjectWithAttributes<ApWifiMac>(
+        "Txop",
+        PointerValue(CreateObjectWithAttributes<Txop>("AcIndex", StringValue("AC_BE_NQOS"))));
     apMac->SetAttribute("BeaconGeneration", BooleanValue(false));
     apDev->SetMac(apMac);
     m_phyAp = CreateObject<OfdmaSpectrumWifiPhy>(0);
@@ -5095,7 +5102,7 @@ TestPhyPaddingExclusion::DoSetup()
                                                                       WIFI_PHY_BAND_5GHZ));
 
     m_phyAp->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, DEFAULT_CHANNEL_WIDTH, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, DEFAULT_CHANNEL_WIDTH, WIFI_PHY_BAND_5GHZ, 0});
     m_phyAp->SetReceiveOkCallback(MakeCallback(&TestPhyPaddingExclusion::RxSuccess, this));
     m_phyAp->SetReceiveErrorCallback(MakeCallback(&TestPhyPaddingExclusion::RxFailure, this));
     Ptr<ConstantPositionMobilityModel> apMobility = CreateObject<ConstantPositionMobilityModel>();
@@ -5119,7 +5126,7 @@ TestPhyPaddingExclusion::DoSetup()
     m_phySta1->ConfigureStandard(WIFI_STANDARD_80211ax);
     m_phySta1->AssignStreams(streamNumber);
     m_phySta1->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, DEFAULT_CHANNEL_WIDTH, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, DEFAULT_CHANNEL_WIDTH, WIFI_PHY_BAND_5GHZ, 0});
     Ptr<ConstantPositionMobilityModel> sta1Mobility = CreateObject<ConstantPositionMobilityModel>();
     m_phySta1->SetMobility(sta1Mobility);
     sta1Dev->SetPhy(m_phySta1);
@@ -5140,7 +5147,7 @@ TestPhyPaddingExclusion::DoSetup()
     m_phySta2->ConfigureStandard(WIFI_STANDARD_80211ax);
     m_phySta2->AssignStreams(streamNumber);
     m_phySta2->SetOperatingChannel(
-        WifiPhy::ChannelTuple{channelNum, DEFAULT_CHANNEL_WIDTH, (int)(WIFI_PHY_BAND_5GHZ), 0});
+        WifiPhy::ChannelTuple{channelNum, DEFAULT_CHANNEL_WIDTH, WIFI_PHY_BAND_5GHZ, 0});
     Ptr<ConstantPositionMobilityModel> sta2Mobility = CreateObject<ConstantPositionMobilityModel>();
     m_phySta2->SetMobility(sta2Mobility);
     sta2Dev->SetPhy(m_phySta2);
@@ -5838,15 +5845,15 @@ class WifiPhyOfdmaTestSuite : public TestSuite
 };
 
 WifiPhyOfdmaTestSuite::WifiPhyOfdmaTestSuite()
-    : TestSuite("wifi-phy-ofdma", UNIT)
+    : TestSuite("wifi-phy-ofdma", Type::UNIT)
 {
-    AddTestCase(new TestDlOfdmaPhyTransmission, TestCase::QUICK);
-    AddTestCase(new TestDlOfdmaPhyPuncturing, TestCase::QUICK);
-    AddTestCase(new TestUlOfdmaPpduUid, TestCase::QUICK);
-    AddTestCase(new TestMultipleHeTbPreambles, TestCase::QUICK);
-    AddTestCase(new TestUlOfdmaPhyTransmission, TestCase::QUICK);
-    AddTestCase(new TestPhyPaddingExclusion, TestCase::QUICK);
-    AddTestCase(new TestUlOfdmaPowerControl, TestCase::QUICK);
+    AddTestCase(new TestDlOfdmaPhyTransmission, TestCase::Duration::QUICK);
+    AddTestCase(new TestDlOfdmaPhyPuncturing, TestCase::Duration::QUICK);
+    AddTestCase(new TestUlOfdmaPpduUid, TestCase::Duration::QUICK);
+    AddTestCase(new TestMultipleHeTbPreambles, TestCase::Duration::QUICK);
+    AddTestCase(new TestUlOfdmaPhyTransmission, TestCase::Duration::QUICK);
+    AddTestCase(new TestPhyPaddingExclusion, TestCase::Duration::QUICK);
+    AddTestCase(new TestUlOfdmaPowerControl, TestCase::Duration::QUICK);
 }
 
 static WifiPhyOfdmaTestSuite wifiPhyOfdmaTestSuite; ///< the test suite

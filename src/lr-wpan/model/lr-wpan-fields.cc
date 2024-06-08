@@ -24,6 +24,8 @@
 
 namespace ns3
 {
+namespace lrwpan
+{
 
 SuperframeField::SuperframeField()
 {
@@ -33,6 +35,11 @@ SuperframeField::SuperframeField()
     SetBattLifeExt(false);
     SetPanCoor(false);
     SetAssocPermit(false);
+}
+
+SuperframeField::SuperframeField(uint16_t bitmap)
+{
+    SetSuperframe(bitmap);
 }
 
 void
@@ -154,28 +161,6 @@ SuperframeField::GetSuperframe() const
     superframe |= (m_sspecAssocPermit << 15) & (0x01 << 15); // Bit 15
 
     return superframe;
-}
-
-uint32_t
-SuperframeField::GetSerializedSize() const
-{
-    return 2; // 2 Octets (superframeSpec)
-}
-
-Buffer::Iterator
-SuperframeField::Serialize(Buffer::Iterator i) const
-{
-    i.WriteHtolsbU16(GetSuperframe());
-    return i;
-}
-
-Buffer::Iterator
-SuperframeField::Deserialize(Buffer::Iterator i)
-{
-    uint16_t superframe = i.ReadLsbtohU16();
-    SetSuperframe(superframe);
-
-    return i;
 }
 
 std::ostream&
@@ -525,27 +510,6 @@ CapabilityField::SetCapability(uint8_t bitmap)
     m_allocAddr = (bitmap >> 7) & (0x01);          //!< Bit 7
 }
 
-uint32_t
-CapabilityField::GetSerializedSize() const
-{
-    return 1;
-}
-
-Buffer::Iterator
-CapabilityField::Serialize(Buffer::Iterator i) const
-{
-    i.WriteU8(GetCapability());
-    return i;
-}
-
-Buffer::Iterator
-CapabilityField::Deserialize(Buffer::Iterator i)
-{
-    uint8_t capability = i.ReadU8();
-    SetCapability(capability);
-    return i;
-}
-
 bool
 CapabilityField::IsDeviceTypeFfd() const
 {
@@ -625,4 +589,5 @@ operator<<(std::ostream& os, const CapabilityField& capabilityField)
     return os;
 }
 
+} // namespace lrwpan
 } // namespace ns3

@@ -82,7 +82,7 @@ class MmwaveTestSuite : public TestSuite
 };
 
 MmwaveTestSuite::MmwaveTestSuite()
-    : TestSuite("mmwave", UNIT)
+    : TestSuite("mmwave", Type::UNIT)
 {
     // TestDuration for TestCase can be QUICK, EXTENSIVE or TAKES_FOREVER
     AddTestCase(new MmwaveTestCase1, TestCase::QUICK);

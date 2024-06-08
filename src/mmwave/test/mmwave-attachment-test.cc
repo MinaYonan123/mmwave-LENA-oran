@@ -161,7 +161,7 @@ class MmWaveAttachmentTest : public TestSuite
 };
 
 MmWaveAttachmentTest::MmWaveAttachmentTest()
-    : TestSuite("mmwave-attachment-test", UNIT)
+    : TestSuite("mmwave-attachment-test", Type::UNIT)
 {
     // TestDuration for TestCase can be QUICK, EXTENSIVE or TAKES_FOREVER
     AddTestCase(new MmWaveAttachmentTestCase, TestCase::QUICK);

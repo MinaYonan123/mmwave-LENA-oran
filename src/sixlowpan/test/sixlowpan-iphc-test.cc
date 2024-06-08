@@ -142,7 +142,6 @@ SixlowpanIphcImplTest::DoRun()
         rxNode->AddDevice(rxDev);
 
         Ptr<SixLowPanNetDevice> rxSix = CreateObject<SixLowPanNetDevice>();
-        rxSix->SetAttribute("ForceEtherType", BooleanValue(true));
         rxNode->AddDevice(rxSix);
         rxSix->SetNetDevice(rxDev);
 
@@ -165,7 +164,6 @@ SixlowpanIphcImplTest::DoRun()
         txNode->AddDevice(txDev);
 
         Ptr<SixLowPanNetDevice> txSix = CreateObject<SixLowPanNetDevice>();
-        txSix->SetAttribute("ForceEtherType", BooleanValue(true));
         txNode->AddDevice(txSix);
         txSix->SetNetDevice(txDev);
 
@@ -225,9 +223,9 @@ class SixlowpanIphcTestSuite : public TestSuite
 };
 
 SixlowpanIphcTestSuite::SixlowpanIphcTestSuite()
-    : TestSuite("sixlowpan-iphc", UNIT)
+    : TestSuite("sixlowpan-iphc", Type::UNIT)
 {
-    AddTestCase(new SixlowpanIphcImplTest(), TestCase::QUICK);
+    AddTestCase(new SixlowpanIphcImplTest(), TestCase::Duration::QUICK);
 }
 
 static SixlowpanIphcTestSuite g_sixlowpanIphcTestSuite; //!< Static variable for test initialization

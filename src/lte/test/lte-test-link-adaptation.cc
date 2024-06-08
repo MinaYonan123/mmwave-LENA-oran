@@ -53,7 +53,7 @@ LteTestDlSchedulingCallback(LteLinkAdaptationTestCase* testcase,
  */
 
 LteLinkAdaptationTestSuite::LteLinkAdaptationTestSuite()
-    : TestSuite("lte-link-adaptation", SYSTEM)
+    : TestSuite("lte-link-adaptation", Type::SYSTEM)
 {
     NS_LOG_INFO("Creating LteLinkAdaptionTestSuite");
 
@@ -102,7 +102,7 @@ LteLinkAdaptationTestSuite::LteLinkAdaptationTestSuite()
                                                   snrEfficiencyMcs[i].snrDb,
                                                   lossDb,
                                                   snrEfficiencyMcs[i].mcsIndex),
-                    TestCase::QUICK);
+                    Duration::QUICK);
     }
 }
 

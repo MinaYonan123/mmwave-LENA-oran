@@ -69,7 +69,7 @@ Ping::GetTypeId()
             .AddAttribute("VerboseMode",
                           "Configure verbose, quiet, or silent output",
                           EnumValue(VerboseMode::VERBOSE),
-                          MakeEnumAccessor(&Ping::m_verbose),
+                          MakeEnumAccessor<VerboseMode>(&Ping::m_verbose),
                           MakeEnumChecker(VerboseMode::VERBOSE,
                                           "Verbose",
                                           VerboseMode::QUIET,
@@ -103,6 +103,12 @@ Ping::GetTypeId()
                           TimeValue(Seconds(1)),
                           MakeTimeAccessor(&Ping::m_timeout),
                           MakeTimeChecker())
+            .AddAttribute("Tos",
+                          "The Type of Service used to send the ICMP Echo Requests. "
+                          "All 8 bits of the TOS byte are set (including ECN bits).",
+                          UintegerValue(0),
+                          MakeUintegerAccessor(&Ping::m_tos),
+                          MakeUintegerChecker<uint8_t>())
             .AddTraceSource("Tx",
                             "The sequence number and ICMP echo response packet.",
                             MakeTraceSourceAccessor(&Ping::m_txTrace),
@@ -455,8 +461,8 @@ Ping::Send()
             header.EnableChecksum();
         }
         p->AddHeader(header);
-        returnValue =
-            m_socket->SendTo(p, 0, InetSocketAddress(Ipv4Address::ConvertFrom(m_destination), 0));
+        auto dest = InetSocketAddress(Ipv4Address::ConvertFrom(m_destination), 0);
+        returnValue = m_socket->SendTo(p, 0, dest);
     }
     else
     {
@@ -556,6 +562,7 @@ Ping::StartApplication()
         NS_ASSERT_MSG(m_socket, "Ping::StartApplication: can not create socket.");
         m_socket->SetAttribute("Protocol", UintegerValue(1)); // icmp
         m_socket->SetRecvCallback(MakeCallback(&Ping::Receive, this));
+        m_socket->SetIpTos(m_tos);
         m_useIpv6 = false;
 
         Ipv4Address dst = Ipv4Address::ConvertFrom(m_destination);
@@ -619,11 +626,11 @@ void
 Ping::StopApplication()
 {
     NS_LOG_FUNCTION(this);
-    if (m_stopEvent.IsRunning())
+    if (m_stopEvent.IsPending())
     {
         m_stopEvent.Cancel();
     }
-    if (m_next.IsRunning())
+    if (m_next.IsPending())
     {
         m_next.Cancel();
     }

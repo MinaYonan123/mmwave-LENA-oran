@@ -226,7 +226,7 @@ RoutingProtocol::GetTypeId()
             .AddAttribute("Willingness",
                           "Willingness of a node to carry and forward traffic for other nodes.",
                           EnumValue(Willingness::DEFAULT),
-                          MakeEnumAccessor(&RoutingProtocol::m_willingness),
+                          MakeEnumAccessor<Willingness>(&RoutingProtocol::m_willingness),
                           MakeEnumChecker(Willingness::NEVER,
                                           "never",
                                           Willingness::LOW,
@@ -1952,14 +1952,14 @@ RoutingProtocol::AddHostNetworkAssociation(Ipv4Address networkAddr, Ipv4Mask net
     }
     // If the tuple does not already exist, add it to the list of local HNA associations.
     NS_LOG_INFO("Adding HNA association for network " << networkAddr << "/" << netmask << ".");
-    m_state.InsertAssociation((Association){networkAddr, netmask});
+    m_state.InsertAssociation(Association{networkAddr, netmask});
 }
 
 void
 RoutingProtocol::RemoveHostNetworkAssociation(Ipv4Address networkAddr, Ipv4Mask netmask)
 {
     NS_LOG_INFO("Removing HNA association for network " << networkAddr << "/" << netmask << ".");
-    m_state.EraseAssociation((Association){networkAddr, netmask});
+    m_state.EraseAssociation(Association{networkAddr, netmask});
 }
 
 void

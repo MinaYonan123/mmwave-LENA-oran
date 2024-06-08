@@ -32,9 +32,10 @@
 
 namespace ns3
 {
+namespace energy
+{
 
 NS_LOG_COMPONENT_DEFINE("GenericBatteryModel");
-
 NS_OBJECT_ENSURE_REGISTERED(GenericBatteryModel);
 
 TypeId
@@ -86,7 +87,7 @@ GenericBatteryModel::GetTypeId()
                           MakeDoubleAccessor(&GenericBatteryModel::m_internalResistance),
                           MakeDoubleChecker<double>())
             .AddAttribute("TypicalDischargeCurrent",
-                          "Typical discharge current used in manufacters datasheets (A)",
+                          "Typical discharge current used in manufacturers datasheets (A)",
                           DoubleValue(2.33),
                           MakeDoubleAccessor(&GenericBatteryModel::m_typicalCurrent),
                           MakeDoubleChecker<double>())
@@ -104,7 +105,7 @@ GenericBatteryModel::GetTypeId()
             .AddAttribute("BatteryType",
                           "Indicates the battery type used by the model",
                           EnumValue(LION_LIPO),
-                          MakeEnumAccessor(&GenericBatteryModel::m_batteryType),
+                          MakeEnumAccessor<GenericBatteryType>(&GenericBatteryModel::m_batteryType),
                           MakeEnumChecker(LION_LIPO,
                                           "LION_LIPO",
                                           NIMH_NICD,
@@ -435,4 +436,5 @@ GenericBatteryModel::GetVoltage(double i)
     return V;
 }
 
+} // namespace energy
 } // namespace ns3

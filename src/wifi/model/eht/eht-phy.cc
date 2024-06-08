@@ -26,6 +26,9 @@
 #include "ns3/wifi-psdu.h"
 #include "ns3/wifi-utils.h"
 
+#undef NS_LOG_APPEND_CONTEXT
+#define NS_LOG_APPEND_CONTEXT WIFI_PHY_NS_LOG_APPEND_CONTEXT(m_wifiPhy)
+
 namespace ns3
 {
 
@@ -271,7 +274,7 @@ EhtPhy::GetEhtMcs(uint8_t index)
     {                                                                                              \
         static WifiMode mcs = CreateEhtMcs(x);                                                     \
         return mcs;                                                                                \
-    };
+    }
 
 GET_EHT_MCS(0)
 GET_EHT_MCS(1)

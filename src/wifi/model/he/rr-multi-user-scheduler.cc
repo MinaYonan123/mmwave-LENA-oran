@@ -302,7 +302,7 @@ RrMultiUserScheduler::TrySendingBsrpTf()
     // only consider stations that have setup the current link
     WifiTxVector txVector = GetTxVectorForUlMu([this](const MasterInfo& info) {
         const auto& staList = m_apMac->GetStaList(m_linkId);
-        return staList.find(info.aid) != staList.cend();
+        return staList.contains(info.aid);
     });
 
     if (txVector.GetHeMuUserInfoMap().empty())
@@ -320,7 +320,8 @@ RrMultiUserScheduler::TrySendingBsrpTf()
     m_txParams.Clear();
     // set the TXVECTOR used to send the Trigger Frame
     m_txParams.m_txVector =
-        m_apMac->GetWifiRemoteStationManager(m_linkId)->GetRtsTxVector(m_triggerMacHdr.GetAddr1());
+        m_apMac->GetWifiRemoteStationManager(m_linkId)->GetRtsTxVector(m_triggerMacHdr.GetAddr1(),
+                                                                       m_allowedWidth);
 
     if (!GetHeFem(m_linkId)->TryAddMpdu(item, m_txParams, m_availableTime))
     {
@@ -345,13 +346,13 @@ RrMultiUserScheduler::TrySendingBsrpTf()
     if (m_availableTime != Time::Min())
     {
         // TryAddMpdu only considers the time to transmit the Trigger Frame
-        NS_ASSERT(m_txParams.m_protection &&
-                  m_txParams.m_protection->protectionTime != Time::Min());
+        NS_ASSERT(m_txParams.m_protection && m_txParams.m_protection->protectionTime.has_value());
         NS_ASSERT(m_txParams.m_acknowledgment &&
-                  m_txParams.m_acknowledgment->acknowledgmentTime.IsZero());
-        NS_ASSERT(m_txParams.m_txDuration != Time::Min());
+                  m_txParams.m_acknowledgment->acknowledgmentTime.has_value() &&
+                  m_txParams.m_acknowledgment->acknowledgmentTime->IsZero());
+        NS_ASSERT(m_txParams.m_txDuration.has_value());
 
-        if (m_txParams.m_protection->protectionTime + m_txParams.m_txDuration // BSRP TF tx time
+        if (*m_txParams.m_protection->protectionTime + *m_txParams.m_txDuration // BSRP TF tx time
                 + m_apMac->GetWifiPhy(m_linkId)->GetSifs() + qosNullTxDuration >
             m_availableTime)
         {
@@ -389,8 +390,7 @@ RrMultiUserScheduler::TrySendingBasicTf()
     // reported a null queue size
     WifiTxVector txVector = GetTxVectorForUlMu([this](const MasterInfo& info) {
         const auto& staList = m_apMac->GetStaList(m_linkId);
-        return staList.find(info.aid) != staList.cend() &&
-               m_apMac->GetMaxBufferStatus(info.address) > 0;
+        return staList.contains(info.aid) && m_apMac->GetMaxBufferStatus(info.address) > 0;
     });
 
     if (txVector.GetHeMuUserInfoMap().empty())
@@ -442,7 +442,8 @@ RrMultiUserScheduler::TrySendingBasicTf()
     m_txParams.Clear();
     // set the TXVECTOR used to send the Trigger Frame
     m_txParams.m_txVector =
-        m_apMac->GetWifiRemoteStationManager(m_linkId)->GetRtsTxVector(m_triggerMacHdr.GetAddr1());
+        m_apMac->GetWifiRemoteStationManager(m_linkId)->GetRtsTxVector(m_triggerMacHdr.GetAddr1(),
+                                                                       m_allowedWidth);
 
     if (!GetHeFem(m_linkId)->TryAddMpdu(item, m_txParams, m_availableTime))
     {
@@ -456,16 +457,15 @@ RrMultiUserScheduler::TrySendingBasicTf()
     if (m_availableTime != Time::Min())
     {
         // TryAddMpdu only considers the time to transmit the Trigger Frame
-        NS_ASSERT(m_txParams.m_protection &&
-                  m_txParams.m_protection->protectionTime != Time::Min());
+        NS_ASSERT(m_txParams.m_protection && m_txParams.m_protection->protectionTime.has_value());
         NS_ASSERT(m_txParams.m_acknowledgment &&
-                  m_txParams.m_acknowledgment->acknowledgmentTime != Time::Min());
-        NS_ASSERT(m_txParams.m_txDuration != Time::Min());
+                  m_txParams.m_acknowledgment->acknowledgmentTime.has_value());
+        NS_ASSERT(m_txParams.m_txDuration.has_value());
 
         maxDuration = Min(maxDuration,
-                          m_availableTime - m_txParams.m_protection->protectionTime -
-                              m_txParams.m_txDuration - m_apMac->GetWifiPhy(m_linkId)->GetSifs() -
-                              m_txParams.m_acknowledgment->acknowledgmentTime);
+                          m_availableTime - *m_txParams.m_protection->protectionTime -
+                              *m_txParams.m_txDuration - m_apMac->GetWifiPhy(m_linkId)->GetSifs() -
+                              *m_txParams.m_acknowledgment->acknowledgmentTime);
         if (maxDuration.IsNegative())
         {
             NS_LOG_DEBUG("Remaining TXOP duration is not enough for UL MU exchange");
@@ -942,9 +942,10 @@ RrMultiUserScheduler::ComputeDlMuInfo()
         }
     }
 
+    NS_ASSERT(dlMuInfo.txParams.m_txDuration.has_value());
     AcIndex primaryAc = m_edca->GetAccessCategory();
     UpdateCredits(m_staListDl[primaryAc],
-                  dlMuInfo.txParams.m_txDuration,
+                  *dlMuInfo.txParams.m_txDuration,
                   dlMuInfo.txParams.m_txVector);
 
     NS_LOG_DEBUG("Next station to serve has AID=" << m_staListDl[primaryAc].front().aid);

@@ -73,7 +73,7 @@ LteTestPathlossDlSchedCallback(LtePathlossModelSystemTestCase* testcase,
 }
 
 LtePathlossModelTestSuite::LtePathlossModelTestSuite()
-    : TestSuite("lte-pathloss-model", SYSTEM)
+    : TestSuite("lte-pathloss-model", Type::SYSTEM)
 {
     // LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME | LOG_LEVEL_ALL);
     // LogComponentEnable ("LteHelper", logLevel);
@@ -144,7 +144,7 @@ LtePathlossModelTestSuite::LtePathlossModelTestSuite()
         name << " snr= " << sinrDb << " dB, "
              << " mcs= " << snrEfficiencyMcs[i].mcsIndex;
         AddTestCase(new LtePathlossModelSystemTestCase(name.str(), sinrDb, dist[i], mcs),
-                    TestCase::QUICK);
+                    Duration::QUICK);
     }
 }
 

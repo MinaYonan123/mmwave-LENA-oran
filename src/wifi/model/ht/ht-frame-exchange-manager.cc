@@ -19,22 +19,26 @@
 
 #include "ht-frame-exchange-manager.h"
 
+#include "ht-configuration.h"
+
 #include "ns3/abort.h"
 #include "ns3/assert.h"
 #include "ns3/ctrl-headers.h"
 #include "ns3/log.h"
-#include "ns3/mgt-headers.h"
+#include "ns3/mgt-action-headers.h"
 #include "ns3/recipient-block-ack-agreement.h"
 #include "ns3/snr-tag.h"
 #include "ns3/sta-wifi-mac.h"
+#include "ns3/vht-configuration.h"
 #include "ns3/wifi-mac-queue.h"
+#include "ns3/wifi-net-device.h"
 #include "ns3/wifi-utils.h"
 
 #include <array>
 #include <optional>
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT std::clog << "[link=" << +m_linkId << "][mac=" << m_self << "] "
+#define NS_LOG_APPEND_CONTEXT WIFI_FEM_NS_LOG_APPEND_CONTEXT
 
 namespace ns3
 {
@@ -109,24 +113,32 @@ HtFrameExchangeManager::NeedSetupBlockAck(Mac48Address recipient, uint8_t tid)
     Ptr<QosTxop> qosTxop = m_mac->GetQosTxop(tid);
     bool establish;
 
-    if (!GetWifiRemoteStationManager()->GetHtSupported(recipient))
+    // NOLINTBEGIN(bugprone-branch-clone)
+    if (!m_mac->GetHtConfiguration() ||
+        (!GetWifiRemoteStationManager()->GetHtSupported(recipient) &&
+         !GetWifiRemoteStationManager()->GetStationHe6GhzCapabilities(recipient)))
     {
+        // no Block Ack if this device or the recipient are not HT STAs and do not operate
+        // in the 6 GHz band
         establish = false;
     }
     else if (auto agreement = qosTxop->GetBaManager()->GetAgreementAsOriginator(recipient, tid);
              agreement && !agreement->get().IsReset())
     {
+        // Block Ack agreement already established
         establish = false;
     }
+    // NOLINTEND(bugprone-branch-clone)
     else
     {
         WifiContainerQueueId queueId{WIFI_QOSDATA_QUEUE, WIFI_UNICAST, recipient, tid};
         uint32_t packets = qosTxop->GetWifiMacQueue()->GetNPackets(queueId);
         establish =
-            ((qosTxop->GetBlockAckThreshold() > 0 && packets >= qosTxop->GetBlockAckThreshold()) ||
+            (m_mac->Is6GhzBand(m_linkId) ||
+             (qosTxop->GetBlockAckThreshold() > 0 && packets >= qosTxop->GetBlockAckThreshold()) ||
              (m_mpduAggregator->GetMaxAmpduSize(recipient, tid, WIFI_MOD_CLASS_HT) > 0 &&
               packets > 1) ||
-             GetWifiRemoteStationManager()->GetVhtSupported());
+             m_mac->GetVhtConfiguration());
     }
 
     NS_LOG_FUNCTION(this << recipient << +tid << establish);
@@ -238,7 +250,8 @@ HtFrameExchangeManager::SendAddBaResponse(const MgtAddBaRequestHeader* reqHdr,
     auto tid = reqHdr->GetTid();
     respHdr.SetTid(tid);
 
-    respHdr.SetBufferSize(GetSupportedBaBufferSize());
+    auto bufferSize = std::min(m_mac->GetMpduBufferSize(), m_mac->GetMaxBaBufferSize(originator));
+    respHdr.SetBufferSize(bufferSize);
     respHdr.SetTimeout(reqHdr->GetTimeout());
 
     WifiActionHeader actionHdr;
@@ -255,12 +268,9 @@ HtFrameExchangeManager::SendAddBaResponse(const MgtAddBaRequestHeader* reqHdr,
     {
         originator = *originatorMld;
     }
-    bool htSupported = GetWifiRemoteStationManager()->GetHtSupported() &&
-                       GetWifiRemoteStationManager()->GetHtSupported(originator);
     GetBaManager(tid)->CreateRecipientAgreement(respHdr,
                                                 originator,
                                                 reqHdr->GetStartingSequence(),
-                                                htSupported,
                                                 m_rxMiddle);
 
     auto agreement = GetBaManager(tid)->GetAgreementAsRecipient(originator, tid);
@@ -308,12 +318,6 @@ HtFrameExchangeManager::SendAddBaResponse(const MgtAddBaRequestHeader* reqHdr,
     m_mac->GetQosTxop(tid)->Queue(mpdu);
 }
 
-uint16_t
-HtFrameExchangeManager::GetSupportedBaBufferSize() const
-{
-    return 64;
-}
-
 void
 HtFrameExchangeManager::SendDelbaFrame(Mac48Address addr, uint8_t tid, bool byOriginator)
 {
@@ -329,16 +333,7 @@ HtFrameExchangeManager::SendDelbaFrame(Mac48Address addr, uint8_t tid, bool byOr
 
     MgtDelBaHeader delbaHdr;
     delbaHdr.SetTid(tid);
-    if (byOriginator)
-    {
-        delbaHdr.SetByOriginator();
-        GetBaManager(tid)->DestroyOriginatorAgreement(addr, tid);
-    }
-    else
-    {
-        delbaHdr.SetByRecipient();
-        GetBaManager(tid)->DestroyRecipientAgreement(addr, tid);
-    }
+    byOriginator ? delbaHdr.SetByOriginator() : delbaHdr.SetByRecipient();
 
     WifiActionHeader actionHdr;
     WifiActionHeader::ActionValue action;
@@ -349,7 +344,7 @@ HtFrameExchangeManager::SendDelbaFrame(Mac48Address addr, uint8_t tid, bool byOr
     packet->AddHeader(delbaHdr);
     packet->AddHeader(actionHdr);
 
-    m_mac->GetQosTxop(tid)->GetWifiMacQueue()->Enqueue(Create<WifiMpdu>(packet, hdr));
+    m_mac->GetQosTxop(tid)->Queue(Create<WifiMpdu>(packet, hdr));
 }
 
 bool
@@ -582,6 +577,12 @@ HtFrameExchangeManager::SendMpduFromBaManager(Ptr<WifiMpdu> mpdu,
         NS_LOG_DEBUG("Not enough time to send the BAR frame returned by the Block Ack Manager");
         return false;
     }
+
+    NS_ABORT_IF(txParams.m_acknowledgment->method != WifiAcknowledgment::BLOCK_ACK);
+
+    // the BlockAckReq frame is sent using the same TXVECTOR as the BlockAck frame
+    auto blockAcknowledgment = static_cast<WifiBlockAck*>(txParams.m_acknowledgment.get());
+    txParams.m_txVector = blockAcknowledgment->blockAckTxVector;
 
     // we can transmit the BlockAckReq frame
     SendPsduWithProtection(GetWifiPsdu(mpdu, txParams.m_txVector), txParams);
@@ -892,8 +893,8 @@ HtFrameExchangeManager::GetPsduDurationId(Time txDuration, const WifiTxParameter
     if (m_edca->GetTxopLimit(m_linkId).IsZero())
     {
         NS_ASSERT(txParams.m_acknowledgment &&
-                  txParams.m_acknowledgment->acknowledgmentTime != Time::Min());
-        return txParams.m_acknowledgment->acknowledgmentTime;
+                  txParams.m_acknowledgment->acknowledgmentTime.has_value());
+        return *txParams.m_acknowledgment->acknowledgmentTime;
     }
 
     // under multiple protection settings, if the TXOP limit is not null, Duration/ID
@@ -927,7 +928,7 @@ HtFrameExchangeManager::SendPsduWithProtection(Ptr<WifiPsdu> psdu, WifiTxParamet
     // and SendCtsToSelf() can reuse this value.
     NS_ASSERT(m_txParams.m_acknowledgment);
 
-    if (m_txParams.m_acknowledgment->acknowledgmentTime == Time::Min())
+    if (!m_txParams.m_acknowledgment->acknowledgmentTime.has_value())
     {
         CalculateAcknowledgmentTime(m_txParams.m_acknowledgment.get());
     }
@@ -1150,9 +1151,9 @@ HtFrameExchangeManager::IsWithinLimitsIfAddMpdu(Ptr<const WifiMpdu> mpdu,
     NS_LOG_FUNCTION(this << *mpdu << &txParams << ppduDurationLimit);
 
     Mac48Address receiver = mpdu->GetHeader().GetAddr1();
-    uint32_t ampduSize = txParams.GetSizeIfAddMpdu(mpdu);
+    uint32_t ampduSize = txParams.GetSize(receiver);
 
-    if (txParams.GetSize(receiver) > 0)
+    if (!txParams.LastAddedIsFirstMpdu(receiver))
     {
         // we are attempting to perform A-MPDU aggregation, hence we have to check
         // that we meet the limit on the max A-MPDU size
@@ -1217,9 +1218,14 @@ HtFrameExchangeManager::TryAggregateMsdu(Ptr<const WifiMpdu> msdu,
     NS_ASSERT(msdu && msdu->GetHeader().IsQosData());
     NS_LOG_FUNCTION(this << *msdu << &txParams << availableTime);
 
+    // tentatively aggregate the given MPDU
+    auto prevTxDuration = txParams.m_txDuration;
+    txParams.AggregateMsdu(msdu);
+    UpdateTxDuration(msdu->GetHeader().GetAddr1(), txParams);
+
     // check if aggregating the given MSDU requires a different protection method
     NS_ASSERT(txParams.m_protection);
-    Time protectionTime = txParams.m_protection->protectionTime;
+    auto protectionTime = txParams.m_protection->protectionTime;
 
     std::unique_ptr<WifiProtection> protection;
     protection = GetProtectionManager()->TryAggregateMsdu(msdu, txParams);
@@ -1235,11 +1241,11 @@ HtFrameExchangeManager::TryAggregateMsdu(Ptr<const WifiMpdu> msdu,
         txParams.m_protection.swap(protection);
         protectionSwapped = true;
     }
-    NS_ASSERT(protectionTime != Time::Min());
+    NS_ASSERT(protectionTime.has_value());
 
     // check if aggregating the given MSDU requires a different acknowledgment method
     NS_ASSERT(txParams.m_acknowledgment);
-    Time acknowledgmentTime = txParams.m_acknowledgment->acknowledgmentTime;
+    auto acknowledgmentTime = txParams.m_acknowledgment->acknowledgmentTime;
 
     std::unique_ptr<WifiAcknowledgment> acknowledgment;
     acknowledgment = GetAckManager()->TryAggregateMsdu(msdu, txParams);
@@ -1255,18 +1261,20 @@ HtFrameExchangeManager::TryAggregateMsdu(Ptr<const WifiMpdu> msdu,
         txParams.m_acknowledgment.swap(acknowledgment);
         acknowledgmentSwapped = true;
     }
-    NS_ASSERT(acknowledgmentTime != Time::Min());
+    NS_ASSERT(acknowledgmentTime.has_value());
 
     Time ppduDurationLimit = Time::Min();
     if (availableTime != Time::Min())
     {
-        ppduDurationLimit = availableTime - protectionTime - acknowledgmentTime;
+        ppduDurationLimit = availableTime - *protectionTime - *acknowledgmentTime;
     }
 
     if (!IsWithinLimitsIfAggregateMsdu(msdu, txParams, ppduDurationLimit))
     {
-        // adding MPDU failed, restore protection and acknowledgment methods
-        // if they were swapped
+        // adding MPDU failed, undo the addition of the MPDU and restore protection and
+        // acknowledgment methods if they were swapped
+        txParams.UndoAddMpdu();
+        txParams.m_txDuration = prevTxDuration;
         if (protectionSwapped)
         {
             txParams.m_protection.swap(protection);
@@ -1277,10 +1285,6 @@ HtFrameExchangeManager::TryAggregateMsdu(Ptr<const WifiMpdu> msdu,
         }
         return false;
     }
-
-    // the given MPDU can be added, hence update the txParams
-    txParams.AggregateMsdu(msdu);
-    UpdateTxDuration(msdu->GetHeader().GetAddr1(), txParams);
 
     return true;
 }
@@ -1293,10 +1297,11 @@ HtFrameExchangeManager::IsWithinLimitsIfAggregateMsdu(Ptr<const WifiMpdu> msdu,
     NS_ASSERT(msdu && msdu->GetHeader().IsQosData());
     NS_LOG_FUNCTION(this << *msdu << &txParams << ppduDurationLimit);
 
-    std::pair<uint16_t, uint32_t> ret = txParams.GetSizeIfAggregateMsdu(msdu);
-    Mac48Address receiver = msdu->GetHeader().GetAddr1();
-    uint8_t tid = msdu->GetHeader().GetQosTid();
-    WifiModulationClass modulation = txParams.m_txVector.GetModulationClass();
+    auto receiver = msdu->GetHeader().GetAddr1();
+    auto tid = msdu->GetHeader().GetQosTid();
+    auto modulation = txParams.m_txVector.GetModulationClass();
+    auto psduInfo = txParams.GetPsduInfo(receiver);
+    NS_ASSERT_MSG(psduInfo, "No PSDU info for receiver " << receiver);
 
     // Check that the limit on A-MSDU size is met
     uint16_t maxAmsduSize = m_msduAggregator->GetMaxAmsduSize(receiver, tid, modulation);
@@ -1307,7 +1312,7 @@ HtFrameExchangeManager::IsWithinLimitsIfAggregateMsdu(Ptr<const WifiMpdu> msdu,
         return false;
     }
 
-    if (ret.first > maxAmsduSize)
+    if (psduInfo->amsduSize > maxAmsduSize)
     {
         NS_LOG_DEBUG("No other MSDU can be aggregated: maximum A-MSDU size (" << maxAmsduSize
                                                                               << ") reached ");
@@ -1316,18 +1321,19 @@ HtFrameExchangeManager::IsWithinLimitsIfAggregateMsdu(Ptr<const WifiMpdu> msdu,
 
     const WifiTxParameters::PsduInfo* info = txParams.GetPsduInfo(msdu->GetHeader().GetAddr1());
     NS_ASSERT(info);
+    auto ampduSize = txParams.GetSize(receiver);
 
     if (info->ampduSize > 0)
     {
         // the A-MSDU being built is aggregated to other MPDUs in an A-MPDU.
         // Check that the limit on A-MPDU size is met.
-        if (!IsWithinAmpduSizeLimit(ret.second, receiver, tid, modulation))
+        if (!IsWithinAmpduSizeLimit(ampduSize, receiver, tid, modulation))
         {
             return false;
         }
     }
 
-    return IsWithinSizeAndTimeLimits(ret.second, receiver, txParams, ppduDurationLimit);
+    return IsWithinSizeAndTimeLimits(ampduSize, receiver, txParams, ppduDurationLimit);
 }
 
 void
@@ -1377,8 +1383,6 @@ HtFrameExchangeManager::MissedBlockAck(Ptr<WifiPsdu> psdu,
     else
     {
         isBar = false;
-        GetWifiRemoteStationManager()
-            ->ReportAmpduTxStatus(recipient, 0, psdu->GetNMpdus(), 0, 0, txVector);
         std::set<uint8_t> tids = psdu->GetTids();
         NS_ABORT_MSG_IF(tids.size() > 1, "Multi-TID A-MPDUs not handled here");
         NS_ASSERT(!tids.empty());
@@ -1437,6 +1441,8 @@ HtFrameExchangeManager::MissedBlockAck(Ptr<WifiPsdu> psdu,
     else
     {
         // we have to retransmit the data frames, if needed
+        GetWifiRemoteStationManager()
+            ->ReportAmpduTxStatus(recipient, 0, psdu->GetNMpdus(), 0, 0, txVector);
         if (!GetWifiRemoteStationManager()->NeedRetransmission(*psdu->begin()))
         {
             NS_LOG_DEBUG("Missed Block Ack, do not retransmit the data frames");

@@ -20,6 +20,7 @@
 #ifndef WIFI_PHY_STATE_HELPER_H
 #define WIFI_PHY_STATE_HELPER_H
 
+#include "phy-entity.h"
 #include "wifi-phy-common.h"
 #include "wifi-phy-state.h"
 #include "wifi-ppdu.h"
@@ -29,6 +30,9 @@
 #include "ns3/object.h"
 #include "ns3/traced-callback.h"
 
+#include <algorithm>
+#include <list>
+#include <memory>
 #include <vector>
 
 namespace ns3
@@ -93,13 +97,13 @@ class WifiPhyStateHelper : public Object
      *
      * \param listener the WifiPhyListener to register
      */
-    void RegisterListener(WifiPhyListener* listener);
+    void RegisterListener(const std::shared_ptr<WifiPhyListener>& listener);
     /**
      * Remove WifiPhyListener from this WifiPhyStateHelper.
      *
      * \param listener the WifiPhyListener to unregister
      */
-    void UnregisterListener(WifiPhyListener* listener);
+    void UnregisterListener(const std::shared_ptr<WifiPhyListener>& listener);
     /**
      * Return the current state of WifiPhy.
      *
@@ -168,6 +172,12 @@ class WifiPhyStateHelper : public Object
     Time GetLastRxEndTime() const;
 
     /**
+     * \param states a set of PHY states
+     * \return the last time the PHY has been in any of the given states
+     */
+    Time GetLastTime(std::initializer_list<WifiPhyState> states) const;
+
+    /**
      * Switch state to TX for the given duration.
      *
      * \param txDuration the duration of the PPDU to transmit
@@ -222,6 +232,21 @@ class WifiPhyStateHelper : public Object
      * \param snr the SNR of the received PSDU in linear scale
      */
     void NotifyRxPsduFailed(Ptr<const WifiPsdu> psdu, double snr);
+
+    /**
+     * Handle the outcome of a reception of a PPDU.
+     *
+     * \param ppdu the received PPDU
+     * \param rxSignalInfo the info on the received signal (\see RxSignalInfo)
+     * \param txVector TXVECTOR of the PSDU
+     * \param staId the station ID of the PSDU (only used for MU)
+     * \param statusPerMpdu reception status per MPDU
+     */
+    void NotifyRxPpduOutcome(Ptr<const WifiPpdu> ppdu,
+                             RxSignalInfo rxSignalInfo,
+                             const WifiTxVector& txVector,
+                             uint16_t staId,
+                             const std::vector<bool>& statusPerMpdu);
     /**
      * Switch from RX after the reception was successful.
      */
@@ -289,6 +314,22 @@ class WifiPhyStateHelper : public Object
                                        WifiPreamble preamble);
 
     /**
+     * TracedCallback signature for the outcome of a received packet.
+     *
+     * \param [in] psdu The received PSDU (Physical Layer Service Data Unit).
+     * \param [in] signalInfo Information about the received signal, including its power and other
+     * characteristics.
+     * \param [in] txVector The transmission vector used for the packet, detailing
+     * the transmission parameters.
+     * \param [in] outcomes A vector of boolean values indicating the
+     * success or failure of receiving individual MPDUs within the PSDU.
+     */
+    typedef void (*RxOutcomeTracedCallback)(Ptr<const WifiPsdu> psdu,
+                                            RxSignalInfo signalInfo,
+                                            const WifiTxVector& txVector,
+                                            const std::vector<bool>& outcomes);
+
+    /**
      * TracedCallback signature for receive end error event.
      *
      * \param [in] packet       The received packet.
@@ -309,11 +350,24 @@ class WifiPhyStateHelper : public Object
                                      WifiPreamble preamble,
                                      uint8_t power);
 
+    /**
+     * Notify all WifiPhyListener objects of the given PHY event.
+     *
+     * \tparam FUNC \deduced Member function type
+     * \tparam Ts \deduced Function argument types
+     * \param f the member function to invoke
+     * \param args arguments to pass to the member function
+     */
+    template <typename FUNC, typename... Ts>
+    void NotifyListeners(FUNC f, Ts&&... args);
+
   private:
     /**
-     * typedef for a list of WifiPhyListeners
+     * typedef for a list of WifiPhyListeners. We use weak pointers so that unregistering a
+     * listener is not necessary to delete a listener (reference count is not incremented by
+     * weak pointers).
      */
-    typedef std::vector<WifiPhyListener*> Listeners;
+    typedef std::list<std::weak_ptr<WifiPhyListener>> Listeners;
 
     /**
      * Log the idle and CCA busy states.
@@ -321,94 +375,78 @@ class WifiPhyStateHelper : public Object
     void LogPreviousIdleAndCcaBusyStates();
 
     /**
-     * Notify all WifiPhyListener that the transmission has started for the given duration.
-     *
-     * \param duration the duration of the transmission
-     * \param txPowerDbm the nominal TX power in dBm
-     */
-    void NotifyTxStart(Time duration, double txPowerDbm);
-    /**
-     * Notify all WifiPhyListener that the reception has started for the given duration.
-     *
-     * \param duration the duration of the reception
-     */
-    void NotifyRxStart(Time duration);
-    /**
-     * Notify all WifiPhyListener that the reception was successful.
-     */
-    void NotifyRxEndOk();
-    /**
-     * Notify all WifiPhyListener that the reception was not successful.
-     */
-    void NotifyRxEndError();
-    /**
-     * Notify all WifiPhyListener that the CCA has started for the given duration.
-     *
-     * \param duration the duration of the CCA state
-     * \param channelType the channel type for which the CCA busy state is reported.
-     * \param per20MhzDurations vector that indicates for how long each 20 MHz subchannel
-     *        (corresponding to the index of the element in the vector) is busy and where a zero
-     * duration indicates that the subchannel is idle. The vector is non-empty if  the PHY supports
-     * 802.11ax or later and if the operational channel width is larger than 20 MHz.
-     */
-    void NotifyCcaBusyStart(Time duration,
-                            WifiChannelListType channelType,
-                            const std::vector<Time>& per20MhzDurations);
-    /**
-     * Notify all WifiPhyListener that we are switching channel with the given channel
-     * switching delay.
-     *
-     * \param duration the delay to switch the channel
-     */
-    void NotifySwitchingStart(Time duration);
-    /**
-     * Notify all WifiPhyListener that we are going to sleep
-     */
-    void NotifySleep();
-    /**
-     * Notify all WifiPhyListener that we are going to switch off
-     */
-    void NotifyOff();
-    /**
-     * Notify all WifiPhyListener that we woke up
-     */
-    void NotifyWakeup();
-    /**
      * Switch the state from RX.
      */
     void DoSwitchFromRx();
-    /**
-     * Notify all WifiPhyListener that we are going to switch on
-     */
-    void NotifyOn();
 
     /**
      * The trace source fired when state is changed.
      */
     TracedCallback<Time, Time, WifiPhyState> m_stateLogger;
 
+    NS_LOG_TEMPLATE_DECLARE;        //!< the log component
     bool m_sleeping;                ///< sleeping
     bool m_isOff;                   ///< switched off
     Time m_endTx;                   ///< end transmit
     Time m_endRx;                   ///< end receive
     Time m_endCcaBusy;              ///< end CCA busy
     Time m_endSwitching;            ///< end switching
+    Time m_endSleep;                ///< end sleep
+    Time m_endOff;                  ///< end off
+    Time m_endIdle;                 ///< end idle
     Time m_startTx;                 ///< start transmit
     Time m_startRx;                 ///< start receive
     Time m_startCcaBusy;            ///< start CCA busy
     Time m_startSwitching;          ///< start switching
     Time m_startSleep;              ///< start sleep
+    Time m_startOff;                ///< start off
     Time m_previousStateChangeTime; ///< previous state change time
 
     Listeners m_listeners; ///< listeners
     TracedCallback<Ptr<const Packet>, double, WifiMode, WifiPreamble>
-        m_rxOkTrace;                                          ///< receive OK trace callback
+        m_rxOkTrace; ///< receive OK trace callback
+    TracedCallback<Ptr<const WifiPpdu>, RxSignalInfo, const WifiTxVector&, const std::vector<bool>&>
+        m_rxOutcomeTrace;                                     ///< receive OK trace callback
     TracedCallback<Ptr<const Packet>, double> m_rxErrorTrace; ///< receive error trace callback
     TracedCallback<Ptr<const Packet>, WifiMode, WifiPreamble, uint8_t>
         m_txTrace;                     ///< transmit trace callback
     RxOkCallback m_rxOkCallback;       ///< receive OK callback
     RxErrorCallback m_rxErrorCallback; ///< receive error callback
 };
+
+} // namespace ns3
+
+/***************************************************************
+ *  Implementation of the templates declared above.
+ ***************************************************************/
+
+namespace ns3
+{
+
+template <typename FUNC, typename... Ts>
+void
+WifiPhyStateHelper::NotifyListeners(FUNC f, Ts&&... args)
+{
+    NS_LOG_FUNCTION(this);
+    // In some cases (e.g., when notifying an EMLSR client of a link switch), a notification
+    // to a PHY listener involves the addition and/or removal of a PHY listener, thus modifying
+    // the list we are iterating over. This is dangerous, so ensure that we iterate over a copy
+    // of the list of PHY listeners. The copied list contains shared pointers to the PHY listeners
+    // to prevent them from being deleted.
+    std::list<std::shared_ptr<WifiPhyListener>> listeners;
+    std::transform(m_listeners.cbegin(),
+                   m_listeners.cend(),
+                   std::back_inserter(listeners),
+                   [](auto&& listener) { return listener.lock(); });
+
+    for (const auto& listener : listeners)
+    {
+        if (listener)
+        {
+            std::invoke(f, listener, std::forward<Ts>(args)...);
+        }
+    }
+}
 
 } // namespace ns3
 

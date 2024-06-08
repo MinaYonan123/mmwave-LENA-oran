@@ -866,8 +866,8 @@ TcpTxBuffer::Update(const TcpOptionSack::SackList& list, const Callback<void, Tc
 
     NS_ASSERT((*(m_sentList.begin()))->m_sacked == false);
     NS_ASSERT_MSG(m_sentSize >= m_sackedOut + m_lostOut, *this);
-    // NS_ASSERT (list.size () == 0 || modified);   // Assert for duplicated SACK or
-    //  impossiblity to map the option into the sent blocks
+    // Assert for duplicated SACK or impossibility to map the option into the sent blocks
+    // NS_ASSERT (list.size () == 0 || modified);
     ConsistencyCheck();
     return bytesSacked;
 }
@@ -926,8 +926,6 @@ TcpTxBuffer::IsLost(const SequenceNumber32& seq) const
 {
     NS_LOG_FUNCTION(this << seq);
 
-    SequenceNumber32 beginOfCurrentPacket = m_firstByteSeq;
-
     if (seq >= m_highestSack.second)
     {
         return false;
@@ -938,7 +936,7 @@ TcpTxBuffer::IsLost(const SequenceNumber32& seq) const
     for (auto it = m_sentList.begin(); it != m_sentList.end(); ++it)
     {
         // Search for the right iterator before calling IsLost()
-        if (beginOfCurrentPacket >= seq)
+        if ((*it)->m_startSeq <= seq && seq < (*it)->m_startSeq + (*it)->m_packet->GetSize())
         {
             if ((*it)->m_lost)
             {
@@ -952,8 +950,6 @@ TcpTxBuffer::IsLost(const SequenceNumber32& seq) const
                 return false;
             }
         }
-
-        beginOfCurrentPacket += (*it)->m_packet->GetSize();
     }
 
     return false;
@@ -1016,7 +1012,7 @@ TcpTxBuffer::NextSeg(SequenceNumber32* seq, SequenceNumber32* seqHigh, bool isRe
      */
     if (SizeFromSequence(m_firstByteSeq + m_sentSize) > 0)
     {
-        if (m_sentSize <= m_rWndCallback())
+        if (m_sentSize < m_rWndCallback())
         {
             NS_LOG_INFO("There is unsent data. Send it");
             *seq = m_firstByteSeq + m_sentSize;
@@ -1107,14 +1103,10 @@ TcpTxBuffer::BytesInFlightRFC() const
         {
             bool isLost = IsLostRFC(beginOfCurrentPkt, it);
             // (a) If IsLost (S1) returns false: Pipe is incremented by 1 octet.
-            if (!isLost)
-            {
-                size += item->m_packet->GetSize();
-            }
             // (b) If S1 <= HighRxt: Pipe is incremented by 1 octet.
             // (NOTE: we use the m_retrans flag instead of keeping and updating
             // another variable). Only if the item is not marked as lost
-            else if (item->m_retrans)
+            if (!isLost || item->m_retrans)
             {
                 size += item->m_packet->GetSize();
             }

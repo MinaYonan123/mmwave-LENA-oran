@@ -57,7 +57,7 @@ MultiUserScheduler::GetTypeId()
                           "The Access Category for which the MultiUserScheduler makes requests "
                           "for channel access.",
                           EnumValue(AcIndex::AC_BE),
-                          MakeEnumAccessor(&MultiUserScheduler::m_accessReqAc),
+                          MakeEnumAccessor<AcIndex>(&MultiUserScheduler::m_accessReqAc),
                           MakeEnumChecker(AcIndex::AC_BE,
                                           "AC_BE",
                                           AcIndex::AC_VI,
@@ -210,7 +210,7 @@ MultiUserScheduler::NotifyAccessGranted(Ptr<QosTxop> edca,
     m_allowedWidth = allowedWidth;
     m_linkId = linkId;
 
-    if (m_accessReqTimer.IsRunning() && m_restartTimerUponAccess)
+    if (m_accessReqTimer.IsPending() && m_restartTimerUponAccess)
     {
         // restart access timer
         m_accessReqTimer.Cancel();

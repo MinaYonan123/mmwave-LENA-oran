@@ -212,8 +212,8 @@ SimpleMatrixBasedChannelModel::GetChannel(Ptr<const MobilityModel> aMob,
     NS_ABORT_MSG_UNLESS(m_delay.size() == m_pathLoss.size(),
                         "All ray-related vectors should have the same size");
 
-    uint64_t aSize = aAntenna->GetNumberOfElements();
-    uint64_t bSize = bAntenna->GetNumberOfElements();
+    uint64_t aSize = aAntenna->GetNumElems();
+    uint64_t bSize = bAntenna->GetNumElems();
     uint64_t numClusters = m_delay.size();
 
     // Initialize the channel matrix: consider a the tx, b the rx

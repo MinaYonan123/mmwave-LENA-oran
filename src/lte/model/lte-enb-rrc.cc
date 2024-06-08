@@ -506,16 +506,16 @@ UeManager::SetupDataRadioBearer(EpsBearer bearer,
                                                          lcid,
                                                          m_rrc->GetLogicalChannelGroup(bearer),
                                                          rlc->GetLteMacSapUser());
-    // LteEnbCmacSapProvider::LcInfo lcinfo;
-    // lcinfo.rnti = m_rnti;
-    // lcinfo.lcId = lcid;
-    // lcinfo.lcGroup = m_rrc->GetLogicalChannelGroup (bearer);
-    // lcinfo.qci = bearer.qci;
-    // lcinfo.isGbr = bearer.IsGbr ();
-    // lcinfo.mbrUl = bearer.gbrQosInfo.mbrUl;
-    // lcinfo.mbrDl = bearer.gbrQosInfo.mbrDl;
-    // lcinfo.gbrUl = bearer.gbrQosInfo.gbrUl;
-    // lcinfo.gbrDl = bearer.gbrQosInfo.gbrDl;
+    LteEnbCmacSapProvider::LcInfo lcinfo;
+    lcinfo.rnti = m_rnti;
+    lcinfo.lcId = lcid;
+    lcinfo.lcGroup = m_rrc->GetLogicalChannelGroup (bearer);
+    lcinfo.qci = bearer.qci;
+    lcinfo.isGbr = bearer.IsGbr ();
+    lcinfo.mbrUl = bearer.gbrQosInfo.mbrUl;
+    lcinfo.mbrDl = bearer.gbrQosInfo.mbrDl;
+    lcinfo.gbrUl = bearer.gbrQosInfo.gbrUl;
+    lcinfo.gbrDl = bearer.gbrQosInfo.gbrDl;
     // use a for cycle to send the AddLc to the appropriate Mac Sap
     // if the sap is not initialized the appropriated method has to be called
     std::vector<LteCcmRrcSapProvider::LcsConfig>::iterator itLcOnCcMapping = lcOnCcMapping.begin();
@@ -561,7 +561,7 @@ UeManager::SetupDataRadioBearer(EpsBearer bearer,
     req.gtpTeid = drbInfo->m_gtpTeid;
     req.lteRnti = m_rnti;
     req.drbid = drbid;
-    // req.lcinfo = lcinfo;
+    req.lcinfo = lcinfo;
     req.logicalChannelConfig = drbInfo->m_logicalChannelConfig;
     req.rlcConfig = drbInfo->m_rlcConfig;
     req.targetCellId = 0;
@@ -1065,7 +1065,7 @@ UeManager::ForwardRlcBuffers(Ptr<LteRlc> rlc,
                               << " Size = " << txonBufferSize);
 
             Ptr<Packet> segmentedRlcsdu = rlcAm->GetSegmentedRlcsdu();
-            if (segmentedRlcsdu != NULL)
+            if (segmentedRlcsdu)
             {
                 segmentedRlcsdu->PeekHeader(pdcpHeader);
                 NS_LOG_DEBUG(this << "SegmentedRlcSdu = " << segmentedRlcsdu->GetSize()
@@ -1087,7 +1087,7 @@ UeManager::ForwardRlcBuffers(Ptr<LteRlc> rlc,
                  it != rlcAmTxedSduBuffer.end();
                  ++it)
             {
-                if ((*it) != NULL)
+                if ((*it))
                 {
                     (*it)->PeekHeader(pdcpHeader);
                     NS_LOG_DEBUG("rlcAmTxedSduBuffer SEQ = " << pdcpHeader.GetSequenceNumber()
@@ -1286,7 +1286,7 @@ UeManager::SendData(uint8_t bid, Ptr<Packet> p)
         if (it != m_drbMap.end())
         {
             Ptr<LteDataRadioBearerInfo> bearerInfo = GetDataRadioBearerInfo(drbid);
-            if (bearerInfo != NULL)
+            if (bearerInfo)
             {
                 LtePdcpSapProvider* pdcpSapProvider = bearerInfo->m_pdcp->GetLtePdcpSapProvider();
                 pdcpSapProvider->TransmitPdcpSdu(params);

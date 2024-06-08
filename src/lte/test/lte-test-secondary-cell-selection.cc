@@ -50,21 +50,21 @@ NS_LOG_COMPONENT_DEFINE("LteSecondaryCellSelectionTest");
  */
 
 LteSecondaryCellSelectionTestSuite::LteSecondaryCellSelectionTestSuite()
-    : TestSuite("lte-secondary-cell-selection", SYSTEM)
+    : TestSuite("lte-secondary-cell-selection", Type::SYSTEM)
 {
     // REAL RRC PROTOCOL
 
     AddTestCase(new LteSecondaryCellSelectionTestCase("EPC, real RRC, RngRun=1", false, 1U, 2),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteSecondaryCellSelectionTestCase("EPC, real RRC, RngRun=1", false, 1U, 4),
-                TestCase::QUICK);
+                Duration::QUICK);
 
     // IDEAL RRC PROTOCOL
 
     AddTestCase(new LteSecondaryCellSelectionTestCase("EPC, ideal RRC, RngRun=1", true, 1U, 2),
-                TestCase::QUICK);
+                Duration::QUICK);
     AddTestCase(new LteSecondaryCellSelectionTestCase("EPC, ideal RRC, RngRun=1", true, 1U, 4),
-                TestCase::QUICK);
+                Duration::QUICK);
 
 } // end of LteSecondaryCellSelectionTestSuite::LteSecondaryCellSelectionTestSuite ()
 

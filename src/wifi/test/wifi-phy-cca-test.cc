@@ -765,8 +765,8 @@ class WifiPhyCcaIndicationTest : public TestCase
      */
     struct StateCheckPoint
     {
-        Time timePoint{Seconds(0)};          //!< time at which the check will performed
-        WifiPhyState expectedPhyState{IDLE}; //!< expected PHY state
+        Time timePoint{Seconds(0)}; //!< time at which the check will performed
+        WifiPhyState expectedPhyState{WifiPhyState::IDLE}; //!< expected PHY state
     };
 
     /**
@@ -812,7 +812,7 @@ class WifiPhyCcaIndicationTest : public TestCase
     std::size_t
         m_numSignalGenerators; ///< The number of non-wifi signals generators needed for the test
 
-    std::unique_ptr<CcaTestPhyListener>
+    std::shared_ptr<CcaTestPhyListener>
         m_rxPhyStateListener; ///< Listener for PHY state transitions
 
     uint16_t m_frequency;    ///< Operating frequency in MHz
@@ -1018,7 +1018,7 @@ WifiPhyCcaIndicationTest::DoSetup()
     rxDev->SetVhtConfiguration(vhtConfiguration);
     m_rxPhy = CreateObject<SpectrumWifiPhy>();
     m_rxPhyStateListener = std::make_unique<CcaTestPhyListener>();
-    m_rxPhy->RegisterListener(m_rxPhyStateListener.get());
+    m_rxPhy->RegisterListener(m_rxPhyStateListener);
     Ptr<InterferenceHelper> rxInterferenceHelper = CreateObject<InterferenceHelper>();
     m_rxPhy->SetInterferenceHelper(rxInterferenceHelper);
     Ptr<ErrorRateModel> rxErrorModel = CreateObject<NistErrorRateModel>();
@@ -2942,10 +2942,10 @@ class WifiPhyCcaTestSuite : public TestSuite
 };
 
 WifiPhyCcaTestSuite::WifiPhyCcaTestSuite()
-    : TestSuite("wifi-phy-cca", UNIT)
+    : TestSuite("wifi-phy-cca", Type::UNIT)
 {
-    AddTestCase(new WifiPhyCcaThresholdsTest, TestCase::QUICK);
-    AddTestCase(new WifiPhyCcaIndicationTest, TestCase::QUICK);
+    AddTestCase(new WifiPhyCcaThresholdsTest, TestCase::Duration::QUICK);
+    AddTestCase(new WifiPhyCcaIndicationTest, TestCase::Duration::QUICK);
 }
 
 static WifiPhyCcaTestSuite WifiPhyCcaTestSuite; ///< the test suite

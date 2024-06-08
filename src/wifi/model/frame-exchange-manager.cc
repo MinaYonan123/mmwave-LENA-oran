@@ -29,7 +29,7 @@
 #include "ns3/log.h"
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT std::clog << "[link=" << +m_linkId << "][mac=" << m_self << "] "
+#define NS_LOG_APPEND_CONTEXT WIFI_FEM_NS_LOG_APPEND_CONTEXT
 
 // Time (in nanoseconds) to be added to the PSDU duration to yield the duration
 // of the timer that is started when the PHY indicates the start of the reception
@@ -73,7 +73,7 @@ FrameExchangeManager::Reset()
 {
     NS_LOG_FUNCTION(this);
     m_txTimer.Cancel();
-    if (m_navResetEvent.IsRunning())
+    if (m_navResetEvent.IsPending())
     {
         m_navResetEvent.Cancel();
     }
@@ -273,7 +273,7 @@ FrameExchangeManager::RxStartIndication(WifiTxVector txVector, Time psduDuration
     NS_LOG_FUNCTION(this << "PSDU reception started for " << psduDuration.As(Time::US)
                          << " (txVector: " << txVector << ")");
 
-    NS_ASSERT_MSG(!m_txTimer.IsRunning() || !m_navResetEvent.IsRunning(),
+    NS_ASSERT_MSG(!m_txTimer.IsRunning() || !m_navResetEvent.IsPending(),
                   "The TX timer and the NAV reset event cannot be both running");
 
     // No need to reschedule timeouts if PSDU duration is null. In this case,
@@ -288,7 +288,7 @@ FrameExchangeManager::RxStartIndication(WifiTxVector txVector, Time psduDuration
         m_channelAccessManager->NotifyAckTimeoutResetNow();
     }
 
-    if (m_navResetEvent.IsRunning())
+    if (m_navResetEvent.IsPending())
     {
         m_navResetEvent.Cancel();
     }
@@ -347,10 +347,10 @@ FrameExchangeManager::StartTransmission(Ptr<Txop> dcf, uint16_t allowedWidth)
     WifiTxParameters txParams;
     txParams.m_txVector =
         GetWifiRemoteStationManager()->GetDataTxVector(mpdu->GetHeader(), m_allowedWidth);
-    txParams.m_protection = m_protectionManager->TryAddMpdu(mpdu, txParams);
-    txParams.m_acknowledgment = m_ackManager->TryAddMpdu(mpdu, txParams);
     txParams.AddMpdu(mpdu);
     UpdateTxDuration(mpdu->GetHeader().GetAddr1(), txParams);
+    txParams.m_protection = m_protectionManager->TryAddMpdu(mpdu, txParams);
+    txParams.m_acknowledgment = m_ackManager->TryAddMpdu(mpdu, txParams);
 
     SendMpduWithProtection(mpdu, txParams);
 
@@ -401,7 +401,7 @@ FrameExchangeManager::SendMpduWithProtection(Ptr<WifiMpdu> mpdu, WifiTxParameter
     // and SendCtsToSelf() can reuse this value.
     NS_ASSERT(m_txParams.m_acknowledgment);
 
-    if (m_txParams.m_acknowledgment->acknowledgmentTime == Time::Min())
+    if (!m_txParams.m_acknowledgment->acknowledgmentTime.has_value())
     {
         CalculateAcknowledgmentTime(m_txParams.m_acknowledgment.get());
     }
@@ -415,12 +415,6 @@ FrameExchangeManager::SendMpduWithProtection(Ptr<WifiMpdu> mpdu, WifiTxParameter
     }
 
     StartProtection(m_txParams);
-
-    if (m_txParams.m_acknowledgment->method == WifiAcknowledgment::NONE)
-    {
-        // we are done with frames that do not require acknowledgment
-        m_mpdu = nullptr;
-    }
 }
 
 void
@@ -473,14 +467,17 @@ FrameExchangeManager::SendMpdu()
 
     if (m_txParams.m_acknowledgment->method == WifiAcknowledgment::NONE)
     {
-        Simulator::Schedule(txDuration, &FrameExchangeManager::TransmissionSucceeded, this);
-
         if (!m_mpdu->GetHeader().IsQosData() ||
             m_mpdu->GetHeader().GetQosAckPolicy() == WifiMacHeader::NO_ACK)
         {
             // No acknowledgment, hence dequeue the MPDU if it is stored in a queue
             DequeueMpdu(m_mpdu);
         }
+
+        Simulator::Schedule(txDuration, [=, this]() {
+            TransmissionSucceeded();
+            m_mpdu = nullptr;
+        });
     }
     else if (m_txParams.m_acknowledgment->method == WifiAcknowledgment::NORMAL_ACK)
     {
@@ -651,8 +648,8 @@ FrameExchangeManager::GetFrameDurationId(const WifiMacHeader& header,
     NS_LOG_FUNCTION(this << header << size << &txParams << fragmentedPacket);
 
     NS_ASSERT(txParams.m_acknowledgment &&
-              txParams.m_acknowledgment->acknowledgmentTime != Time::Min());
-    Time durationId = txParams.m_acknowledgment->acknowledgmentTime;
+              txParams.m_acknowledgment->acknowledgmentTime.has_value());
+    auto durationId = *txParams.m_acknowledgment->acknowledgmentTime;
 
     // if the current frame is a fragment followed by another fragment, we have to
     // update the Duration/ID to cover the next fragment and the corresponding Ack
@@ -708,10 +705,11 @@ FrameExchangeManager::SendRts(const WifiTxParameters& txParams)
     NS_ASSERT(txParams.m_protection && txParams.m_protection->method == WifiProtection::RTS_CTS);
     auto rtsCtsProtection = static_cast<WifiRtsCtsProtection*>(txParams.m_protection.get());
 
-    NS_ASSERT(txParams.m_txDuration != Time::Min());
+    NS_ASSERT(txParams.m_txDuration.has_value());
+    NS_ASSERT(txParams.m_acknowledgment->acknowledgmentTime.has_value());
     rts.SetDuration(GetRtsDurationId(rtsCtsProtection->rtsTxVector,
-                                     txParams.m_txDuration,
-                                     txParams.m_acknowledgment->acknowledgmentTime));
+                                     *txParams.m_txDuration,
+                                     *txParams.m_acknowledgment->acknowledgmentTime));
     Ptr<WifiMpdu> mpdu = Create<WifiMpdu>(Create<Packet>(), rts);
 
     // After transmitting an RTS frame, the STA shall wait for a CTSTimeout interval with
@@ -809,10 +807,11 @@ FrameExchangeManager::SendCtsToSelf(const WifiTxParameters& txParams)
               txParams.m_protection->method == WifiProtection::CTS_TO_SELF);
     auto ctsToSelfProtection = static_cast<WifiCtsToSelfProtection*>(txParams.m_protection.get());
 
-    NS_ASSERT(txParams.m_txDuration != Time::Min());
+    NS_ASSERT(txParams.m_txDuration.has_value());
+    NS_ASSERT(txParams.m_acknowledgment->acknowledgmentTime.has_value());
     cts.SetDuration(GetCtsToSelfDurationId(ctsToSelfProtection->ctsTxVector,
-                                           txParams.m_txDuration,
-                                           txParams.m_acknowledgment->acknowledgmentTime));
+                                           *txParams.m_txDuration,
+                                           *txParams.m_acknowledgment->acknowledgmentTime));
 
     ForwardMpduDown(Create<WifiMpdu>(Create<Packet>(), cts), ctsToSelfProtection->ctsTxVector);
 
