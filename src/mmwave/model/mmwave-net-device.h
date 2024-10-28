@@ -37,6 +37,8 @@
 #include <ns3/phased-array-model.h>
 #include <ns3/traced-callback.h>
 
+#include <map>
+
 namespace ns3
 {
 

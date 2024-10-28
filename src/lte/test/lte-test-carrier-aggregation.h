@@ -27,6 +27,8 @@
 #include "ns3/test.h"
 #include <ns3/lte-common.h>
 
+#include <map>
+
 using namespace ns3;
 
 /**
