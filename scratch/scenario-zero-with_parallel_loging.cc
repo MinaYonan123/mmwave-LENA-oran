@@ -406,7 +406,7 @@ main(int argc, char *argv[]) {
     //  LogComponentEnable ("E2Termination", LOG_LEVEL_DEBUG);
 
     // LogComponentEnable ("LteEnbNetDevice", LOG_LEVEL_ALL);
-    //LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_DEBUG);
+    LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_DEBUG);
 
     // The maximum X coordinate of the scenario
 
@@ -554,7 +554,8 @@ main(int argc, char *argv[]) {
     Config::SetDefault("ns3::LteEnbRrc::OutageThreshold", DoubleValue(outageThreshold));
     Config::SetDefault("ns3::LteEnbRrc::SecondaryCellHandoverMode", StringValue(handoverMode));
     Config::SetDefault("ns3::LteEnbRrc::HoSinrDifference", DoubleValue(hoSinrDifference));
-
+    Config::SetDefault("ns3::ThreeGppPropagationLossModel::Frequency",DoubleValue(3.5e9));
+    Config::SetDefault("ns3::ThreeGppPropagationLossModel::ShadowingEnabled",BooleanValue(false));
     // Carrier bandwidth in Hz
     GlobalValue::GetValueByName ("Bandwidth", doubleValue);
     double bandwidth = doubleValue.Get();
@@ -728,7 +729,7 @@ main(int argc, char *argv[]) {
         UdpClientHelper dlClient(ueIpIface.GetAddress(u), 1234);
         dlClient.SetAttribute("Interval", TimeValue(MicroSeconds(500)));
         dlClient.SetAttribute("MaxPackets", UintegerValue(UINT32_MAX));
-        dlClient.SetAttribute("PacketSize", UintegerValue(1280));
+        dlClient.SetAttribute("PacketSize", UintegerValue(100)); //defult 1280
         clientApp.Add(dlClient.Install(remoteHost));
     }
 
