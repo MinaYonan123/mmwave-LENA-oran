@@ -19,8 +19,7 @@
  * Author: Giuseppe Piro  <g.piro@poliba.it>
  * Author: Marco Miozzo <mmiozzo@cttc.es> : Update to FF API Architecture
  * Author: Nicola Baldo <nbaldo@cttc.es>  : Integrated with new RRC and MAC architecture
- * Author: Danilo Abrignani <danilo.abrignani@unibo.it> : Integrated with new architecture - GSoC
- * 2015 - Carrier Aggregation
+ * Author: Danilo Abrignani <danilo.abrignani@unibo.it> : Integrated with new architecture - GSoC 2015 - Carrier Aggregation
  *
  * Modified by: Michele Polese <michele.polese@gmail.com>
  *          Dual Connectivity functionalities

@@ -36,25 +36,28 @@
 */
 
 #include "ns3/mmwave-helper.h"
+#include <ns3/llc-snap-header.h>
 #include <ns3/simulator.h>
+#include <ns3/callback.h>
 #include <ns3/node.h>
 #include <ns3/packet.h>
 #include <ns3/lte-enb-rrc.h>
 #include "mmwave-net-device.h"
 #include <ns3/packet-burst.h>
+#include <ns3/uinteger.h>
 #include <ns3/trace-source-accessor.h>
 #include <ns3/pointer.h>
+#include <ns3/enum.h>
 #include <ns3/uinteger.h>
 #include <ns3/double.h>
 #include "mmwave-enb-net-device.h"
 #include "mmwave-ue-net-device.h"
-#include <ns3/abort.h>
-#include <ns3/enum.h>
+#include <ns3/lte-enb-rrc.h>
 #include <ns3/ipv4-l3-protocol.h>
 #include <ns3/ipv6-l3-protocol.h>
+#include <ns3/abort.h>
 #include <ns3/log.h>
 #include <ns3/lte-enb-component-carrier-manager.h>
-#include <ns3/lte-enb-rrc.h>
 #include <ns3/mmwave-component-carrier-enb.h>
 #include <ns3/config.h>
 #include <ns3/lte-rlc-um.h>
@@ -71,13 +74,11 @@
 #include "ns3/network-module.h"
 #include <any>
 
-namespace ns3
-{
+namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE("MmWaveEnbNetDevice");
+NS_LOG_COMPONENT_DEFINE ("MmWaveEnbNetDevice");
 
-namespace mmwave
-{
+namespace mmwave {
 
 NS_OBJECT_ENSURE_REGISTERED (MmWaveEnbNetDevice);
 
@@ -385,12 +386,12 @@ MmWaveEnbNetDevice::MmWaveEnbNetDevice ()
 
 
 {
-    NS_LOG_FUNCTION(this);
+  NS_LOG_FUNCTION (this);
 }
 
 MmWaveEnbNetDevice::~MmWaveEnbNetDevice()
 {
-    NS_LOG_FUNCTION(this);
+  NS_LOG_FUNCTION (this);
 }
 
 // MmWaveEnbNetDevice::MmWaveEnbNetDevice(Ptr<E2Termination> e2Termination)
@@ -399,14 +400,14 @@ MmWaveEnbNetDevice::~MmWaveEnbNetDevice()
 // }
 
 void
-MmWaveEnbNetDevice::DoInitialize(void)
+MmWaveEnbNetDevice::DoInitialize (void)
 {
-    NS_LOG_FUNCTION(this);
-    m_isConstructed = true;
-    UpdateConfig();
-    for (auto it = m_ccMap.begin(); it != m_ccMap.end(); ++it)
+  NS_LOG_FUNCTION (this);
+  m_isConstructed = true;
+  UpdateConfig ();
+  for (auto it = m_ccMap.begin (); it != m_ccMap.end (); ++it)
     {
-        it->second->Initialize();
+      it->second->Initialize ();
     }
   m_rrc->Initialize ();
   m_componentCarrierManager->Initialize ();
@@ -421,24 +422,24 @@ MmWaveEnbNetDevice::DoInitialize(void)
 }
 
 void
-MmWaveEnbNetDevice::DoDispose()
+MmWaveEnbNetDevice::DoDispose ()
 {
-    NS_LOG_FUNCTION(this);
+  NS_LOG_FUNCTION (this);
 
-    m_rrc->Dispose();
-    m_rrc = 0;
+  m_rrc->Dispose ();
+  m_rrc = 0;
 
-    m_componentCarrierManager->Dispose();
-    m_componentCarrierManager = 0;
-    // MmWaveComponentCarrierEnb::DoDispose() will call DoDispose
-    // of its PHY, MAC, FFR and scheduler instance
-    for (uint32_t i = 0; i < m_ccMap.size(); i++)
+  m_componentCarrierManager->Dispose ();
+  m_componentCarrierManager = 0;
+  // MmWaveComponentCarrierEnb::DoDispose() will call DoDispose
+  // of its PHY, MAC, FFR and scheduler instance
+  for (uint32_t i = 0; i < m_ccMap.size (); i++)
     {
-        m_ccMap.at(i)->Dispose();
-        m_ccMap.at(i) = 0;
+      m_ccMap.at (i)->Dispose ();
+      m_ccMap.at (i) = 0;
     }
 
-    MmWaveNetDevice::DoDispose();
+  MmWaveNetDevice::DoDispose ();
 }
 
 void
@@ -476,23 +477,24 @@ MmWaveEnbNetDevice::RegisterNewSinrReading (uint64_t imsi, uint16_t cellId, long
 }
 
 Ptr<MmWaveEnbPhy>
-MmWaveEnbNetDevice::GetPhy(void) const
+MmWaveEnbNetDevice::GetPhy (void) const
 {
-    NS_LOG_FUNCTION(this);
-    return DynamicCast<MmWaveComponentCarrierEnb>(m_ccMap.at(0))->GetPhy();
+  NS_LOG_FUNCTION (this);
+  return DynamicCast<MmWaveComponentCarrierEnb> (m_ccMap.at (0))->GetPhy ();
 }
 
 Ptr<MmWaveEnbPhy>
-MmWaveEnbNetDevice::GetPhy(uint8_t index)
+MmWaveEnbNetDevice::GetPhy (uint8_t index)
 {
-    return DynamicCast<MmWaveComponentCarrierEnb>(m_ccMap.at(index))->GetPhy();
+  return DynamicCast<MmWaveComponentCarrierEnb> (m_ccMap.at (index))->GetPhy ();
 }
 
+
 uint16_t
-MmWaveEnbNetDevice::GetCellId() const
+MmWaveEnbNetDevice::GetCellId () const
 {
-    NS_LOG_FUNCTION(this);
-    return m_cellId;
+  NS_LOG_FUNCTION (this);
+  return m_cellId;
 }
 
 std::map<uint16_t, Ptr<UeManager>>
@@ -502,7 +504,7 @@ MmWaveEnbNetDevice::GetUeMap ()
 }
 
 bool
-MmWaveEnbNetDevice::HasCellId(uint16_t cellId) const
+MmWaveEnbNetDevice::HasCellId (uint16_t cellId) const
 {
     for (auto& it : m_ccMap)
     {
@@ -515,41 +517,41 @@ MmWaveEnbNetDevice::HasCellId(uint16_t cellId) const
 }
 
 uint8_t
-MmWaveEnbNetDevice::GetBandwidth() const
+MmWaveEnbNetDevice::GetBandwidth () const
 {
-    NS_LOG_FUNCTION(this);
-    return m_Bandwidth;
+  NS_LOG_FUNCTION (this);
+  return m_Bandwidth;
 }
 
 void
-MmWaveEnbNetDevice::SetBandwidth(uint8_t bw)
+MmWaveEnbNetDevice::SetBandwidth (uint8_t bw)
 {
-    NS_LOG_FUNCTION(this << bw);
-    m_Bandwidth = bw;
+  NS_LOG_FUNCTION (this << bw);
+  m_Bandwidth = bw;
 }
 
 Ptr<MmWaveEnbMac>
-MmWaveEnbNetDevice::GetMac(void)
+MmWaveEnbNetDevice::GetMac (void)
 {
-    return DynamicCast<MmWaveComponentCarrierEnb>(m_ccMap.at(0))->GetMac();
+  return DynamicCast<MmWaveComponentCarrierEnb> (m_ccMap.at (0))->GetMac ();
 }
 
 Ptr<MmWaveEnbMac>
-MmWaveEnbNetDevice::GetMac(uint8_t index)
+MmWaveEnbNetDevice::GetMac (uint8_t index)
 {
-    return DynamicCast<MmWaveComponentCarrierEnb>(m_ccMap.at(index))->GetMac();
+  return DynamicCast<MmWaveComponentCarrierEnb> (m_ccMap.at (index))->GetMac ();
 }
 
 void
-MmWaveEnbNetDevice::SetRrc(Ptr<LteEnbRrc> rrc)
+MmWaveEnbNetDevice::SetRrc (Ptr<LteEnbRrc> rrc)
 {
-    m_rrc = rrc;
+  m_rrc = rrc;
 }
 
 Ptr<LteEnbRrc>
-MmWaveEnbNetDevice::GetRrc(void)
+MmWaveEnbNetDevice::GetRrc (void)
 {
-    return m_rrc;
+  return m_rrc;
 }
 
 bool
@@ -563,22 +565,22 @@ MmWaveEnbNetDevice::DoSend (Ptr<Packet> packet, const Address &dest, uint16_t pr
 }
 
 void
-MmWaveEnbNetDevice::UpdateConfig(void)
+MmWaveEnbNetDevice::UpdateConfig (void)
 {
-    NS_LOG_FUNCTION(this);
+  NS_LOG_FUNCTION (this);
 
-    if (m_isConstructed)
+  if (m_isConstructed)
     {
-        if (!m_isConfigured)
+      if (!m_isConfigured)
         {
-            NS_LOG_LOGIC(this << " Configure cell " << m_cellId);
-            // we have to make sure that this function is called only once
-            // m_rrc->ConfigureCell (m_Bandwidth, m_Bandwidth, m_Earfcn, m_Earfcn, m_cellId);
-            NS_ASSERT(!m_ccMap.empty());
+          NS_LOG_LOGIC (this << " Configure cell " << m_cellId);
+          // we have to make sure that this function is called only once
+          //m_rrc->ConfigureCell (m_Bandwidth, m_Bandwidth, m_Earfcn, m_Earfcn, m_cellId);
+          NS_ASSERT (!m_ccMap.empty ());
 
-            // create the MmWaveComponentCarrierConf map used for the RRC setup
-            std::map<uint8_t, LteEnbRrc::MmWaveComponentCarrierConf> ccConfMap;
-            for (auto it = m_ccMap.begin(); it != m_ccMap.end(); ++it)
+          // create the MmWaveComponentCarrierConf map used for the RRC setup
+          std::map<uint8_t, LteEnbRrc::MmWaveComponentCarrierConf> ccConfMap;
+          for (auto it = m_ccMap.begin (); it != m_ccMap.end (); ++it)
             {
               Ptr<MmWaveComponentCarrierEnb> ccEnb =
                   DynamicCast<MmWaveComponentCarrierEnb> (it->second);
@@ -695,7 +697,7 @@ MmWaveEnbNetDevice::UpdateConfig(void)
           m_isConfigured = true;
         }
 
-        // m_rrc->SetCsgId (m_csgId, m_csgIndication);
+      //m_rrc->SetCsgId (m_csgId, m_csgIndication);
     }
     else
     {
@@ -709,8 +711,8 @@ MmWaveEnbNetDevice::UpdateConfig(void)
 void
 MmWaveEnbNetDevice::SetCcMap (std::map<uint8_t, Ptr<MmWaveComponentCarrier>> ccm)
 {
-    NS_ASSERT_MSG(!m_isConfigured, "attempt to set CC map after configuration");
-    m_ccMap = ccm;
+  NS_ASSERT_MSG (!m_isConfigured, "attempt to set CC map after configuration");
+  m_ccMap = ccm;
 }
 
 Ptr<E2Termination>
@@ -719,17 +721,20 @@ MmWaveEnbNetDevice::GetE2Termination () const
   return m_e2term;
 }
 
+bool esON_cellID= false;
+
 void
 SetBSTX (Ptr<MmWaveEnbPhy> phy, int val, uint16_t cellid, bool m_esON)
 {
   printf ("in function");
   if (val == 0)
     {
-      NS_LOG_UNCOND ("Cell turned off " << cellid << " ,current ES state:" << m_esON);
+
+      NS_LOG_UNCOND ("Cell turned off " << cellid);
     }
   else
     {
-      NS_LOG_UNCOND ("Cell turned on " << cellid << " ,current ES state:" << m_esON);
+      NS_LOG_UNCOND ("Cell turned on " << cellid);
     }
   phy->SetTxPower (val); //set Cell TX power
   if (val == 0)
@@ -740,8 +745,10 @@ SetBSTX (Ptr<MmWaveEnbPhy> phy, int val, uint16_t cellid, bool m_esON)
     {
       phy->SetNoiseFigure (5); //default
     }
+    esON_cellID = m_esON; //ES status flag
 }
 void
+<<<<<<< HEAD
 MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
 {
   NodeContainer &mmWaveEnbNodes = NodeContainerManager::GetInstance ().GetMmWaveEnbNodes ();
@@ -759,6 +766,47 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
     {
       case RicControlMessage::ControlMessageServiceStyle::Radio_Bearer_Control: {
         NS_LOG_UNCOND ("Unsupported RIC Style Type ");
+=======
+  MmWaveEnbNetDevice::ControlMessageReceivedCallback(E2AP_PDU_t *sub_req_pdu) {
+    NodeContainer &mmWaveEnbNodes = NodeContainerManager::GetInstance().GetMmWaveEnbNodes();
+    NS_LOG_DEBUG("\n\nLteEnbNetDevice::ControlMessageReceivedCallback: Received RIC Control Message");
+    // Create RIC Control ACK
+    Ptr <RicControlMessage> controlMessage = Create<RicControlMessage>(sub_req_pdu);
+    //BIT_STRING_t *bit_string = &controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID->ran_UEID
+
+    NS_LOG_INFO("After RicControlMessage::RicControlMessage constructor");
+    NS_LOG_INFO("Request ID " << controlMessage->m_ricRequestId.ricRequestorID);
+    NS_LOG_INFO("Request type " << controlMessage->m_e2SmRcControlHeaderFormat1->ric_Style_Type);
+     
+    switch (controlMessage->m_e2SmRcControlHeaderFormat1->ric_Style_Type) {
+<<<<<<< Updated upstream
+        case RicControlMessage::ControlMessageRequestIdType::HO : {
+            NS_LOG_INFO("Connected mobility, do the handover");
+            // do handover
+            UEID_GNB_t *UEgnb = (UEID_GNB_t *) calloc (1, sizeof (UEID_GNB_t));
+                                                                
+            UEgnb = controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID;
+            uint64_t imsi = {0};
+            memcpy(&imsi, UEgnb->ran_UEID->buf, UEgnb->ran_UEID->size);
+            //uint16_t targetCellId = std::stoi(controlMessage->GetSecondaryCellIdHO());
+            uint16_t targetCellId = controlMessage->GetTargetCell();
+            NS_LOG_INFO("Imsi Decoded: " << imsi);        
+            NS_LOG_UNCOND("Target Cell id " << targetCellId);
+            m_rrc->TakeUeHoControl(imsi);
+            if (!m_forceE2FileLogging) {             
+                Simulator::ScheduleWithContext(1, Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
+                                                m_rrc, imsi, targetCellId);
+            } else {
+                Simulator::Schedule(Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
+                                    m_rrc, imsi, targetCellId);
+            }
+            break;
+        }
+         case RicControlMessage::ControlMessageRequestIdType::Es : {       
+=======
+       case RicControlMessage::ControlMessageServiceStyle::Radio_Bearer_Control : {
+          NS_LOG_UNCOND("Unsupported RIC Style Type ");
+>>>>>>> Enhance ns3 to handle more RIC control styles and control actions
         break;
       }
 
@@ -831,6 +879,7 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
             }
           }
         break;
+<<<<<<< HEAD
       }
       case RicControlMessage::ControlMessageServiceStyle::Energy_state: {
         // TODO: Encode the RIC contol request and turn off incoming old cell.
@@ -859,6 +908,30 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
             Simulator::ScheduleWithContext (1, MilliSeconds (15), &SetBSTX, enbPhy, 0, cell_id,
                                             true);
             //Simulator::ScheduleWithContext (1,Seconds (tim+5), &SetBSTX, enbPhy, 30, cell_id, false);
+=======
+    }
+         case RicControlMessage::ControlMessageServiceStyle::Energy_state : {
+>>>>>>> Stashed changes
+                 for (uint32_t i = 0; i < mmWaveEnbNodes.GetN (); i++)
+                      {
+                        Ptr<MmWaveEnbPhy> enbPhy =
+                            mmWaveEnbNodes.Get (i)->GetDevice (0)->GetObject<MmWaveEnbNetDevice> ()->GetPhy ();
+                        Ptr<MmWaveEnbNetDevice> mmdev =
+                            DynamicCast<MmWaveEnbNetDevice> (mmWaveEnbNodes.Get (i)->GetDevice (0));
+                        uint16_t cell_id = mmdev->GetCellId ();
+                    if (cell_id == 2)
+                      {
+                        printf("Cell Id %u ",cell_id);
+                         Simulator::ScheduleWithContext (1,MilliSeconds(15), &SetBSTX, enbPhy, 0, cell_id, true);
+                         //Simulator::ScheduleWithContext (1,Seconds (tim+5), &SetBSTX, enbPhy, 30, cell_id, false);
+                      }
+                      }           
+                break;
+           }
+                default: {
+            NS_LOG_INFO("Unrecognized Ric Style Type of Ric Control Message");
+            break;
+>>>>>>> Enhance ns3 to handle more RIC control styles and control actions
             }
           }
         break;
@@ -945,11 +1018,38 @@ MmWaveEnbNetDevice::BuildRicIndicationHeader (std::string plmId, std::string gnb
 }
 
 Ptr<KpmIndicationMessage>
+<<<<<<< HEAD
 MmWaveEnbNetDevice::BuildRicIndicationMessageCuUp (std::string plmId)
 {
   Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
       Create<MmWaveIndicationMessageHelper> (IndicationMessageHelper::IndicationMessageType::CuUp,
                                              m_forceE2FileLogging, m_reducedPmValues);
+=======
+        MmWaveEnbNetDevice::BuildRicIndicationMessageCuUp(std::string plmId)
+        {
+            bool local_m_forceE2FileLogging;
+
+            if (m_forceE2FileLogging)
+            {
+                local_m_forceE2FileLogging = true;
+            }
+            else
+            {
+                local_m_forceE2FileLogging = false;
+            }
+            if (m_e2andlog)
+            {
+<<<<<<< Updated upstream
+                local_m_forceE2FileLogging = true;
+=======
+                local_m_forceE2FileLogging = false;
+>>>>>>> Stashed changes
+            }
+
+            Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
+                    Create<MmWaveIndicationMessageHelper> (IndicationMessageHelper::IndicationMessageType::CuUp,
+                                                           local_m_forceE2FileLogging, m_reducedPmValues);
+>>>>>>> Enhance ns3 to handle more RIC control styles and control actions
 
   // get <rnti, UeManager> map of connected UEs
   auto ueMap = m_rrc->GetUeMap ();
@@ -1083,11 +1183,44 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuUp (std::string plmId)
       return nullptr;
     }
   else
+<<<<<<< HEAD
     {
       const auto &subsDetails_r = m_e2term->SubscriptionMapRef ();
       return indicationMessageHelper->CreateIndicationMessage (subsDetails_r);
     }
 }
+=======
+  {
+                if (m_e2andlog == 1)
+                {
+                    std::ofstream csv{};
+                    csv.open (m_cuUpFileName.c_str (), std::ios_base::app);
+                    if (!csv.is_open ())
+                    {
+                        NS_FATAL_ERROR ("Can't open file " << m_cuUpFileName.c_str ());
+                    }
+                    uint64_t timestamp = m_startTime + (uint64_t) Simulator::Now ().GetMilliSeconds ();
+                    // the string is timestamp, ueImsiComplete, DRB.PdcpSduDelayDl (cellAverageLatency),
+                    // m_pDCPBytesUL (0), m_pDCPBytesDL (cellDlTxVolume), DRB.PdcpSduVolumeDl_Filter.UEID (txBytes),
+                    // Tot.PdcpSduNbrDl.UEID (txDlPackets), DRB.PdcpSduBitRateDl.UEID (pdcpThroughput),
+                    // DRB.PdcpSduDelayDl.UEID (pdcpLatency), QosFlow.PdcpPduVolumeDL_Filter.UEID (txPdcpPduBytesNrRlc),
+                    // DRB.PdcpPduNbrDl.Qos.UEID (txPdcpPduNrRlc)
+                    for (auto ue : ueMap)
+                    {
+                        uint64_t imsi = ue.second->GetImsi ();
+                        std::string ueImsiComplete = GetImsiString (imsi);
+                        auto uePms = uePmString.find (imsi)->second;
+                        std::string to_print = std::to_string (timestamp) + "," + ueImsiComplete + "," + "," +
+                                               "," + "," + uePms + "\n";
+                        csv << to_print;
+                    }
+                    csv.close ();
+                }
+                // NS_LOG_UNCOND ("CUUP will be send ");
+                return indicationMessageHelper->CreateIndicationMessage ();
+            }
+        }
+>>>>>>> Enhance ns3 to handle more RIC control styles and control actions
 
 template <typename A, typename B>
 std::pair<B, A>
@@ -1261,7 +1394,44 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuCp (std::string plmId)
 
           NS_LOG_DEBUG (to_print);
 
+<<<<<<< HEAD
           csv << to_print;
+=======
+                    csv << to_print;
+                }
+                csv.close ();
+                return nullptr;
+            }
+            else
+            {
+                if (m_e2andlog == 1)
+                {
+                    std::ofstream csv{};
+                    csv.open (m_cuCpFileName.c_str (), std::ios_base::app);
+                    if (!csv.is_open ())
+                    {
+                        NS_FATAL_ERROR ("Can't open file " << m_cuCpFileName.c_str ());
+                    }
+                    NS_LOG_DEBUG ("m_cuCpFileName open " << m_cuCpFileName);
+                    // the string is timestamp, ueImsiComplete, numActiveUes, DRB.EstabSucc.5QI.UEID (numDrb), DRB.RelActNbr.5QI.UEID (0), L3 serving Id (m_cellId), UE (imsi), L3 serving SINR, L3 serving SINR 3gpp, L3 neigh Id (cellId), L3 neigh Sinr, L3 neigh SINR 3gpp (convertedSinr)
+                    // The values for L3 neighbour cells are repeated for each neighbour (7 times in this implementation)
+                    uint64_t timestamp = m_startTime + (uint64_t) Simulator::Now ().GetMilliSeconds ();
+                    for (auto ue : ueMap)
+                    {
+                        uint64_t imsi = ue.second->GetImsi ();
+                        std::string ueImsiComplete = GetImsiString (imsi);
+                        auto uePms = uePmString.find (imsi)->second;
+                        std::string to_print = std::to_string (timestamp) + "," + ueImsiComplete + "," +
+                                               std::to_string (ueMap.size ()) + "," + uePms + "\n";
+                        NS_LOG_DEBUG (to_print);
+                        csv << to_print;
+                    }
+                    csv.close ();
+                }
+                // NS_LOG_UNCOND ("CUCP will be send ");
+                return indicationMessageHelper->CreateIndicationMessage ();
+            }
+>>>>>>> Enhance ns3 to handle more RIC control styles and control actions
         }
       csv.close ();
       return nullptr;
@@ -1278,6 +1448,7 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuCp (std::string plmId)
 uint32_t
 MmWaveEnbNetDevice::GetRlcBufferOccupancy (Ptr<LteRlc> rlc) const
 {
+<<<<<<< HEAD
   if (DynamicCast<LteRlcAm> (rlc))
     {
       return DynamicCast<LteRlcAm> (rlc)->GetTxBufferSize ();
@@ -1290,6 +1461,20 @@ MmWaveEnbNetDevice::GetRlcBufferOccupancy (Ptr<LteRlc> rlc) const
     {
       return DynamicCast<LteRlcUmLowLat> (rlc)->GetTxBufferSize ();
     }
+=======
+  if (DynamicCast<LteRlcAm>(rlc) != 0)
+  {
+    return DynamicCast<LteRlcAm>(rlc)->GetTxBufferSize();
+  }
+  else if(DynamicCast<LteRlcUm>(rlc) != 0)
+  {
+    return DynamicCast<LteRlcUm>(rlc)->GetTxBufferSize();
+  }
+  else if(DynamicCast<LteRlcUmLowLat>(rlc) != 0)
+  {
+    return DynamicCast<LteRlcUmLowLat>(rlc)->GetTxBufferSize();
+  }
+>>>>>>> Enhance ns3 to handle more RIC control styles and control actions
   else
     {
       return 0;
@@ -1311,11 +1496,23 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
             }
             if (m_e2andlog)
             {
+<<<<<<< Updated upstream
                 local_m_forceE2FileLogging = true;
+<<<<<<< HEAD
             } 
   Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
       Create<MmWaveIndicationMessageHelper> (IndicationMessageHelper::IndicationMessageType::Du,
                                              m_forceE2FileLogging, m_reducedPmValues);
+=======
+=======
+                local_m_forceE2FileLogging = false;
+>>>>>>> Stashed changes
+            }
+
+            Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
+                    Create<MmWaveIndicationMessageHelper> (IndicationMessageHelper::IndicationMessageType::Du,
+                                                           local_m_forceE2FileLogging, m_reducedPmValues);
+>>>>>>> Enhance ns3 to handle more RIC control styles and control actions
 
   auto ueMap = m_rrc->GetUeMap ();
 
@@ -1569,7 +1766,14 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
       indicationMessageHelper->FillDuValues (plmId + std::to_string (nrCellId));
     }
 
+<<<<<<< HEAD
   if (m_forceE2FileLogging)
+=======
+  if (m_forceE2FileLogging) {
+    std::ofstream csv {};
+    csv.open (m_duFileName.c_str (),  std::ios_base::app);
+    if (!csv.is_open ())
+>>>>>>> Enhance ns3 to handle more RIC control styles and control actions
     {
       std::ofstream csv{};
       csv.open (m_duFileName.c_str (), std::ios_base::app);
@@ -1590,6 +1794,7 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
         L1M.RS-SINR.Bin70, L1M.RS-SINR.Bin82, L1M.RS-SINR.Bin94, L1M.RS-SINR.Bin127, DRB.BufferSize.Qos, DRB.MeanActiveUeDl
     */
 
+<<<<<<< HEAD
       std::string to_print_cell =
           plmId + "," + std::to_string (nrCellId) + "," + std::to_string (dlAvailablePrbs) + "," +
           std::to_string (ulAvailablePrbs) + "," + std::to_string (qci) + "," +
@@ -1611,6 +1816,52 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
           std::to_string (macSinrBin6CellSpecific) + "," +
           std::to_string (macSinrBin7CellSpecific) + "," +
           std::to_string (rlcBufferOccupCellSpecific) + "," + std::to_string (ueMap.size ());
+=======
+    std::string to_print_cell = plmId + ","
+        + std::to_string (nrCellId) + ","
+        + std::to_string (dlAvailablePrbs) + ","
+        + std::to_string (ulAvailablePrbs) + ","
+        + std::to_string (qci) + ","
+        + std::to_string (dlPrbUsage) + ","
+        + std::to_string (ulPrbUsage) + ","
+        + std::to_string (macPduCellSpecific) + ","
+        + std::to_string (macPduInitialCellSpecific) + ","
+        + std::to_string (macQpskCellSpecific) + ","
+        + std::to_string (mac16QamCellSpecific) + ","
+        + std::to_string (mac64QamCellSpecific) + ","
+        + std::to_string ((long) std::ceil (prbUtilizationDl)) + ","
+        + std::to_string (macRetxCellSpecific) + ","
+        + std::to_string (macVolumeCellSpecific) + ","
+        + std::to_string (macMac04CellSpecific) + ","
+        + std::to_string (macMac59CellSpecific) + ","
+        + std::to_string (macMac1014CellSpecific) + ","
+        + std::to_string (macMac1519CellSpecific) + ","
+        + std::to_string (macMac2024CellSpecific) + ","
+        + std::to_string (macMac2529CellSpecific) + ","
+        + std::to_string (macSinrBin1CellSpecific) + ","
+        + std::to_string (macSinrBin2CellSpecific) + ","
+        + std::to_string (macSinrBin3CellSpecific) + ","
+        + std::to_string (macSinrBin4CellSpecific) + ","
+        + std::to_string (macSinrBin5CellSpecific) + ","
+        + std::to_string (macSinrBin6CellSpecific) + ","
+        + std::to_string (macSinrBin7CellSpecific) + ","
+        + std::to_string (rlcBufferOccupCellSpecific) + ","
+        + std::to_string (ueMap.size ());
+
+    /*
+      UESpecificValues:
+
+          TB.TotNbrDl.1.UEID, TB.TotNbrDlInitial.UEID, TB.TotNbrDlInitial.Qpsk.UEID, TB.TotNbrDlInitial.16Qam.UEID,TB.TotNbrDlInitial.64Qam.UEID, TB.ErrTotalNbrDl.1.UEID, QosFlow.PdcpPduVolumeDL_Filter.UEID,
+          RRU.PrbUsedDl.UEID, CARR.PDSCHMCSDist.Bin1.UEID, CARR.PDSCHMCSDist.Bin2.UEID, CARR.PDSCHMCSDist.Bin3.UEID, CARR.PDSCHMCSDist.Bin5.UEID, CARR.PDSCHMCSDist.Bin6.UEID,
+          L1M.RS-SINR.Bin34.UEID, L1M.RS-SINR.Bin46.UEID, L1M.RS-SINR.Bin58.UEID, L1M.RS-SINR.Bin70.UEID, L1M.RS-SINR.Bin82.UEID, L1M.RS-SINR.Bin94.UEID, L1M.RS-SINR.Bin127.UEID,
+          DRB.BufferSize.Qos.UEID, DRB.UEThpDl.UEID, DRB.UEThpDlPdcpBased.UEID
+    */
+
+    for (auto ue : ueMap)
+    {
+      uint64_t imsi = ue.second->GetImsi();
+      std::string ueImsiComplete = GetImsiString(imsi);
+>>>>>>> Enhance ns3 to handle more RIC control styles and control actions
 
       for (auto ue : ueMap)
         {
@@ -1622,7 +1873,85 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
           std::string to_print = std::to_string (timestamp) + "," + ueImsiComplete + "," +
                                  to_print_cell + "," + uePms + "\n";
 
+<<<<<<< HEAD
           csv << to_print;
+=======
+    return nullptr;
+  }
+  else
+  {
+                if (m_e2andlog == 1)
+                {
+                    std::ofstream csv{};
+                    csv.open (m_duFileName.c_str (), std::ios_base::app);
+                    if (!csv.is_open ())
+                    {
+                        NS_FATAL_ERROR ("Can't open file " << m_duFileName.c_str ());
+                    }
+
+                    uint64_t timestamp = m_startTime + (uint64_t) Simulator::Now ().GetMilliSeconds ();
+
+                    // the string is timestamp, ueImsiComplete, plmId, nrCellId, dlAvailablePrbs, ulAvailablePrbs, qci , dlPrbUsage, ulPrbUsage, /*CellSpecificValues*/, /* UESpecificValues */
+
+                    /*
+                                                          CellSpecificValues:
+                                                            TB.TotNbrDl.1, TB.TotNbrDlInitial, TB.TotNbrDlInitial.Qpsk, TB.TotNbrDlInitial.16Qam, TB.TotNbrDlInitial.64Qam, RRU.PrbUsedDl,
+                                                            TB.ErrTotalNbrDl.1, QosFlow.PdcpPduVolumeDL_Filter, CARR.PDSCHMCSDist.Bin1, CARR.PDSCHMCSDist.Bin2, CARR.PDSCHMCSDist.Bin3,
+                                                            CARR.PDSCHMCSDist.Bin4, CARR.PDSCHMCSDist.Bin5, CARR.PDSCHMCSDist.Bin6, L1M.RS-SINR.Bin34, L1M.RS-SINR.Bin46, L1M.RS-SINR.Bin58,
+                                                            L1M.RS-SINR.Bin70, L1M.RS-SINR.Bin82, L1M.RS-SINR.Bin94, L1M.RS-SINR.Bin127, DRB.BufferSize.Qos, DRB.MeanActiveUeDl
+                                                        */
+                    std::string to_print_cell =
+                            plmId + "," + std::to_string (nrCellId) + "," + std::to_string (dlAvailablePrbs) +
+                            "," + std::to_string (ulAvailablePrbs) + "," + std::to_string (qci) + "," +
+                            std::to_string (dlPrbUsage) + "," + std::to_string (ulPrbUsage) + "," +
+                            std::to_string (macPduCellSpecific) + "," +
+                            std::to_string (macPduInitialCellSpecific) + "," +
+                            std::to_string (macQpskCellSpecific) + "," + std::to_string (mac16QamCellSpecific) +
+                            "," + std::to_string (mac64QamCellSpecific) + "," +
+                            std::to_string ((long) std::ceil (prbUtilizationDl)) + "," +
+                            std::to_string (macRetxCellSpecific) + "," + std::to_string (macVolumeCellSpecific) +
+                            "," + std::to_string (macMac04CellSpecific) + "," +
+                            std::to_string (macMac59CellSpecific) + "," +
+                            std::to_string (macMac1014CellSpecific) + "," +
+                            std::to_string (macMac1519CellSpecific) + "," +
+                            std::to_string (macMac2024CellSpecific) + "," +
+                            std::to_string (macMac2529CellSpecific) + "," +
+                            std::to_string (macSinrBin1CellSpecific) + "," +
+                            std::to_string (macSinrBin2CellSpecific) + "," +
+                            std::to_string (macSinrBin3CellSpecific) + "," +
+                            std::to_string (macSinrBin4CellSpecific) + "," +
+                            std::to_string (macSinrBin5CellSpecific) + "," +
+                            std::to_string (macSinrBin6CellSpecific) + "," +
+                            std::to_string (macSinrBin7CellSpecific) + "," +
+                            std::to_string (rlcBufferOccupCellSpecific) + "," + std::to_string (ueMap.size ());
+
+                    /*
+                                                          UESpecificValues:
+
+                                                              TB.TotNbrDl.1.UEID, TB.TotNbrDlInitial.UEID, TB.TotNbrDlInitial.Qpsk.UEID, TB.TotNbrDlInitial.16Qam.UEID,TB.TotNbrDlInitial.64Qam.UEID, TB.ErrTotalNbrDl.1.UEID, QosFlow.PdcpPduVolumeDL_Filter.UEID,
+                                                              RRU.PrbUsedDl.UEID, CARR.PDSCHMCSDist.Bin1.UEID, CARR.PDSCHMCSDist.Bin2.UEID, CARR.PDSCHMCSDist.Bin3.UEID, CARR.PDSCHMCSDist.Bin5.UEID, CARR.PDSCHMCSDist.Bin6.UEID,
+                                                              L1M.RS-SINR.Bin34.UEID, L1M.RS-SINR.Bin46.UEID, L1M.RS-SINR.Bin58.UEID, L1M.RS-SINR.Bin70.UEID, L1M.RS-SINR.Bin82.UEID, L1M.RS-SINR.Bin94.UEID, L1M.RS-SINR.Bin127.UEID,
+                                                              DRB.BufferSize.Qos.UEID, DRB.UEThpDl.UEID, DRB.UEThpDlPdcpBased.UEID
+                                                        */
+
+                    for (auto ue : ueMap)
+                    {
+                        uint64_t imsi = ue.second->GetImsi ();
+                        std::string ueImsiComplete = GetImsiString (imsi);
+
+                        auto uePms = uePmStringDu.find (imsi)->second;
+
+                        std::string to_print = std::to_string (timestamp) + "," + ueImsiComplete + "," +
+                                               to_print_cell + "," + uePms + "\n";
+
+                        csv << to_print;
+                    }
+                    csv.close ();
+                }
+                //NS_LOG_UNCOND ("DU will be send ");
+                return indicationMessageHelper->CreateIndicationMessage ();
+            }
+>>>>>>> Enhance ns3 to handle more RIC control styles and control actions
         }
       csv.close ();
 
@@ -1742,6 +2071,7 @@ MmWaveEnbNetDevice::SetStartTime (uint64_t st)
   m_startTime = st;
 }
 
+<<<<<<< HEAD
 Ptr<KpmIndicationMessage>
 MmWaveEnbNetDevice::BuildGUIDu (std::string plmId, uint16_t nrCellId)
 {
@@ -2143,6 +2473,17 @@ MmWaveEnbNetDevice::BuildGUICuCp (std::string plmId)
   csv.close ();
   Simulator::Schedule (MilliSeconds (100), &MmWaveEnbNetDevice::BuildGUICuCp, this, plmId);
   return nullptr;
+=======
+<<<<<<< Updated upstream
+=======
+/*bool
+MmWaveEnbNetDevice::GetESStates () const
+{
+    return  esON_cellID;
+}*/
+
+>>>>>>> Stashed changes
+>>>>>>> Enhance ns3 to handle more RIC control styles and control actions
 }
 Ptr<KpmIndicationMessage>
 MmWaveEnbNetDevice::BuildGUICuUp (std::string plmId)
