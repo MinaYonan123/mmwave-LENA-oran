@@ -172,55 +172,7 @@ namespace ns3 {
         Ptr <RicControlMessage> controlMessage = Create<RicControlMessage>(sub_req_pdu);
         NS_LOG_INFO("After RicControlMessage::RicControlMessage constructor");
         NS_LOG_INFO("Request type " << controlMessage->m_requestType);
-         switch (controlMessage->m_e2SmRcControlHeaderFormat1->ric_Style_Type) {
-           case RicControlMessage::ControlMessageServiceStyle::Connected_Mode_Mobility : {
-            NS_LOG_INFO("Connected mobility, do the handover");
-            // do handover
-          switch (controlMessage->m_e2SmRcControlHeaderFormat1->ric_ControlAction_ID) {
-            case RicControlMessage::Connected_Mode_Mobility_Control_Action_ID::Handover_Control :{
-
-                UEID_GNB_t *UEgnb = (UEID_GNB_t *) calloc (1, sizeof (UEID_GNB_t));
-
-                UEgnb = controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID;
-                uint64_t imsi = {0};
-                memcpy(&imsi, UEgnb->ran_UEID->buf, UEgnb->ran_UEID->size);
-                //uint16_t targetCellId = std::stoi(controlMessage->GetSecondaryCellIdHO());
-                uint16_t targetCellId = controlMessage->GetTargetCell();
-                NS_LOG_INFO("Imsi Decoded: " << imsi);
-                NS_LOG_UNCOND("Target Cell id " << targetCellId);
-                m_rrc->TakeUeHoControl(imsi);
-                if (!m_forceE2FileLogging) {
-                    Simulator::ScheduleWithContext(1, Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
-                                                    m_rrc, imsi, targetCellId);
-                } else {
-                    Simulator::Schedule(Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
-                                        m_rrc, imsi, targetCellId);
-                }
-              break;
-            }
-           
-             case RicControlMessage::Connected_Mode_Mobility_Control_Action_ID::Conditional_Handover_Control :{
-                NS_LOG_UNCOND("Unsupported Control Action ");
-                break; 
-             }
-            
-             default: {
-             NS_LOG_INFO("Unrecognized Control Action type of Ric Control Message");
-             break;
-             }
-        }
-        break;
-    }
-            case RicControlMessage::ControlMessageServiceStyle::Energy_state: {
-                // use SetUeQoS()
-                NS_FATAL_ERROR("For QoS use file-based control.");
-                break;
-            }
-            default: {
-                NS_LOG_INFO("Unrecognized id type of Ric Control Message");
-                break;
-            }
-        }
+        
     }
 
     TypeId LteEnbNetDevice::GetTypeId(void) {

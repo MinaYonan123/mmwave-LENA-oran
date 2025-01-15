@@ -501,6 +501,9 @@ MmWaveEnbNetDevice::UpdateConfig (void)
                             if (m_e2andlog)
                             {
                                 Simulator::Schedule (MicroSeconds (0), &E2Termination::Start, m_e2term);
+                                  Simulator::Schedule (MicroSeconds (500),
+                                                     &MmWaveEnbNetDevice::BuildAndSendReportMessage, this,
+                                                     E2Termination::RicSubscriptionRequest_rval_s{});
                             }
                             else
                             {
@@ -513,78 +516,6 @@ MmWaveEnbNetDevice::UpdateConfig (void)
                         {
                             Simulator::Schedule (MicroSeconds (0), &E2Termination::Start, m_e2term);
                         }
-
-                        //
-
-                        /*if (!m_forceE2FileLogging) {
-                                                                    Simulator::Schedule(MicroSeconds(0), &E2Termination::Start, m_e2term);
-                                                                } else {
-                                                                    m_cuUpFileName = "cu-up-cell-" + std::to_string(m_cellId) + ".txt";
-                                                                    std::ofstream csv{};
-                                                                    csv.open(m_cuUpFileName.c_str());
-                                                                    csv << "timestamp,ueImsiComplete,DRB.PdcpSduDelayDl (cellAverageLatency),"
-                                                                           "m_pDCPBytesUL (0),"
-                                                                           "m_pDCPBytesDL (cellDlTxVolume),DRB.PdcpSduVolumeDl_Filter.UEID (txBytes),"
-                                                                           "Tot.PdcpSduNbrDl.UEID (txDlPackets),DRB.PdcpSduBitRateDl.UEID"
-                                                                           "(pdcpThroughput),"
-                                                                           "DRB.PdcpSduDelayDl.UEID (pdcpLatency),QosFlow.PdcpPduVolumeDL_Filter.UEID"
-                                                                           "(txPdcpPduBytesNrRlc),DRB.PdcpPduNbrDl.Qos.UEID (txPdcpPduNrRlc)\n";
-                                                                    csv.close();
-
-                                                                    m_cuCpFileName = "cu-cp-cell-" + std::to_string(m_cellId) + ".txt";
-                                                                    csv.open(m_cuCpFileName.c_str());
-                                                                    csv << "timestamp,ueImsiComplete,numActiveUes,DRB.EstabSucc.5QI.UEID (numDrb),"
-                                                                           "DRB.RelActNbr.5QI.UEID (0),L3 serving Id(m_cellId),UE (imsi),L3 serving SINR,"
-                                                                           "L3 serving SINR 3gpp,"
-                                                                           "L3 neigh Id 1 (cellId),L3 neigh SINR 1,L3 neigh SINR 3gpp 1 (convertedSinr),"
-                                                                           "L3 neigh Id 2 (cellId),L3 neigh SINR 2,L3 neigh SINR 3gpp 2 (convertedSinr),"
-                                                                           "L3 neigh Id 3 (cellId),L3 neigh SINR 3,L3 neigh SINR 3gpp 3 (convertedSinr),"
-                                                                           "L3 neigh Id 4 (cellId),L3 neigh SINR 4,L3 neigh SINR 3gpp 4 (convertedSinr),"
-                                                                           "L3 neigh Id 5 (cellId),L3 neigh SINR 5,L3 neigh SINR 3gpp 5 (convertedSinr),"
-                                                                           "L3 neigh Id 6 (cellId),L3 neigh SINR 6,L3 neigh SINR 3gpp 6 (convertedSinr),"
-                                                                           "L3 neigh Id 7 (cellId),L3 neigh SINR 7,L3 neigh SINR 3gpp 7 (convertedSinr),"
-                                                                           "L3 neigh Id 8 (cellId),L3 neigh SINR 8,L3 neigh SINR 3gpp 8 (convertedSinr)"
-                                                                           "\n";
-                                                                    csv.close();
-
-                                                                    m_duFileName = "du-cell-" + std::to_string(m_cellId) + ".txt";
-                                                                    csv.open(m_duFileName.c_str());
-
-                                                                    std::string header_csv =
-                                                                            "timestamp,ueImsiComplete,plmId,nrCellId,dlAvailablePrbs,"
-                                                                            "ulAvailablePrbs,qci,dlPrbUsage,ulPrbUsage";
-
-                                                                    std::string cell_header =
-                                                                            "TB.TotNbrDl.1,TB.TotNbrDlInitial,TB.TotNbrDlInitial.Qpsk,"
-                                                                            "TB.TotNbrDlInitial.16Qam,"
-                                                                            "TB.TotNbrDlInitial.64Qam,RRU.PrbUsedDl,TB.ErrTotalNbrDl.1,"
-                                                                            "QosFlow.PdcpPduVolumeDL_Filter,CARR.PDSCHMCSDist.Bin1,"
-                                                                            "CARR.PDSCHMCSDist.Bin2,"
-                                                                            "CARR.PDSCHMCSDist.Bin3,CARR.PDSCHMCSDist.Bin4,CARR.PDSCHMCSDist.Bin5,"
-                                                                            "CARR.PDSCHMCSDist.Bin6,L1M.RS-SINR.Bin34,L1M.RS-SINR.Bin46, "
-                                                                            "L1M.RS-SINR.Bin58,"
-                                                                            "L1M.RS-SINR.Bin70,L1M.RS-SINR.Bin82,L1M.RS-SINR.Bin94,L1M.RS-SINR.Bin127,"
-                                                                            "DRB.BufferSize.Qos,DRB.MeanActiveUeDl";
-
-                                                                    std::string ue_header =
-                                                                            "TB.TotNbrDl.1.UEID,TB.TotNbrDlInitial.UEID,TB.TotNbrDlInitial.Qpsk.UEID,"
-                                                                            "TB.TotNbrDlInitial.16Qam.UEID,TB.TotNbrDlInitial.64Qam.UEID,"
-                                                                            "TB.ErrTotalNbrDl.1.UEID,"
-                                                                            "QosFlow.PdcpPduVolumeDL_Filter.UEID,RRU.PrbUsedDl.UEID,"
-                                                                            "CARR.PDSCHMCSDist.Bin1.UEID,"
-                                                                            "CARR.PDSCHMCSDist.Bin2.UEID,CARR.PDSCHMCSDist.Bin3.UEID,"
-                                                                            "CARR.PDSCHMCSDist.Bin4.UEID,"
-                                                                            "CARR.PDSCHMCSDist.Bin5.UEID,"
-                                                                            "CARR.PDSCHMCSDist.Bin6.UEID,L1M.RS-SINR.Bin34.UEID, L1M.RS-SINR.Bin46.UEID,"
-                                                                            "L1M.RS-SINR.Bin58.UEID,L1M.RS-SINR.Bin70.UEID,L1M.RS-SINR.Bin82.UEID,"
-                                                                            "L1M.RS-SINR.Bin94.UEID,L1M.RS-SINR.Bin127.UEID,DRB.BufferSize.Qos.UEID,"
-                                                                            "DRB.UEThpDl.UEID, DRB.UEThpDlPdcpBased.UEID";
-
-                                                                    csv << header_csv + "," + cell_header + "," + ue_header + "\n";
-                                                                    csv.close();
-                                                                    Simulator::Schedule(MicroSeconds(500), &MmWaveEnbNetDevice::BuildAndSendReportMessage, this,
-                                                                                        E2Termination::RicSubscriptionRequest_rval_s{});
-                                                                }*/
                     }
                     m_isConfigured = true;
         }
@@ -613,7 +544,7 @@ MmWaveEnbNetDevice::GetE2Termination() const
   return m_e2term;
 }
 
-bool esON_cellID= false;
+// esON_cellID= false;
 
 void
 SetBSTX (Ptr<MmWaveEnbPhy> phy, int val, uint16_t cellid, bool m_esON)
@@ -642,7 +573,7 @@ SetBSTX (Ptr<MmWaveEnbPhy> phy, int val, uint16_t cellid, bool m_esON)
 void
   MmWaveEnbNetDevice::ControlMessageReceivedCallback(E2AP_PDU_t *sub_req_pdu) {
     NodeContainer &mmWaveEnbNodes = NodeContainerManager::GetInstance().GetMmWaveEnbNodes();
-    NS_LOG_DEBUG("\n\nLteEnbNetDevice::ControlMessageReceivedCallback: Received RIC Control Message");
+    NS_LOG_DEBUG("\nMmWaveEnbNetDevice::ControlMessageReceivedCallback: Received RIC Control Message");
     // Create RIC Control ACK
     Ptr <RicControlMessage> controlMessage = Create<RicControlMessage>(sub_req_pdu);
     //BIT_STRING_t *bit_string = &controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID->ran_UEID
@@ -652,31 +583,6 @@ void
     NS_LOG_INFO("Request type " << controlMessage->m_e2SmRcControlHeaderFormat1->ric_Style_Type);
      
     switch (controlMessage->m_e2SmRcControlHeaderFormat1->ric_Style_Type) {
-<<<<<<< Updated upstream
-        case RicControlMessage::ControlMessageRequestIdType::HO : {
-            NS_LOG_INFO("Connected mobility, do the handover");
-            // do handover
-            UEID_GNB_t *UEgnb = (UEID_GNB_t *) calloc (1, sizeof (UEID_GNB_t));
-                                                                
-            UEgnb = controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID;
-            uint64_t imsi = {0};
-            memcpy(&imsi, UEgnb->ran_UEID->buf, UEgnb->ran_UEID->size);
-            //uint16_t targetCellId = std::stoi(controlMessage->GetSecondaryCellIdHO());
-            uint16_t targetCellId = controlMessage->GetTargetCell();
-            NS_LOG_INFO("Imsi Decoded: " << imsi);        
-            NS_LOG_UNCOND("Target Cell id " << targetCellId);
-            m_rrc->TakeUeHoControl(imsi);
-            if (!m_forceE2FileLogging) {             
-                Simulator::ScheduleWithContext(1, Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
-                                                m_rrc, imsi, targetCellId);
-            } else {
-                Simulator::Schedule(Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
-                                    m_rrc, imsi, targetCellId);
-            }
-            break;
-        }
-         case RicControlMessage::ControlMessageRequestIdType::Es : {       
-=======
        case RicControlMessage::ControlMessageServiceStyle::Radio_Bearer_Control : {
           NS_LOG_UNCOND("Unsupported RIC Style Type ");
         break;
@@ -728,7 +634,6 @@ void
         break;
     }
          case RicControlMessage::ControlMessageServiceStyle::Energy_state : {
->>>>>>> Stashed changes
                  for (uint32_t i = 0; i < mmWaveEnbNodes.GetN (); i++)
                       {
                         Ptr<MmWaveEnbPhy> enbPhy =
@@ -837,11 +742,7 @@ Ptr<KpmIndicationMessage>
             }
             if (m_e2andlog)
             {
-<<<<<<< Updated upstream
-                local_m_forceE2FileLogging = true;
-=======
                 local_m_forceE2FileLogging = false;
->>>>>>> Stashed changes
             }
 
             Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
@@ -1236,11 +1137,7 @@ MmWaveEnbNetDevice::GetRlcBufferOccupancy(Ptr<LteRlc> rlc) const
             }
             if (m_e2andlog)
             {
-<<<<<<< Updated upstream
-                local_m_forceE2FileLogging = true;
-=======
                 local_m_forceE2FileLogging = false;
->>>>>>> Stashed changes
             }
 
             Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
@@ -1778,14 +1675,5 @@ MmWaveEnbNetDevice::SetStartTime (uint64_t st)
   m_startTime = st;
 }
 
-<<<<<<< Updated upstream
-=======
-/*bool
-MmWaveEnbNetDevice::GetESStates () const
-{
-    return  esON_cellID;
-}*/
-
->>>>>>> Stashed changes
 }
 }
