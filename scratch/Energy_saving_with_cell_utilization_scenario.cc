@@ -45,6 +45,7 @@
 #include <fstream>
 #include "ns3/basic-energy-source-helper.h"
 #include "ns3/mmwave-radio-energy-model-enb-helper.h"
+#include "ns3/isotropic-antenna-model.h"
 
 using namespace ns3;
 using namespace mmwave;

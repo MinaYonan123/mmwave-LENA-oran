@@ -721,7 +721,7 @@ MmWaveEnbNetDevice::GetE2Termination () const
   return m_e2term;
 }
 
-bool esON_cellID= false;
+// esON_cellID= false;
 
 void
 SetBSTX (Ptr<MmWaveEnbPhy> phy, int val, uint16_t cellid, bool m_esON)
@@ -748,7 +748,6 @@ SetBSTX (Ptr<MmWaveEnbPhy> phy, int val, uint16_t cellid, bool m_esON)
     esON_cellID = m_esON; //ES status flag
 }
 void
-<<<<<<< HEAD
 MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
 {
   NodeContainer &mmWaveEnbNodes = NodeContainerManager::GetInstance ().GetMmWaveEnbNodes ();
@@ -766,47 +765,6 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
     {
       case RicControlMessage::ControlMessageServiceStyle::Radio_Bearer_Control: {
         NS_LOG_UNCOND ("Unsupported RIC Style Type ");
-=======
-  MmWaveEnbNetDevice::ControlMessageReceivedCallback(E2AP_PDU_t *sub_req_pdu) {
-    NodeContainer &mmWaveEnbNodes = NodeContainerManager::GetInstance().GetMmWaveEnbNodes();
-    NS_LOG_DEBUG("\n\nLteEnbNetDevice::ControlMessageReceivedCallback: Received RIC Control Message");
-    // Create RIC Control ACK
-    Ptr <RicControlMessage> controlMessage = Create<RicControlMessage>(sub_req_pdu);
-    //BIT_STRING_t *bit_string = &controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID->ran_UEID
-
-    NS_LOG_INFO("After RicControlMessage::RicControlMessage constructor");
-    NS_LOG_INFO("Request ID " << controlMessage->m_ricRequestId.ricRequestorID);
-    NS_LOG_INFO("Request type " << controlMessage->m_e2SmRcControlHeaderFormat1->ric_Style_Type);
-     
-    switch (controlMessage->m_e2SmRcControlHeaderFormat1->ric_Style_Type) {
-<<<<<<< Updated upstream
-        case RicControlMessage::ControlMessageRequestIdType::HO : {
-            NS_LOG_INFO("Connected mobility, do the handover");
-            // do handover
-            UEID_GNB_t *UEgnb = (UEID_GNB_t *) calloc (1, sizeof (UEID_GNB_t));
-                                                                
-            UEgnb = controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID;
-            uint64_t imsi = {0};
-            memcpy(&imsi, UEgnb->ran_UEID->buf, UEgnb->ran_UEID->size);
-            //uint16_t targetCellId = std::stoi(controlMessage->GetSecondaryCellIdHO());
-            uint16_t targetCellId = controlMessage->GetTargetCell();
-            NS_LOG_INFO("Imsi Decoded: " << imsi);        
-            NS_LOG_UNCOND("Target Cell id " << targetCellId);
-            m_rrc->TakeUeHoControl(imsi);
-            if (!m_forceE2FileLogging) {             
-                Simulator::ScheduleWithContext(1, Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
-                                                m_rrc, imsi, targetCellId);
-            } else {
-                Simulator::Schedule(Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
-                                    m_rrc, imsi, targetCellId);
-            }
-            break;
-        }
-         case RicControlMessage::ControlMessageRequestIdType::Es : {       
-=======
-       case RicControlMessage::ControlMessageServiceStyle::Radio_Bearer_Control : {
-          NS_LOG_UNCOND("Unsupported RIC Style Type ");
->>>>>>> Enhance ns3 to handle more RIC control styles and control actions
         break;
       }
 
@@ -879,7 +837,6 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
             }
           }
         break;
-<<<<<<< HEAD
       }
       case RicControlMessage::ControlMessageServiceStyle::Energy_state: {
         // TODO: Encode the RIC contol request and turn off incoming old cell.
@@ -908,30 +865,6 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
             Simulator::ScheduleWithContext (1, MilliSeconds (15), &SetBSTX, enbPhy, 0, cell_id,
                                             true);
             //Simulator::ScheduleWithContext (1,Seconds (tim+5), &SetBSTX, enbPhy, 30, cell_id, false);
-=======
-    }
-         case RicControlMessage::ControlMessageServiceStyle::Energy_state : {
->>>>>>> Stashed changes
-                 for (uint32_t i = 0; i < mmWaveEnbNodes.GetN (); i++)
-                      {
-                        Ptr<MmWaveEnbPhy> enbPhy =
-                            mmWaveEnbNodes.Get (i)->GetDevice (0)->GetObject<MmWaveEnbNetDevice> ()->GetPhy ();
-                        Ptr<MmWaveEnbNetDevice> mmdev =
-                            DynamicCast<MmWaveEnbNetDevice> (mmWaveEnbNodes.Get (i)->GetDevice (0));
-                        uint16_t cell_id = mmdev->GetCellId ();
-                    if (cell_id == 2)
-                      {
-                        printf("Cell Id %u ",cell_id);
-                         Simulator::ScheduleWithContext (1,MilliSeconds(15), &SetBSTX, enbPhy, 0, cell_id, true);
-                         //Simulator::ScheduleWithContext (1,Seconds (tim+5), &SetBSTX, enbPhy, 30, cell_id, false);
-                      }
-                      }           
-                break;
-           }
-                default: {
-            NS_LOG_INFO("Unrecognized Ric Style Type of Ric Control Message");
-            break;
->>>>>>> Enhance ns3 to handle more RIC control styles and control actions
             }
           }
         break;
@@ -1018,38 +951,11 @@ MmWaveEnbNetDevice::BuildRicIndicationHeader (std::string plmId, std::string gnb
 }
 
 Ptr<KpmIndicationMessage>
-<<<<<<< HEAD
 MmWaveEnbNetDevice::BuildRicIndicationMessageCuUp (std::string plmId)
 {
   Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
       Create<MmWaveIndicationMessageHelper> (IndicationMessageHelper::IndicationMessageType::CuUp,
                                              m_forceE2FileLogging, m_reducedPmValues);
-=======
-        MmWaveEnbNetDevice::BuildRicIndicationMessageCuUp(std::string plmId)
-        {
-            bool local_m_forceE2FileLogging;
-
-            if (m_forceE2FileLogging)
-            {
-                local_m_forceE2FileLogging = true;
-            }
-            else
-            {
-                local_m_forceE2FileLogging = false;
-            }
-            if (m_e2andlog)
-            {
-<<<<<<< Updated upstream
-                local_m_forceE2FileLogging = true;
-=======
-                local_m_forceE2FileLogging = false;
->>>>>>> Stashed changes
-            }
-
-            Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
-                    Create<MmWaveIndicationMessageHelper> (IndicationMessageHelper::IndicationMessageType::CuUp,
-                                                           local_m_forceE2FileLogging, m_reducedPmValues);
->>>>>>> Enhance ns3 to handle more RIC control styles and control actions
 
   // get <rnti, UeManager> map of connected UEs
   auto ueMap = m_rrc->GetUeMap ();
@@ -1183,44 +1089,11 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuUp (std::string plmId)
       return nullptr;
     }
   else
-<<<<<<< HEAD
     {
       const auto &subsDetails_r = m_e2term->SubscriptionMapRef ();
       return indicationMessageHelper->CreateIndicationMessage (subsDetails_r);
     }
 }
-=======
-  {
-                if (m_e2andlog == 1)
-                {
-                    std::ofstream csv{};
-                    csv.open (m_cuUpFileName.c_str (), std::ios_base::app);
-                    if (!csv.is_open ())
-                    {
-                        NS_FATAL_ERROR ("Can't open file " << m_cuUpFileName.c_str ());
-                    }
-                    uint64_t timestamp = m_startTime + (uint64_t) Simulator::Now ().GetMilliSeconds ();
-                    // the string is timestamp, ueImsiComplete, DRB.PdcpSduDelayDl (cellAverageLatency),
-                    // m_pDCPBytesUL (0), m_pDCPBytesDL (cellDlTxVolume), DRB.PdcpSduVolumeDl_Filter.UEID (txBytes),
-                    // Tot.PdcpSduNbrDl.UEID (txDlPackets), DRB.PdcpSduBitRateDl.UEID (pdcpThroughput),
-                    // DRB.PdcpSduDelayDl.UEID (pdcpLatency), QosFlow.PdcpPduVolumeDL_Filter.UEID (txPdcpPduBytesNrRlc),
-                    // DRB.PdcpPduNbrDl.Qos.UEID (txPdcpPduNrRlc)
-                    for (auto ue : ueMap)
-                    {
-                        uint64_t imsi = ue.second->GetImsi ();
-                        std::string ueImsiComplete = GetImsiString (imsi);
-                        auto uePms = uePmString.find (imsi)->second;
-                        std::string to_print = std::to_string (timestamp) + "," + ueImsiComplete + "," + "," +
-                                               "," + "," + uePms + "\n";
-                        csv << to_print;
-                    }
-                    csv.close ();
-                }
-                // NS_LOG_UNCOND ("CUUP will be send ");
-                return indicationMessageHelper->CreateIndicationMessage ();
-            }
-        }
->>>>>>> Enhance ns3 to handle more RIC control styles and control actions
 
 template <typename A, typename B>
 std::pair<B, A>
@@ -1394,44 +1267,7 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuCp (std::string plmId)
 
           NS_LOG_DEBUG (to_print);
 
-<<<<<<< HEAD
           csv << to_print;
-=======
-                    csv << to_print;
-                }
-                csv.close ();
-                return nullptr;
-            }
-            else
-            {
-                if (m_e2andlog == 1)
-                {
-                    std::ofstream csv{};
-                    csv.open (m_cuCpFileName.c_str (), std::ios_base::app);
-                    if (!csv.is_open ())
-                    {
-                        NS_FATAL_ERROR ("Can't open file " << m_cuCpFileName.c_str ());
-                    }
-                    NS_LOG_DEBUG ("m_cuCpFileName open " << m_cuCpFileName);
-                    // the string is timestamp, ueImsiComplete, numActiveUes, DRB.EstabSucc.5QI.UEID (numDrb), DRB.RelActNbr.5QI.UEID (0), L3 serving Id (m_cellId), UE (imsi), L3 serving SINR, L3 serving SINR 3gpp, L3 neigh Id (cellId), L3 neigh Sinr, L3 neigh SINR 3gpp (convertedSinr)
-                    // The values for L3 neighbour cells are repeated for each neighbour (7 times in this implementation)
-                    uint64_t timestamp = m_startTime + (uint64_t) Simulator::Now ().GetMilliSeconds ();
-                    for (auto ue : ueMap)
-                    {
-                        uint64_t imsi = ue.second->GetImsi ();
-                        std::string ueImsiComplete = GetImsiString (imsi);
-                        auto uePms = uePmString.find (imsi)->second;
-                        std::string to_print = std::to_string (timestamp) + "," + ueImsiComplete + "," +
-                                               std::to_string (ueMap.size ()) + "," + uePms + "\n";
-                        NS_LOG_DEBUG (to_print);
-                        csv << to_print;
-                    }
-                    csv.close ();
-                }
-                // NS_LOG_UNCOND ("CUCP will be send ");
-                return indicationMessageHelper->CreateIndicationMessage ();
-            }
->>>>>>> Enhance ns3 to handle more RIC control styles and control actions
         }
       csv.close ();
       return nullptr;
@@ -1448,7 +1284,6 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuCp (std::string plmId)
 uint32_t
 MmWaveEnbNetDevice::GetRlcBufferOccupancy (Ptr<LteRlc> rlc) const
 {
-<<<<<<< HEAD
   if (DynamicCast<LteRlcAm> (rlc))
     {
       return DynamicCast<LteRlcAm> (rlc)->GetTxBufferSize ();
@@ -1461,20 +1296,6 @@ MmWaveEnbNetDevice::GetRlcBufferOccupancy (Ptr<LteRlc> rlc) const
     {
       return DynamicCast<LteRlcUmLowLat> (rlc)->GetTxBufferSize ();
     }
-=======
-  if (DynamicCast<LteRlcAm>(rlc) != 0)
-  {
-    return DynamicCast<LteRlcAm>(rlc)->GetTxBufferSize();
-  }
-  else if(DynamicCast<LteRlcUm>(rlc) != 0)
-  {
-    return DynamicCast<LteRlcUm>(rlc)->GetTxBufferSize();
-  }
-  else if(DynamicCast<LteRlcUmLowLat>(rlc) != 0)
-  {
-    return DynamicCast<LteRlcUmLowLat>(rlc)->GetTxBufferSize();
-  }
->>>>>>> Enhance ns3 to handle more RIC control styles and control actions
   else
     {
       return 0;
@@ -1496,6 +1317,7 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
             }
             if (m_e2andlog)
             {
+<<<<<<< HEAD
 <<<<<<< Updated upstream
                 local_m_forceE2FileLogging = true;
 <<<<<<< HEAD
@@ -1505,8 +1327,9 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
                                              m_forceE2FileLogging, m_reducedPmValues);
 =======
 =======
+=======
+>>>>>>> Add new scenarios for energy saving and  clean mmwave-enb-net-device
                 local_m_forceE2FileLogging = false;
->>>>>>> Stashed changes
             }
 
             Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
@@ -2072,6 +1895,7 @@ MmWaveEnbNetDevice::SetStartTime (uint64_t st)
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 Ptr<KpmIndicationMessage>
 MmWaveEnbNetDevice::BuildGUIDu (std::string plmId, uint16_t nrCellId)
 {
@@ -2484,6 +2308,8 @@ MmWaveEnbNetDevice::GetESStates () const
 
 >>>>>>> Stashed changes
 >>>>>>> Enhance ns3 to handle more RIC control styles and control actions
+=======
+>>>>>>> Add new scenarios for energy saving and  clean mmwave-enb-net-device
 }
 Ptr<KpmIndicationMessage>
 MmWaveEnbNetDevice::BuildGUICuUp (std::string plmId)
