@@ -501,7 +501,7 @@ MmWaveEnbNetDevice::UpdateConfig (void)
                             if (m_e2andlog)
                             {
                                 Simulator::Schedule (MicroSeconds (0), &E2Termination::Start, m_e2term);
-                                  Simulator::Schedule (MicroSeconds (500),
+                                Simulator::Schedule (MicroSeconds (500),
                                                      &MmWaveEnbNetDevice::BuildAndSendReportMessage, this,
                                                      E2Termination::RicSubscriptionRequest_rval_s{});
                             }
@@ -544,20 +544,17 @@ MmWaveEnbNetDevice::GetE2Termination() const
   return m_e2term;
 }
 
-// esON_cellID= false;
-
 void
 SetBSTX (Ptr<MmWaveEnbPhy> phy, int val, uint16_t cellid, bool m_esON)
 {
   printf("in function");
   if (val == 0)
     {
-
-      NS_LOG_UNCOND ("Cell turned off " << cellid);
+      NS_LOG_UNCOND ("Cell turned off " << cellid << " ,current ES state:" << m_esON);
     }
   else
     {
-      NS_LOG_UNCOND ("Cell turned on " << cellid);
+      NS_LOG_UNCOND ("Cell turned on " << cellid << " ,current ES state:" << m_esON);
     }
   phy->SetTxPower (val); //set Cell TX power
   if (val == 0)
@@ -568,7 +565,6 @@ SetBSTX (Ptr<MmWaveEnbPhy> phy, int val, uint16_t cellid, bool m_esON)
     {
       phy->SetNoiseFigure (5); //default
     }
-    esON_cellID = m_esON; //ES status flag
 }
 void
   MmWaveEnbNetDevice::ControlMessageReceivedCallback(E2AP_PDU_t *sub_req_pdu) {
@@ -742,7 +738,7 @@ Ptr<KpmIndicationMessage>
             }
             if (m_e2andlog)
             {
-                local_m_forceE2FileLogging = false;
+                local_m_forceE2FileLogging = true;
             }
 
             Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
@@ -845,7 +841,7 @@ Ptr<KpmIndicationMessage>
 
   NS_LOG_DEBUG(Simulator::Now().GetSeconds() << " " << m_cellId << " cell volume " << cellDlTxVolume);
 
-  if (m_forceE2FileLogging)
+  if (m_forceE2FileLogging || m_e2andlog)
     {
       std::ofstream csv{};
       csv.open (m_cuUpFileName.c_str (), std::ios_base::app);
@@ -879,32 +875,6 @@ Ptr<KpmIndicationMessage>
     }
   else
   {
-                if (m_e2andlog == 1)
-                {
-                    std::ofstream csv{};
-                    csv.open (m_cuUpFileName.c_str (), std::ios_base::app);
-                    if (!csv.is_open ())
-                    {
-                        NS_FATAL_ERROR ("Can't open file " << m_cuUpFileName.c_str ());
-                    }
-                    uint64_t timestamp = m_startTime + (uint64_t) Simulator::Now ().GetMilliSeconds ();
-                    // the string is timestamp, ueImsiComplete, DRB.PdcpSduDelayDl (cellAverageLatency),
-                    // m_pDCPBytesUL (0), m_pDCPBytesDL (cellDlTxVolume), DRB.PdcpSduVolumeDl_Filter.UEID (txBytes),
-                    // Tot.PdcpSduNbrDl.UEID (txDlPackets), DRB.PdcpSduBitRateDl.UEID (pdcpThroughput),
-                    // DRB.PdcpSduDelayDl.UEID (pdcpLatency), QosFlow.PdcpPduVolumeDL_Filter.UEID (txPdcpPduBytesNrRlc),
-                    // DRB.PdcpPduNbrDl.Qos.UEID (txPdcpPduNrRlc)
-                    for (auto ue : ueMap)
-                    {
-                        uint64_t imsi = ue.second->GetImsi ();
-                        std::string ueImsiComplete = GetImsiString (imsi);
-                        auto uePms = uePmString.find (imsi)->second;
-                        std::string to_print = std::to_string (timestamp) + "," + ueImsiComplete + "," + "," +
-                                               "," + "," + uePms + "\n";
-                        csv << to_print;
-                    }
-                    csv.close ();
-                }
-                // NS_LOG_UNCOND ("CUUP will be send ");
                 return indicationMessageHelper->CreateIndicationMessage ();
             }
         }
@@ -1035,7 +1005,7 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuCp(std::string plmId)
       indicationMessageHelper->FillCuCpValues (ueMap.size ()); // Number of Active UEs
     }
 
-  if (m_forceE2FileLogging)
+  if (m_forceE2FileLogging || m_e2andlog)
     {
       std::ofstream csv{};
       csv.open (m_cuCpFileName.c_str (), std::ios_base::app);
@@ -1070,31 +1040,6 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuCp(std::string plmId)
             }
             else
             {
-                if (m_e2andlog == 1)
-                {
-                    std::ofstream csv{};
-                    csv.open (m_cuCpFileName.c_str (), std::ios_base::app);
-                    if (!csv.is_open ())
-                    {
-                        NS_FATAL_ERROR ("Can't open file " << m_cuCpFileName.c_str ());
-                    }
-                    NS_LOG_DEBUG ("m_cuCpFileName open " << m_cuCpFileName);
-                    // the string is timestamp, ueImsiComplete, numActiveUes, DRB.EstabSucc.5QI.UEID (numDrb), DRB.RelActNbr.5QI.UEID (0), L3 serving Id (m_cellId), UE (imsi), L3 serving SINR, L3 serving SINR 3gpp, L3 neigh Id (cellId), L3 neigh Sinr, L3 neigh SINR 3gpp (convertedSinr)
-                    // The values for L3 neighbour cells are repeated for each neighbour (7 times in this implementation)
-                    uint64_t timestamp = m_startTime + (uint64_t) Simulator::Now ().GetMilliSeconds ();
-                    for (auto ue : ueMap)
-                    {
-                        uint64_t imsi = ue.second->GetImsi ();
-                        std::string ueImsiComplete = GetImsiString (imsi);
-                        auto uePms = uePmString.find (imsi)->second;
-                        std::string to_print = std::to_string (timestamp) + "," + ueImsiComplete + "," +
-                                               std::to_string (ueMap.size ()) + "," + uePms + "\n";
-                        NS_LOG_DEBUG (to_print);
-                        csv << to_print;
-                    }
-                    csv.close ();
-                }
-                // NS_LOG_UNCOND ("CUCP will be send ");
                 return indicationMessageHelper->CreateIndicationMessage ();
             }
         }
@@ -1137,7 +1082,7 @@ MmWaveEnbNetDevice::GetRlcBufferOccupancy(Ptr<LteRlc> rlc) const
             }
             if (m_e2andlog)
             {
-                local_m_forceE2FileLogging = false;
+                local_m_forceE2FileLogging = true;
             }
 
             Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
@@ -1414,7 +1359,7 @@ MmWaveEnbNetDevice::GetRlcBufferOccupancy(Ptr<LteRlc> rlc) const
       indicationMessageHelper->FillDuValues (plmId + std::to_string (nrCellId));
     }
 
-  if (m_forceE2FileLogging) {
+  if (m_forceE2FileLogging || m_e2andlog) {
     std::ofstream csv {};
     csv.open (m_duFileName.c_str (),  std::ios_base::app);
     if (!csv.is_open ())
@@ -1466,14 +1411,6 @@ MmWaveEnbNetDevice::GetRlcBufferOccupancy(Ptr<LteRlc> rlc) const
         + std::to_string (rlcBufferOccupCellSpecific) + ","
         + std::to_string (ueMap.size ());
 
-    /*
-      UESpecificValues:
-
-          TB.TotNbrDl.1.UEID, TB.TotNbrDlInitial.UEID, TB.TotNbrDlInitial.Qpsk.UEID, TB.TotNbrDlInitial.16Qam.UEID,TB.TotNbrDlInitial.64Qam.UEID, TB.ErrTotalNbrDl.1.UEID, QosFlow.PdcpPduVolumeDL_Filter.UEID,
-          RRU.PrbUsedDl.UEID, CARR.PDSCHMCSDist.Bin1.UEID, CARR.PDSCHMCSDist.Bin2.UEID, CARR.PDSCHMCSDist.Bin3.UEID, CARR.PDSCHMCSDist.Bin5.UEID, CARR.PDSCHMCSDist.Bin6.UEID,
-          L1M.RS-SINR.Bin34.UEID, L1M.RS-SINR.Bin46.UEID, L1M.RS-SINR.Bin58.UEID, L1M.RS-SINR.Bin70.UEID, L1M.RS-SINR.Bin82.UEID, L1M.RS-SINR.Bin94.UEID, L1M.RS-SINR.Bin127.UEID,
-          DRB.BufferSize.Qos.UEID, DRB.UEThpDl.UEID, DRB.UEThpDlPdcpBased.UEID
-    */
 
     for (auto ue : ueMap)
     {
@@ -1495,75 +1432,6 @@ MmWaveEnbNetDevice::GetRlcBufferOccupancy(Ptr<LteRlc> rlc) const
   }
   else
   {
-                if (m_e2andlog == 1)
-                {
-                    std::ofstream csv{};
-                    csv.open (m_duFileName.c_str (), std::ios_base::app);
-                    if (!csv.is_open ())
-                    {
-                        NS_FATAL_ERROR ("Can't open file " << m_duFileName.c_str ());
-                    }
-
-                    uint64_t timestamp = m_startTime + (uint64_t) Simulator::Now ().GetMilliSeconds ();
-
-                    // the string is timestamp, ueImsiComplete, plmId, nrCellId, dlAvailablePrbs, ulAvailablePrbs, qci , dlPrbUsage, ulPrbUsage, /*CellSpecificValues*/, /* UESpecificValues */
-
-                    /*
-                                                          CellSpecificValues:
-                                                            TB.TotNbrDl.1, TB.TotNbrDlInitial, TB.TotNbrDlInitial.Qpsk, TB.TotNbrDlInitial.16Qam, TB.TotNbrDlInitial.64Qam, RRU.PrbUsedDl,
-                                                            TB.ErrTotalNbrDl.1, QosFlow.PdcpPduVolumeDL_Filter, CARR.PDSCHMCSDist.Bin1, CARR.PDSCHMCSDist.Bin2, CARR.PDSCHMCSDist.Bin3,
-                                                            CARR.PDSCHMCSDist.Bin4, CARR.PDSCHMCSDist.Bin5, CARR.PDSCHMCSDist.Bin6, L1M.RS-SINR.Bin34, L1M.RS-SINR.Bin46, L1M.RS-SINR.Bin58,
-                                                            L1M.RS-SINR.Bin70, L1M.RS-SINR.Bin82, L1M.RS-SINR.Bin94, L1M.RS-SINR.Bin127, DRB.BufferSize.Qos, DRB.MeanActiveUeDl
-                                                        */
-                    std::string to_print_cell =
-                            plmId + "," + std::to_string (nrCellId) + "," + std::to_string (dlAvailablePrbs) +
-                            "," + std::to_string (ulAvailablePrbs) + "," + std::to_string (qci) + "," +
-                            std::to_string (dlPrbUsage) + "," + std::to_string (ulPrbUsage) + "," +
-                            std::to_string (macPduCellSpecific) + "," +
-                            std::to_string (macPduInitialCellSpecific) + "," +
-                            std::to_string (macQpskCellSpecific) + "," + std::to_string (mac16QamCellSpecific) +
-                            "," + std::to_string (mac64QamCellSpecific) + "," +
-                            std::to_string ((long) std::ceil (prbUtilizationDl)) + "," +
-                            std::to_string (macRetxCellSpecific) + "," + std::to_string (macVolumeCellSpecific) +
-                            "," + std::to_string (macMac04CellSpecific) + "," +
-                            std::to_string (macMac59CellSpecific) + "," +
-                            std::to_string (macMac1014CellSpecific) + "," +
-                            std::to_string (macMac1519CellSpecific) + "," +
-                            std::to_string (macMac2024CellSpecific) + "," +
-                            std::to_string (macMac2529CellSpecific) + "," +
-                            std::to_string (macSinrBin1CellSpecific) + "," +
-                            std::to_string (macSinrBin2CellSpecific) + "," +
-                            std::to_string (macSinrBin3CellSpecific) + "," +
-                            std::to_string (macSinrBin4CellSpecific) + "," +
-                            std::to_string (macSinrBin5CellSpecific) + "," +
-                            std::to_string (macSinrBin6CellSpecific) + "," +
-                            std::to_string (macSinrBin7CellSpecific) + "," +
-                            std::to_string (rlcBufferOccupCellSpecific) + "," + std::to_string (ueMap.size ());
-
-                    /*
-                                                          UESpecificValues:
-
-                                                              TB.TotNbrDl.1.UEID, TB.TotNbrDlInitial.UEID, TB.TotNbrDlInitial.Qpsk.UEID, TB.TotNbrDlInitial.16Qam.UEID,TB.TotNbrDlInitial.64Qam.UEID, TB.ErrTotalNbrDl.1.UEID, QosFlow.PdcpPduVolumeDL_Filter.UEID,
-                                                              RRU.PrbUsedDl.UEID, CARR.PDSCHMCSDist.Bin1.UEID, CARR.PDSCHMCSDist.Bin2.UEID, CARR.PDSCHMCSDist.Bin3.UEID, CARR.PDSCHMCSDist.Bin5.UEID, CARR.PDSCHMCSDist.Bin6.UEID,
-                                                              L1M.RS-SINR.Bin34.UEID, L1M.RS-SINR.Bin46.UEID, L1M.RS-SINR.Bin58.UEID, L1M.RS-SINR.Bin70.UEID, L1M.RS-SINR.Bin82.UEID, L1M.RS-SINR.Bin94.UEID, L1M.RS-SINR.Bin127.UEID,
-                                                              DRB.BufferSize.Qos.UEID, DRB.UEThpDl.UEID, DRB.UEThpDlPdcpBased.UEID
-                                                        */
-
-                    for (auto ue : ueMap)
-                    {
-                        uint64_t imsi = ue.second->GetImsi ();
-                        std::string ueImsiComplete = GetImsiString (imsi);
-
-                        auto uePms = uePmStringDu.find (imsi)->second;
-
-                        std::string to_print = std::to_string (timestamp) + "," + ueImsiComplete + "," +
-                                               to_print_cell + "," + uePms + "\n";
-
-                        csv << to_print;
-                    }
-                    csv.close ();
-                }
-                //NS_LOG_UNCOND ("DU will be send ");
                 return indicationMessageHelper->CreateIndicationMessage ();
             }
         }
