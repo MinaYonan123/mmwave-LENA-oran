@@ -63,7 +63,7 @@
 #include <fstream>
 #include <sstream>
 #include <ns3/lte-indication-message-helper.h>
-#include "UEID-GNB.h"
+// #include "UEID-GNB.h"
 
 namespace ns3 {
 
@@ -184,6 +184,43 @@ LteEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
   Ptr<RicControlMessage> controlMessage = Create<RicControlMessage> (sub_req_pdu);
   NS_LOG_INFO ("After RicControlMessage::RicControlMessage constructor");
   NS_LOG_INFO ("Request type " << controlMessage->m_requestType);
+  // switch (controlMessage->m_requestType)
+  //   {
+  //     case RicControlMessage::ControlMessageRequestIdType::TS: {
+  //       NS_LOG_INFO ("TS, do the handover");
+  //       // do handover
+  //       Ptr<OctetString> imsiString = Create<OctetString> (
+  //           (void *) controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID,
+  //           controlMessage->m_e2SmRcControlHeaderFormat1->ueID.present); //this line need to fix
+  //       char *end;
+
+  //       uint64_t imsi = std::strtoull (imsiString->DecodeContent ().c_str (), &end, 10);
+  //       uint16_t targetCellId = std::stoi (controlMessage->GetSecondaryCellIdHO ());
+  //       NS_LOG_INFO ("Imsi Decoded: " << imsi);
+  //       NS_LOG_INFO ("Target Cell id " << targetCellId);
+  //       m_rrc->TakeUeHoControl (imsi);
+  //       if (!m_forceE2FileLogging)
+  //         {
+  //           Simulator::ScheduleWithContext (1, Seconds (0), &LteEnbRrc::PerformHandoverToTargetCell,
+  //                                           m_rrc, imsi, targetCellId);
+  //         }
+  //       else
+  //         {
+  //           Simulator::Schedule (Seconds (0), &LteEnbRrc::PerformHandoverToTargetCell, m_rrc, imsi,
+  //                                targetCellId);
+  //         }
+  //       break;
+  //     }
+  //     case RicControlMessage::ControlMessageRequestIdType::QoS: {
+  //       // use SetUeQoS()
+  //       NS_FATAL_ERROR ("For QoS use file-based control.");
+  //       break;
+  //     }
+  //     default: {
+  //       NS_LOG_INFO ("Unrecognized id type of Ric Control Message");
+  //       break;
+  //     }
+  //   }
 }
 
 TypeId
