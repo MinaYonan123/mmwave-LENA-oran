@@ -20,7 +20,7 @@
 #define TIME_PRINTER_H
 
 #include <ostream>
-
+#include <limits>
 /**
  * \file
  * \ingroup time
