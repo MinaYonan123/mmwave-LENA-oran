@@ -75,6 +75,8 @@ async def refresh_data(request: Request, simulation: Simulation = Depends(get_si
         "prb": prb,
         "starting_power": updated_simulation.starting_power,
         "current_power": updated_simulation.current_power,
+        "maxec": updated_simulation.maxec,
+        "totalcurrec": updated_simulation.totalcurrec,
         "simulation_status": updated_simulation.simulation_status,
     }
 

@@ -917,7 +917,7 @@
                 },
                 title: {
                     display: true,
-                    text: 'Difference in power consumption between modes',
+                    text: 'Network power consumption in J',
                     color: '#FFFFFF',
                     font: {
                         size: 16
@@ -1421,7 +1421,7 @@
                     });
                     prb_usage_chart.update();
 
-                    if (actualEsChart) {
+/*                    if (actualEsChart) {
                         const startingPower = data.starting_power || 0;
                         const currentPower = data.current_power || 0;
 
@@ -1444,7 +1444,33 @@
                         }
 
                         actualEsChart.update();
-                        11
+                    } else {
+                        console.error("Chart instance is not initialized.");
+                    }
+*/
+                    if (actualEsChart) {
+                        const maxec = data.maxec || 0;
+                        const totalcurrec = data.totalcurrec || 0;
+
+                        if (actualEsChart.data.datasets.length === 0) {
+                            actualEsChart.data.datasets.push({
+                                label: 'Network power\n consumption in J',
+                                data: [maxec, totalcurrec],
+                                backgroundColor: ['darkgray', 'green'],
+                            });
+                            actualEsChart.data.labels = [
+                                'MAX network power \nconsumption in J',
+                                'Current network power \nconsumption in J'
+                            ];
+                        } else {
+                            actualEsChart.data.datasets[0].data = [maxec, totalcurrec];
+                            actualEsChart.data.labels = [
+                                'MAX network power \nconsumption in J',
+                                'Current network power \nconsumption in J'
+                            ];
+                        }
+
+                        actualEsChart.update();
                     } else {
                         console.error("Chart instance is not initialized.");
                     }
