@@ -43,8 +43,6 @@
 #include <chrono>
 #include <cmath>
 #include <fstream>
-#include "ns3/basic-energy-source-helper.h"
-#include "ns3/mmwave-radio-energy-model-enb-helper.h"
 
 using namespace ns3;
 using namespace mmwave;
@@ -59,13 +57,6 @@ int ue_assoc_list[10] = {0};
 double maxXAxis;
 double maxYAxis;
 bool esON_list[10] = {0};
-double totalnewEnergyConsumption_storage[10] = {0};
-double totaloldEnergyConsumption_storage[10] = {0};
-double current_energy_consumption[10] = {0};
-double curr_total_energy_consumption = 0;
-double max_energy_consumption = 0;
-double sum_curr_total_energy_consumption = 0;
-int num_of_mmdev = 0;
 
 /**
  * Scenario Zero
@@ -121,19 +112,15 @@ PrintGnuplottableEnbListToFile(uint64_t m_startTime) {
   std::string filename1 = "enbs.txt";
   std::string filename2 = "gnbs.txt";
   //
-  int mmnode_iterator = 0;
-  curr_total_energy_consumption = 0;
-  for (NodeList::Iterator it = NodeList::Begin (); it != NodeList::End (); ++it)
-    {
-      Ptr<Node> node = *it;
-      int nDevs = node->GetNDevices ();
-      for (int j = 0; j < nDevs; j++)
-        {
-          Ptr<LteEnbNetDevice> enbdev = node->GetDevice (j)->GetObject<LteEnbNetDevice> ();
-          Ptr<MmWaveEnbNetDevice> mmdev = node->GetDevice (j)->GetObject<MmWaveEnbNetDevice> ();
-          if (enbdev)
-            {
-              Vector pos = node->GetObject<MobilityModel> ()->GetPosition ();
+
+  for (NodeList::Iterator it = NodeList::Begin(); it != NodeList::End(); ++it) {
+      Ptr <Node> node = *it;
+      int nDevs = node->GetNDevices();
+      for (int j = 0; j < nDevs; j++) {
+          Ptr <LteEnbNetDevice> enbdev = node->GetDevice(j)->GetObject<LteEnbNetDevice>();
+          Ptr <MmWaveEnbNetDevice> mmdev = node->GetDevice(j)->GetObject<MmWaveEnbNetDevice>();
+          if (enbdev) {
+              Vector pos = node->GetObject<MobilityModel>()->GetPosition();
               std::ofstream outFile1;
               outFile1.open(filename1.c_str(), std::ios_base::out | std::ios_base::app);
               if (!outFile1.is_open()) {
@@ -166,24 +153,12 @@ PrintGnuplottableEnbListToFile(uint64_t m_startTime) {
                 } else {
                   esON_list[cell_id] = false;
                 }
-              curr_total_energy_consumption =
-                  curr_total_energy_consumption + current_energy_consumption[cell_id];
               //outFile2 << timestamp << "," << enbdev->GetCellId() << "," << pos.x << "," << pos.y << pos.z << std::endl;
               outFile2 << timestamp << "," << cell_id << "," << pos.x << "," << pos.y << ","
-                       << m_startTime << "," << esON_list[cell_id] << ","
-                       << current_energy_consumption[cell_id] << "," << max_energy_consumption
-                       << "," << sum_curr_total_energy_consumption << std::endl;
-              outFile2.close ();
+                       << m_startTime << "," << esON_list[cell_id] << "," << es_power << std::endl;
+              outFile2.close();
             }
         }
-    }
-  if (mmnode_iterator == num_of_mmdev)
-    {
-      sum_curr_total_energy_consumption = curr_total_energy_consumption;
-    }
-  if (mmnode_iterator == num_of_mmdev && max_energy_consumption < curr_total_energy_consumption)
-    {
-      max_energy_consumption = curr_total_energy_consumption;
     }
 }
 
@@ -206,10 +181,8 @@ ClearFile(std::string Filename, uint64_t m_startTime) {
 
   if (Filename == "ue_position.txt") {
       outFile1 << "timestamp,id,x,y,type,cell,simid" << std::endl;
-    }
-  else
-    {
-      outFile1 << "timestamp,id,x,y,simid,ESstate,currEC,maxEC,totalcurrEC" << std::endl;
+    } else {
+      outFile1 << "timestamp,id,x,y,simid,ESstate,ESpower" << std::endl;
       outFile1 << timestamp << "," << "0" << "," << maxXAxis << "," << maxYAxis << std::endl;
     }
   outFile1.close();
@@ -226,76 +199,84 @@ PrintPosition(Ptr<Node> node, int iterator, std::string Filename, uint64_t m_sta
   int nDevs = node->GetNDevices();
   std::string filename = Filename;
   std::ofstream outFile;
-  for (int j = 0; j < nDevs; j++)
-    {
-      Ptr<McUeNetDevice> mcuedev = node1->GetDevice (j)->GetObject<McUeNetDevice> ();
-      Ptr<LteUeNetDevice> uedev = node->GetDevice (j)->GetObject<LteUeNetDevice> ();
-      Ptr<MmWaveUeNetDevice> mmuedev = node->GetDevice (j)->GetObject<MmWaveUeNetDevice> ();
-      if (mcuedev)
-        {
-          imsi = int (mcuedev->GetImsi ());
-          int serving_cell;
-          if (ue_assoc_list[imsi - 1] == 0)
-            {
+  for (int j = 0; j < nDevs; j++) {
+      Ptr <McUeNetDevice> mcuedev = node1->GetDevice(j)->GetObject<McUeNetDevice>();
+      Ptr <LteUeNetDevice> uedev = node->GetDevice(j)->GetObject<LteUeNetDevice>();
+      Ptr <MmWaveUeNetDevice> mmuedev = node->GetDevice(j)->GetObject<MmWaveUeNetDevice>();
+      if (mcuedev) {
+          imsi = int(mcuedev->GetImsi());
+          if (ue_assoc_list[imsi - 1] == 0) {
               //NS_LOG_UNCOND ("Position of UE not stored, UE not associated to any cell!");
               return;
             }
-          else
-            {
-              serving_cell = ue_assoc_list[imsi - 1];
-            }
-          Ptr<MobilityModel> model = node->GetObject<MobilityModel> ();
-          Vector position = model->GetPosition ();
-          NS_LOG_UNCOND ("Position of UE with IMSI " << imsi << " is " << model->GetPosition ()
+          Ptr <MobilityModel> model = node->GetObject<MobilityModel>();
+          Vector position = model->GetPosition();
+          NS_LOG_UNCOND("Position of UE with IMSI " << imsi << " is " << model->GetPosition()
                                                      << " at time "
-                                                     << Simulator::Now ().GetSeconds ()
-                                                     << ", UE connected to Cell: " << serving_cell);
+                                                     << Simulator::Now().GetSeconds());
 
           outFile.open(filename.c_str(), std::ios_base::out | std::ios_base::app);
           if (!outFile.is_open()) {
               NS_LOG_ERROR("Can't open file " << filename);
               return;
             }
+          int serving_cell = ue_assoc_list[imsi - 1];
 
           outFile << timestamp << "," << imsi << "," << position.x << "," << position.y << ",mc,"
                   << serving_cell << "," << m_startTime << std::endl;
-          outFile.close ();
-        }
-      else
-        {
+          outFile.close();
+        } else {
           //
         }
+
+      //UEs other than MC are not used in this scenario
+      /*else if (mmuedev)
+        {
+            imsi = int (mmuedev->GetImsi ());
+            if (ue_assoc_list[imsi-1] == 0) {
+               // NS_LOG_UNCOND ("Position of UE not stored, UE not associated to any cell!");
+                return;
+            }
+            Ptr<MobilityModel> model = node->GetObject<MobilityModel> ();
+            Vector position = model->GetPosition ();
+            NS_LOG_UNCOND ("Position of UE with IMSI " << imsi << " is " << model->GetPosition ()
+                                                       << " at time "
+                                                       << Simulator::Now ().GetSeconds ());
+
+            outFile.open (filename.c_str (), std::ios_base::out | std::ios_base::app);
+            if (!outFile.is_open ())
+            {
+                NS_LOG_ERROR ("Can't open file " << filename);
+                return;
+            }
+            outFile << timestamp << "," << imsi << "," << position.x << "," << position.y<< ",mm," <<
+                    ue_assoc_list[imsi-1] << std::endl;
+            outFile.close ();
+        }
+        else if (uedev)
+        {
+            imsi = int (uedev->GetImsi ());
+            if (ue_assoc_list[imsi-1] == 0) {
+               // NS_LOG_UNCOND ("Position of UE not stored, UE not associated to any cell!");
+                return;
+            }
+            Ptr<MobilityModel> model = node->GetObject<MobilityModel> ();
+            Vector position = model->GetPosition ();
+            NS_LOG_UNCOND ("Position of UE with IMSI " << imsi << " is " << model->GetPosition ()
+                                                       << " at time "
+                                                       << Simulator::Now ().GetSeconds ());
+
+            outFile.open (filename.c_str (), std::ios_base::out | std::ios_base::app);
+            if (!outFile.is_open ())
+            {
+                NS_LOG_ERROR ("Can't open file " << filename);
+                return;
+            }
+            outFile << timestamp << "," << imsi << "," << position.x << "," << position.y<< ",lte," <<
+                    ue_assoc_list[imsi-1] << std::endl;
+            outFile.close ();
+        }*/
     }
-}
-
-void
-EnergyConsumptionUpdate (int nodeIndex, std::string filename, double totaloldEnergyConsumption,
-                         double totalnewEnergyConsumption)
-{
-  //std::cout << "mmWave cell " << nodeIndex+2 << ": Total Energy Consumption " << totalnewEnergyConsumption << "J" << std::endl;
-  Time currentTime = Simulator::Now ();
-  std::ofstream outFile;
-  outFile.open (filename, std::ios_base::out | std::ios_base::app);
-  outFile << currentTime.GetSeconds () << "," << totalnewEnergyConsumption << ","
-          << (totalnewEnergyConsumption - totaloldEnergyConsumption) << std::endl;
-  totalnewEnergyConsumption_storage[nodeIndex] = totalnewEnergyConsumption;
-}
-
-void
-EnergyConsumptionPrint (int nodeIndex)
-{
-  NS_LOG_UNCOND ("Total energy consumption for mmWave cell "
-                 << nodeIndex + 2 << ": " << totalnewEnergyConsumption_storage[nodeIndex] << "J"
-                 << " at time " << Simulator::Now ().GetSeconds ()
-                 << ", diff from last measurement is: "
-                 << (totalnewEnergyConsumption_storage[nodeIndex] -
-                     totaloldEnergyConsumption_storage[nodeIndex])
-                 << "J");
-  int tmp_cell_id = nodeIndex + 2;
-  totalnewEnergyConsumption_storage[tmp_cell_id] = totalnewEnergyConsumption_storage[nodeIndex];
-  current_energy_consumption[tmp_cell_id] =
-      totalnewEnergyConsumption_storage[nodeIndex] - totaloldEnergyConsumption_storage[nodeIndex];
-  totaloldEnergyConsumption_storage[nodeIndex] = totalnewEnergyConsumption_storage[nodeIndex];
 }
 
 static ns3::GlobalValue g_bufferSize("bufferSize", "RLC tx buffer size (MB)",
@@ -424,7 +405,7 @@ main(int argc, char *argv[]) {
   //  LogComponentEnable ("E2Termination", LOG_LEVEL_DEBUG);
 
   // LogComponentEnable ("LteEnbNetDevice", LOG_LEVEL_ALL);
-  //LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_DEBUG);
+  LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_DEBUG);
 
   // The maximum X coordinate of the scenario
 
@@ -725,44 +706,6 @@ main(int argc, char *argv[]) {
   // Manual attachment
   mmwaveHelper->AttachToClosestEnb(mcUeDevs, mmWaveEnbDevs, lteEnbDevs);
 
-  BasicEnergySourceHelper basicEnergySourceHelper;
-  basicEnergySourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (1000000000000));
-  basicEnergySourceHelper.Set ("BasicEnergySupplyVoltageV", DoubleValue (5.0));
-  EnergySourceContainer sources = basicEnergySourceHelper.Install (mmWaveEnbNodes);
-  MmWaveRadioEnergyModelEnbHelper nrEnbHelper;
-
-  DeviceEnergyModelContainer deviceEModel = nrEnbHelper.Install (mmWaveEnbDevs, sources);
-
-  GlobalValue::GetValueByName ("simTime", doubleValue);
-  double simTime = doubleValue.Get ();
-  int numPrints = simTime / 0.1;
-
-  std::vector<std::ofstream> outFiles;
-  for (int x = 0; x < nMmWaveEnbNodes; ++x)
-    {
-      std::ostringstream energyFileName;
-      energyFileName << "energyfilecell" << x + 2 << ".csv";
-
-      std::ofstream outFile;
-      outFile.open (energyFileName.str (), std::ios_base::out | std::ios_base::trunc);
-      outFile << "Time,NetEnergy,DiffEnergy" << std::endl;
-
-      outFiles.push_back (std::move (outFile));
-    }
-
-  for (int x = 0; x < nMmWaveEnbNodes; ++x)
-    {
-      std::ostringstream filename;
-      filename << "energyfilecell" << x + 2 << ".csv";
-      deviceEModel.Get (x)->TraceConnectWithoutContext (
-          "TotalEnergyConsumption",
-          MakeBoundCallback (&EnergyConsumptionUpdate, x, filename.str ()));
-      for (int i = 0; i < numPrints; i++)
-        {
-          Simulator::Schedule (Seconds (i * simTime / numPrints), &EnergyConsumptionPrint, x);
-        }
-    }
-
   // Install and start applications
   // On the remoteHost there is UDP OnOff Application
 
@@ -789,8 +732,9 @@ main(int argc, char *argv[]) {
     }
 
   // Start applications
-
-  sinkApp.Start (Seconds (0));
+  GlobalValue::GetValueByName("simTime", doubleValue);
+  double simTime = doubleValue.Get();
+  sinkApp.Start(Seconds(0));
 
   clientApp.Start(MilliSeconds(100));
   clientApp.Stop(Seconds(simTime - 0.1));
@@ -807,7 +751,8 @@ main(int argc, char *argv[]) {
 
   int nodecount = int(NodeList::GetNNodes());
   // NS_LOG_UNCOND ("number of nodes: " << nodecount);
-  int UE_iterator = nodecount - int (nUeNodes);
+  int UE_iterator = nodecount - int(nUeNodes);
+  int numPrints = simTime / 0.1;
 
   for (int i = 0; i < numPrints; i++) {
       Simulator::Schedule(Seconds(i * simTime / numPrints), &PrintGnuplottableEnbListToFile, t_startTime_simid);
