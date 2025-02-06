@@ -104,7 +104,7 @@ MmWaveSpectrumPhy::GetTypeId (void)
                    "Make the base station to sleep {by default false].",
                    BooleanValue (false),
                    MakeBooleanAccessor (&MmWaveSpectrumPhy::m_sleepEnabled),
-                   MakeBooleanChecker ())                 
+                   MakeBooleanChecker ())
     .AddAttribute ("DataErrorModelEnabled",
                    "Activate/Deactivate the error model of data (TBs of PDSCH and PUSCH) [by default is active].",
                    BooleanValue (true),
@@ -234,7 +234,7 @@ MmWaveSpectrumPhy::GetBeamformingModel () const
 // void
 // MmWaveSpectrumPhy::ChangeState (State newState)
 // {
-  
+
 //   NS_LOG_LOGIC (this << " state: " << m_state << " -> " << newState);
 //   m_state = newState;
 //   m_intState = newState;
@@ -243,6 +243,16 @@ MmWaveSpectrumPhy::GetBeamformingModel () const
 void
 MmWaveSpectrumPhy::ChangeState (State newState)
 {
+  //
+  double es_power=1;
+  Ptr<MmWaveEnbNetDevice> enbNetDev = DynamicCast<MmWaveEnbNetDevice> (GetDevice ());
+  if (enbNetDev) // Check for null before using
+    {
+      Ptr<MmWaveEnbPhy> enbPhy = enbNetDev->GetPhy ();
+     // int cellid = enbNetDev->GetCellId();
+      es_power = enbPhy->GetTxPower();
+    }
+  //
   if (m_sleepEnabled)
   {
     m_state = IDLE;
@@ -251,23 +261,27 @@ MmWaveSpectrumPhy::ChangeState (State newState)
   {
     NS_LOG_LOGIC (this << " state: " << m_state << " -> " << newState);
     m_state = newState;
-    switch (newState)
-    {
-    case IDLE:
-      m_intState = 0;
-      break;
-    case TX:
-      m_intState = 1;
-      break;
-    case RX_DATA:
-      m_intState = 2;
-      break;
-    case RX_CTRL:
-      m_intState = 3;
-      break;
-    }
+    if (es_power == 0)
+        {
+          m_intState = 4;
+        } else {
+          switch (newState)
+            {
+            case IDLE:
+              m_intState = 0;
+              break;
+            case TX:
+              m_intState = 1;
+              break;
+            case RX_DATA:
+              m_intState = 2;
+              break;
+            case RX_CTRL:
+              m_intState = 3;
+              break;
+            }
+        }
   }
-  
 }
 
 
@@ -348,7 +362,7 @@ MmWaveSpectrumPhy::ConfigureBeamforming (Ptr<NetDevice> device)
     {
       antenna = mcUeNetDevice->GetAntenna (m_componentCarrierId);
     }
-  
+
   m_beamforming->SetBeamformingVectorForDevice (device, antenna);
 }
 
@@ -587,8 +601,8 @@ MmWaveSpectrumPhy::EndRxData ()
       itTb->second.m_sinrAvg = Sum (m_sinrPerceived) / (m_sinrPerceived.GetSpectrumModel ()->GetNumBands ());
       itTb->second.m_sinrMin = MmWaveSpectrumPhy::Min (m_sinrPerceived);
       NS_LOG_DEBUG ("m_sinrPerceived=" << m_sinrPerceived <<
-                    ", sinrMin=" << itTb->second.m_sinrMin << 
-                    ", sinrAvg=" << itTb->second.m_sinrAvg << 
+                    ", sinrMin=" << itTb->second.m_sinrMin <<
+                    ", sinrAvg=" << itTb->second.m_sinrAvg <<
                     ", Avg SINR dB=" << 10*std::log10(itTb->second.m_sinrAvg) <<
                     ", GetNumBands=" << m_sinrPerceived.GetSpectrumModel ()->GetNumBands ());
 
@@ -608,7 +622,7 @@ MmWaveSpectrumPhy::EndRxData ()
                                           std::placeholders::_1, std::placeholders::_2);
             }
 
-          const MmWaveErrorModel::MmWaveErrorModelHistory & harqInfoList = RetrieveHistory (itTb->first, 
+          const MmWaveErrorModel::MmWaveErrorModelHistory & harqInfoList = RetrieveHistory (itTb->first,
                                                                 itTb->second.m_expected.m_harqProcessId);
 
           // Obtain pointer to the specific error model used
@@ -619,21 +633,21 @@ MmWaveSpectrumPhy::EndRxData ()
           Ptr<MmWaveErrorModel> em = DynamicCast<MmWaveErrorModel> (emFactory.Create ());
 
           // Check whether the TB is corrupted or not, update TB info accordingly
-          itTb->second.m_outputOfEM = em->GetTbDecodificationStats (m_sinrPerceived, 
-                                                                    itTb->second.m_expected.m_rbBitmap, 
-                                                                    itTb->second.m_expected.m_tbSize, 
-                                                                    itTb->second.m_expected.m_mcs, 
+          itTb->second.m_outputOfEM = em->GetTbDecodificationStats (m_sinrPerceived,
+                                                                    itTb->second.m_expected.m_rbBitmap,
+                                                                    itTb->second.m_expected.m_tbSize,
+                                                                    itTb->second.m_expected.m_mcs,
                                                                     harqInfoList);
           itTb->second.m_isCorrupted = m_random->GetValue () > itTb->second.m_outputOfEM->m_tbler ? false : true;
 
           if (itTb->second.m_isCorrupted)
             {
-              NS_LOG_INFO (" RNTI " << itTb->first << 
-                           " size " << itTb->second.m_expected.m_tbSize << 
-                           " mcs " << +itTb->second.m_expected.m_mcs << 
-                           " bitmap " << itTb->second.m_expected.m_rbBitmap.size () << 
-                           " rv "<< +itTb->second.m_expected.m_rv << 
-                           " TBLER " << itTb->second.m_outputOfEM->m_tbler << 
+              NS_LOG_INFO (" RNTI " << itTb->first <<
+                           " size " << itTb->second.m_expected.m_tbSize <<
+                           " mcs " << +itTb->second.m_expected.m_mcs <<
+                           " bitmap " << itTb->second.m_expected.m_rbBitmap.size () <<
+                           " rv "<< +itTb->second.m_expected.m_rv <<
+                           " TBLER " << itTb->second.m_outputOfEM->m_tbler <<
                            " corrupted " << itTb->second.m_isCorrupted);
             }
         }
@@ -717,22 +731,22 @@ MmWaveSpectrumPhy::EndRxData ()
                         {
                           harqUlInfo.m_receptionStatus = UlHarqInfo::NotOk;
                           NS_LOG_DEBUG ("UE" << rnti <<
-                                        " send UL-HARQ-NACK" << 
-                                        " harqId " << +itTb->second.m_expected.m_harqProcessId << 
-                                        " size " << itTb->second.m_expected.m_tbSize << 
-                                        " mcs " << +itTb->second.m_expected.m_mcs << 
-                                        " tbler " << itTb->second.m_outputOfEM->m_tbler << 
+                                        " send UL-HARQ-NACK" <<
+                                        " harqId " << +itTb->second.m_expected.m_harqProcessId <<
+                                        " size " << itTb->second.m_expected.m_tbSize <<
+                                        " mcs " << +itTb->second.m_expected.m_mcs <<
+                                        " tbler " << itTb->second.m_outputOfEM->m_tbler <<
                                         " sinrAvg " << itTb->second.m_sinrAvg);
                         }
                       else
                         {
                           harqUlInfo.m_receptionStatus = UlHarqInfo::Ok;
                           NS_LOG_DEBUG ("UE" << rnti <<
-                                        " send UL-HARQ-ACK" << 
-                                        " harqId " << +itTb->second.m_expected.m_harqProcessId << 
-                                        " size " << itTb->second.m_expected.m_tbSize << 
-                                        " mcs " << +itTb->second.m_expected.m_mcs << 
-                                        " tbler " << itTb->second.m_outputOfEM->m_tbler << 
+                                        " send UL-HARQ-ACK" <<
+                                        " harqId " << +itTb->second.m_expected.m_harqProcessId <<
+                                        " size " << itTb->second.m_expected.m_tbSize <<
+                                        " mcs " << +itTb->second.m_expected.m_mcs <<
+                                        " tbler " << itTb->second.m_outputOfEM->m_tbler <<
                                         " sinrAvg " << itTb->second.m_sinrAvg);
                         }
 
@@ -748,7 +762,7 @@ MmWaveSpectrumPhy::EndRxData ()
                         }
                       else
                         {
-                          m_harqPhyModule->UpdateUlHarqProcessStatus (rnti, itTb->second.m_expected.m_harqProcessId, 
+                          m_harqPhyModule->UpdateUlHarqProcessStatus (rnti, itTb->second.m_expected.m_harqProcessId,
                                                                       itTb->second.m_outputOfEM);
                         }
                     }
@@ -762,22 +776,22 @@ MmWaveSpectrumPhy::EndRxData ()
                       if (itTb->second.m_isCorrupted)
                         {
                           NS_LOG_DEBUG ("UE" << rnti <<
-                                       " send DL-HARQ-NACK" << 
-                                       " harqId " << +itTb->second.m_expected.m_harqProcessId << 
-                                       " size " << itTb->second.m_expected.m_tbSize << 
-                                       " mcs " << +itTb->second.m_expected.m_mcs << 
-                                       " tbler " << itTb->second.m_outputOfEM->m_tbler << 
+                                       " send DL-HARQ-NACK" <<
+                                       " harqId " << +itTb->second.m_expected.m_harqProcessId <<
+                                       " size " << itTb->second.m_expected.m_tbSize <<
+                                       " mcs " << +itTb->second.m_expected.m_mcs <<
+                                       " tbler " << itTb->second.m_outputOfEM->m_tbler <<
                                        " sinrAvg " << itTb->second.m_sinrAvg);
                           harqDlInfo.m_harqStatus = DlHarqInfo::NACK;
                         }
                       else
                         {
                           NS_LOG_DEBUG ("UE" << rnti <<
-                                       " send DL-HARQ-NACK" << 
-                                       " harqId " << +itTb->second.m_expected.m_harqProcessId << 
-                                       " size " << itTb->second.m_expected.m_tbSize << 
-                                       " mcs " << +itTb->second.m_expected.m_mcs << 
-                                       " tbler " << itTb->second.m_outputOfEM->m_tbler << 
+                                       " send DL-HARQ-NACK" <<
+                                       " harqId " << +itTb->second.m_expected.m_harqProcessId <<
+                                       " size " << itTb->second.m_expected.m_tbSize <<
+                                       " mcs " << +itTb->second.m_expected.m_mcs <<
+                                       " tbler " << itTb->second.m_outputOfEM->m_tbler <<
                                        " sinrAvg " << itTb->second.m_sinrAvg);
                           harqDlInfo.m_harqStatus = DlHarqInfo::ACK;
                         }
@@ -990,7 +1004,7 @@ MmWaveSpectrumPhy::SetHarqPhyModule (Ptr<MmWaveHarqPhy> harq)
   m_harqPhyModule = harq;
 }
 
-double 
+double
 MmWaveSpectrumPhy::Min (const SpectrumValue& specVal)
 {
   auto minIt {std::min_element (specVal.ConstValuesBegin (), specVal.ConstValuesEnd ())};

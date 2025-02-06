@@ -306,6 +306,8 @@ namespace ns3 {
                 return m_rxCurrentA;
             case 3:
                 return m_rxCurrentA;
+            case 4:
+              return m_celloff; // = 0
         }
         NS_FATAL_ERROR ("MmWaveRadioEnergyModelEnb: undefined radio state " << state);
     }

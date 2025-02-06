@@ -285,9 +285,8 @@ EnergyConsumptionPrint (int nodeIndex)
                  << (totalnewEnergyConsumption_storage[nodeIndex] -
                      totaloldEnergyConsumption_storage[nodeIndex])
                  << "J");
-  int tmp_cell_id = nodeIndex + 2;
-  totalnewEnergyConsumption_storage[tmp_cell_id] = totalnewEnergyConsumption_storage[nodeIndex];
-  current_energy_consumption[tmp_cell_id] =
+  totalnewEnergyConsumption_storage[nodeIndex] = totalnewEnergyConsumption_storage[nodeIndex];
+  current_energy_consumption[nodeIndex] =
       totalnewEnergyConsumption_storage[nodeIndex] - totaloldEnergyConsumption_storage[nodeIndex];
   totaloldEnergyConsumption_storage[nodeIndex] = totalnewEnergyConsumption_storage[nodeIndex];
 }
@@ -418,7 +417,7 @@ main(int argc, char *argv[]) {
   //  LogComponentEnable ("E2Termination", LOG_LEVEL_DEBUG);
 
   // LogComponentEnable ("LteEnbNetDevice", LOG_LEVEL_ALL);
-  LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_DEBUG);
+  //LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_DEBUG);
 
   // The maximum X coordinate of the scenario
 

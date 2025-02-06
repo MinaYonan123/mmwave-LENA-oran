@@ -81,7 +81,7 @@ namespace ns3{
         {
             mmwaveEnbDevice = DynamicCast<mmwave::MmWaveEnbNetDevice> (device);
             mmwavePhy = mmwaveEnbDevice->GetPhy ();
-            NS_LOG_UNCOND("found cell");
+            //NS_LOG_UNCOND("found cell");
             // mcDevice->DoDispose ();
         }
         Ptr<ns3::mmwave::MmWaveSpectrumPhy> mmwaveDlSpectrumPhy = mmwavePhy->GetDlSpectrumPhy();

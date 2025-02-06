@@ -216,6 +216,7 @@ private:
     double m_microSleepCurrentA;
     int m_previousState;
     int m_currentState;
+    int m_celloff = 0;
 
     Ptr<EnergySource> m_source;
     Ptr<Node> m_node;
