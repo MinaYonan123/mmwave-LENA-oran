@@ -1,4 +1,3 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2008 INRIA
  *
@@ -23,12 +22,17 @@
 
 /**
  * \file
- * \ingroup core
+ * \ingroup deprecation
  * NS_DEPRECATED macro definition.
  */
 
 /**
+ * \defgroup deprecation Deprecation
  * \ingroup core
+ */
+
+/**
+ * \ingroup deprecation
  * \def NS_DEPRECATED
  * Mark a function as deprecated.
  *
@@ -37,56 +41,78 @@
  * When deprecating a feature, please update the documentation
  * with information for users on how to update their code.
  *
- * For example,
- * \snippet src/core/doc/deprecated-example.h doxygen snippet
+ * The following snippet shows an example of how to deprecate the function SomethingUseful()
+ * in favor of the new function TheNewWay().
+ * Note: in the following snippet, the Doxygen blocks are not following the ns-3 style.
+ * This allows the code to be safely embedded in the documentation.
  *
- * To ease future maintenance please use the versioned forms:
- * `NS_DEPRECATED_3_XX`, not the generic `NS_DEPRECATED`
+ * \code
+ * /// Do something useful.
+ * ///
+ * /// \deprecated This method will go away in future versions of ns-3.
+ * /// See instead TheNewWay().
+ * NS_DEPRECATED_3_XX("see TheNewWay")
+ * void SomethingUseful();
+ *
+ * /// Do something more useful.
+ * void TheNewWay();
+ * \endcode
+ *
+ * Please follow these two guidelines to ease future maintenance
+ * (primarily the eventual removal of the deprecated code):
+ *
+ * 1.  Please use the versioned form `NS_DEPRECATED_3_XX`,
+ *     not the generic `NS_DEPRECATED`.
+ *
+ * 2.  Typically only the declaration needs to be deprecated,
+ *
+ *     \code
+ *     NS_DEPRECATED_3_XX("see TheNewWay")
+ *     void SomethingUseful();
+ *     \endcode
+ *
+ *     but it's helpful to put the same macro as a comment
+ *     at the site of the definition, to make it easier to find
+ *     all the bits which eventually have to be removed:
+ *
+ *     \code
+ *     // NS_DEPRECATED_3_XX("see TheNewWay")
+ *     void SomethingUseful() { ... }
+ *     \endcode
+ *
+ * \note Sometimes it is necessary to silence a deprecation warning.
+ * Even though this is highly discouraged, if necessary it is possible to use:
+ * \code
+ *   NS_WARNING_PUSH_DEPRECATED;
+ *   // call to a function or class that has been deprecated.
+ *   NS_WARNING_POP;
+ * \endcode
+ * These macros are defined in warnings.h
+ *
+ * \param msg Optional message to add to the compiler warning.
+ *
  */
-#if defined(__GNUC__)
-/* Test for GCC >= 4.1 */
-#define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100)
-#if (GCC_VERSION >= 40100)
-#define NS_DEPRECATED  __attribute__ ((deprecated))
-#endif
-#undef GCC_VERSION
-
-
-#elif defined(__clang__) || defined(__llvm__)
-#define NS_DEPRECATED  __attribute__ ((deprecated))
-
-#elif defined(_MSC_VER)
-#define NS_DEPRECATED __declspec(deprecated)
-
-#else
-#define NS_DEPRECATED
-#endif
+#define NS_DEPRECATED(msg) [[deprecated(msg)]]
 
 /**
- * \ingroup core
- * \def NS_DEPRECATED_3_32
- * Tag for things deprecated in version ns-3.32.
+ * \ingroup deprecation
+ * \def NS_DEPRECATED_3_42
+ * Tag for things deprecated in version ns-3.42.
  */
-#ifdef NS_DEPRECATED
-#define NS_DEPRECATED_3_32 NS_DEPRECATED
-#endif
+#define NS_DEPRECATED_3_42(msg) NS_DEPRECATED("Deprecated in ns-3.42: " msg)
 
 /**
- * \ingroup core
- * \def NS_DEPRECATED_3_31
- * Tag for things deprecated in version ns-3.31.
+ * \ingroup deprecation
+ * \def NS_DEPRECATED_3_41
+ * Tag for things deprecated in version ns-3.41.
  */
-#ifdef NS_DEPRECATED
-#define NS_DEPRECATED_3_31 NS_DEPRECATED
-#endif
+#define NS_DEPRECATED_3_41(msg) NS_DEPRECATED("Deprecated in ns-3.41: " msg)
 
 /**
- * \ingroup core
- * \def NS_DEPRECATED_3_30
- * Tag for things deprecated in version ns-3.30.
+ * \ingroup deprecation
+ * \def NS_DEPRECATED_3_40
+ * Tag for things deprecated in version ns-3.40.
  */
-#ifdef NS_DEPRECATED
-#define NS_DEPRECATED_3_30 NS_DEPRECATED
-#endif
+#define NS_DEPRECATED_3_40(msg) NS_DEPRECATED("Deprecated in ns-3.40: " msg)
 
 #endif /* NS3_DEPRECATED_H */

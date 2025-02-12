@@ -23,17 +23,15 @@ standpoint, as it does extend it beyond the original scope by supporting also
 other kinds of networks.
 
 Other than that, the module strictly follows :rfc:`4944` and :rfc:`6282`, with the
-following exceptions:
-
-* HC2 encoding is not supported
-* IPHC's SAC and DAC are not supported
-
-The HC2 encoding is not supported, as it has been superseded by IPHC and NHC
+exception that HC2 encoding is not supported, as it has been superseded by IPHC and NHC
 compression type (\ :rfc:`6282`).
 
-IPHC SAC and DAC are not yet supported, as they do require :rfc:`6775` 
+IPHC sateful (context-based) compression is supported but, since :rfc:`6775`
 ("Neighbor Discovery Optimization for IPv6 over Low-Power Wireless Personal Area Networks (6LoWPANs)")
-for full compliance. It is planned to support them in the future.
+is not yet implemented, it is necessary to add the context to the nodes manually.
+
+This is possible though the ``SixLowPanHelper::AddContext`` function.
+Mind that installing different contexts in different nodes will lead to decompression failures.
 
 NetDevice
 #########
@@ -54,8 +52,6 @@ The attributes are:
 * FragmentReassemblyListSize (integer, default 0), indicating the number of packets that can be reassembled at the same time. If the limit is reached, the oldest packet is discarded. Zero means infinite.
 * FragmentExpirationTimeout (Time, default 60 seconds), being the timeout to wait for further fragments before discarding a partial packet.
 * CompressionThreshold (unsigned 32 bits integer, default 0), minimum compressed payload size.
-* ForceEtherType (boolean, default false).
-* EtherType (unsigned 16 bits integer, default 0xFFFF), to force a particular L2 EtherType.
 * UseMeshUnder (boolean, default false), it enables mesh-under flood routing.
 * MeshUnderRadius (unsigned 8 bits integer, default 10), the maximum number of hops that a packet will be forwarded.
 * MeshCacheLength (unsigned 16 bits integer, default 10), the length of the cache for each source.
@@ -67,23 +63,8 @@ used (plus one byte for the correct dispatch header).
 This option is useful when a MAC requires a minimum frame size (e.g., ContikiMAC) and the
 compression would violate the requirement.
 
-The last two attributes are needed to use the module with a NetDevice other than 802.15.4, as
-neither IANA or IEEE did reserve an EtherType for 6LoWPAN. As a consequence there might be a
-conflict with the L2 multiplexer/demultiplexer which is based on EtherType. The default
-value is 0xFFFF, which is reserved by IEEE (see [IANA802]_ and [Ethertype]_).
-The default module behaviour is to not change the EtherType, however this would not work with
-any NetDevice actually understanding and using the EtherType.
-
-Note that the `ForceEtherType` parameter have also a direct effect on the MAC address kind the
-module is expecting to handle:
-* ForceEtherType true: Mac48Address (Ethernet, WiFi, etc.).
-* ForceEtherType false: Mac16Address or Mac64Address (IEEE 802.15.4).
-
-Note that using 6LoWPAN over any NetDevice other than 802.15.4 will produce valid .pcap files,
-but they will not be correctly dissected by Wireshark.
-The reason lies on the fact that 6LoWPAN was really meant to be used only over 802.15.4, so
-Wireshark dissectors will not even try to decode 6LoWPAN headers on top of protocols other than
-802.15.4.
+Note that 6LoWPAN will use an EtherType equal to 0xA0ED, as mandated by :rfc:`7973`.
+If the device does not support EtherTypes (e.g., 802.15.4), this value is discarded.
 
 The Trace sources are:
 
@@ -114,11 +95,12 @@ attribute.
 Scope and Limitations
 =====================
 
-Contex-based compression
-########################
+Context-based compression
+#########################
 
-The present implementation does not support context-based (stateful) compression.
-This limitation will be removed in the future.
+IPHC sateful (context-based) compression is supported but, since :rfc:`6775`
+("Neighbor Discovery Optimization for IPv6 over Low-Power Wireless Personal Area Networks (6LoWPANs)")
+is not yet implemented, it is necessary to add the context to the nodes manually.
 
 6LoWPAM-ND
 ##########
@@ -142,32 +124,29 @@ One adds the PanId in the pseudo-MAC address (4944) and the other doesn't (6282)
 
 The expected use cases (confirmed by the RFC editor) is to *never* have a mixed environment
 where part of the nodes are using HC1 and part IPHC because this would lead to confusion on
-what the IPv6 address of a node is. 
+what the IPv6 address of a node is.
 
 Due to this, the nodes configured to use IPHC will drop the packets compressed with HC1
-and viceversa. The drop is logged in the drop trace as ``DROP_DISALLOWED_COMPRESSION``.
+and vice-versa. The drop is logged in the drop trace as ``DROP_DISALLOWED_COMPRESSION``.
 
 
 Using 6LoWPAN with IPv4 (or other L3 protocols)
 ###############################################
 
 As the name implies, 6LoWPAN can handle only IPv6 packets. Any other protocol will be discarded.
-Moreover, 6LoWPAN assumes that the network is uniform, as is all the devices connected by the
-same same channel are using 6LoWPAN. Mixed environments are not supported by the standard.
-The reason is simple: 802.15.4 frame doesn't have a "protocol" field. As a consequence,
-there is no demultiplexing at MAC layer and the protocol carried by L2 frames must be known
-in advance.
 
-In the |ns3| implementation it is possible, but not advisable, to violate this requirement
-if the underlying NetDevice is capable of discriminating different protocols. As an example,
-CsmaNetDevice can carry IPv4 and 6LoWPAN at the same time. However, this configuration has
-not been tested.
+6LoWPAN can be used alongside other L3 protocols in networks supporting an EtherType (e.g.,
+Ethernet, WiFi, etc.). If the network does not have an EtherType in the frame header
+(like in the case of 802.15.4), then the network must be uniform, as is all the devices
+connected by the same same channel must use 6LoWPAN.
+
+The reason is simple: if the L2 frame doesn't have a "EtherType" field, then there is no
+demultiplexing at MAC layer and the protocol carried by L2 frames must be known
+in advance.
 
 References
 ==========
 
-.. [IANA802] IANA, assigned IEEE 802 numbers: http://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xml
-.. [Ethertype] IEEE Ethertype numbers: http://standards.ieee.org/develop/regauth/ethertype/eth.txt
 .. [Shelby] Z. Shelby and C. Bormann, 6LoWPAN: The Wireless Embedded Internet. Wiley, 2011. [Online]. Available: https://books.google.it/books?id=3Nm7ZCxscMQC
 
 Usage

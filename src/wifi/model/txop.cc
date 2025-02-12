@@ -1,4 +1,3 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2005 INRIA
  *
@@ -18,880 +17,819 @@
  * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
  */
 
+#include "txop.h"
+
+#include "channel-access-manager.h"
+#include "mac-tx-middle.h"
+#include "wifi-mac-queue-scheduler.h"
+#include "wifi-mac-queue.h"
+#include "wifi-mac-trailer.h"
+#include "wifi-mac.h"
+#include "wifi-phy.h"
+
+#include "ns3/attribute-container.h"
 #include "ns3/log.h"
 #include "ns3/pointer.h"
+#include "ns3/shuffle.h"
 #include "ns3/simulator.h"
-#include "ns3/random-variable-stream.h"
 #include "ns3/socket.h"
-#include "txop.h"
-#include "channel-access-manager.h"
-#include "wifi-mac-queue.h"
-#include "mac-tx-middle.h"
-#include "mac-low.h"
-#include "wifi-remote-station-manager.h"
-#include "wifi-mac-trailer.h"
+
+#include <iterator>
+#include <sstream>
 
 #undef NS_LOG_APPEND_CONTEXT
-#define NS_LOG_APPEND_CONTEXT if (m_low != 0) { std::clog << "[mac=" << m_low->GetAddress () << "] "; }
+#define NS_LOG_APPEND_CONTEXT WIFI_TXOP_NS_LOG_APPEND_CONTEXT
 
-namespace ns3 {
+namespace ns3
+{
 
-NS_LOG_COMPONENT_DEFINE ("Txop");
+NS_LOG_COMPONENT_DEFINE("Txop");
 
-NS_OBJECT_ENSURE_REGISTERED (Txop);
+NS_OBJECT_ENSURE_REGISTERED(Txop);
 
 TypeId
-Txop::GetTypeId (void)
+Txop::GetTypeId()
 {
-  static TypeId tid = TypeId ("ns3::Txop")
-    .SetParent<ns3::Object> ()
-    .SetGroupName ("Wifi")
-    .AddConstructor<Txop> ()
-    .AddAttribute ("MinCw", "The minimum value of the contention window.",
-                   UintegerValue (15),
-                   MakeUintegerAccessor (&Txop::SetMinCw,
-                                         &Txop::GetMinCw),
-                   MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("MaxCw", "The maximum value of the contention window.",
-                   UintegerValue (1023),
-                   MakeUintegerAccessor (&Txop::SetMaxCw,
-                                         &Txop::GetMaxCw),
-                   MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("Aifsn", "The AIFSN: the default value conforms to non-QOS.",
-                   UintegerValue (2),
-                   MakeUintegerAccessor (&Txop::SetAifsn,
-                                         &Txop::GetAifsn),
-                   MakeUintegerChecker<uint8_t> ())
-    .AddAttribute ("TxopLimit", "The TXOP limit: the default value conforms to non-QoS.",
-                   TimeValue (MilliSeconds (0)),
-                   MakeTimeAccessor (&Txop::SetTxopLimit,
-                                     &Txop::GetTxopLimit),
-                   MakeTimeChecker ())
-    .AddAttribute ("Queue", "The WifiMacQueue object",
-                   PointerValue (),
-                   MakePointerAccessor (&Txop::GetWifiMacQueue),
-                   MakePointerChecker<WifiMacQueue> ())
-    .AddTraceSource ("BackoffTrace",
-                     "Trace source for backoff values",
-                     MakeTraceSourceAccessor (&Txop::m_backoffTrace),
-                     "ns3::TracedCallback::Uint32Callback")
-    .AddTraceSource ("CwTrace",
-                     "Trace source for contention window values",
-                     MakeTraceSourceAccessor (&Txop::m_cwTrace),
-                     "ns3::TracedValueCallback::Uint32")
-  ;
-  return tid;
+    static TypeId tid =
+        TypeId("ns3::Txop")
+            .SetParent<ns3::Object>()
+            .SetGroupName("Wifi")
+            .AddConstructor<Txop>()
+            .AddAttribute("AcIndex",
+                          "The AC index of the packets contained in the wifi MAC queue of this "
+                          "Txop object.",
+                          EnumValue(AcIndex::AC_UNDEF),
+                          MakeEnumAccessor<AcIndex>(&Txop::CreateQueue),
+                          MakeEnumChecker(AC_BE,
+                                          "AC_BE",
+                                          AC_BK,
+                                          "AC_BK",
+                                          AC_VI,
+                                          "AC_VI",
+                                          AC_VO,
+                                          "AC_VO",
+                                          AC_BE_NQOS,
+                                          "AC_BE_NQOS",
+                                          AC_VI,
+                                          "AC_VI",
+                                          AC_BEACON,
+                                          "AC_BEACON",
+                                          AC_UNDEF,
+                                          "AC_UNDEF"))
+            .AddAttribute("MinCw",
+                          "The minimum value of the contention window (just for the first link, "
+                          "in case of 11be multi-link devices).",
+                          TypeId::ATTR_GET | TypeId::ATTR_SET, // do not set at construction time
+                          UintegerValue(15),
+                          MakeUintegerAccessor((void(Txop::*)(uint32_t)) & Txop::SetMinCw,
+                                               (uint32_t(Txop::*)() const) & Txop::GetMinCw),
+                          MakeUintegerChecker<uint32_t>(),
+                          TypeId::OBSOLETE,
+                          "Use MinCws attribute instead of MinCw")
+            .AddAttribute(
+                "MinCws",
+                "The minimum values of the contention window for all the links (sorted in "
+                "increasing order of link ID). An empty vector is ignored and the default value "
+                "as per Table 9-155 of the IEEE 802.11-2020 standard will be used. Note that, if "
+                "this is a non-AP STA, these values could be overridden by values advertised by "
+                "the AP through EDCA Parameter Set elements.",
+                AttributeContainerValue<UintegerValue>(),
+                MakeAttributeContainerAccessor<UintegerValue>(&Txop::SetMinCws, &Txop::GetMinCws),
+                MakeAttributeContainerChecker<UintegerValue>(MakeUintegerChecker<uint32_t>()))
+            .AddAttribute("MaxCw",
+                          "The maximum value of the contention window (just for the first link, "
+                          "in case of 11be multi-link devices).",
+                          TypeId::ATTR_GET | TypeId::ATTR_SET, // do not set at construction time
+                          UintegerValue(1023),
+                          MakeUintegerAccessor((void(Txop::*)(uint32_t)) & Txop::SetMaxCw,
+                                               (uint32_t(Txop::*)() const) & Txop::GetMaxCw),
+                          MakeUintegerChecker<uint32_t>(),
+                          TypeId::OBSOLETE,
+                          "Use MaxCws attribute instead of MaxCw")
+            .AddAttribute(
+                "MaxCws",
+                "The maximum values of the contention window for all the links (sorted in "
+                "increasing order of link ID). An empty vector is ignored and the default value "
+                "as per Table 9-155 of the IEEE 802.11-2020 standard will be used. Note that, if "
+                "this is a non-AP STA, these values could be overridden by values advertised by "
+                "the AP through EDCA Parameter Set elements.",
+                AttributeContainerValue<UintegerValue>(),
+                MakeAttributeContainerAccessor<UintegerValue>(&Txop::SetMaxCws, &Txop::GetMaxCws),
+                MakeAttributeContainerChecker<UintegerValue>(MakeUintegerChecker<uint32_t>()))
+            .AddAttribute(
+                "Aifsn",
+                "The AIFSN: the default value conforms to non-QOS (just for the first link, "
+                "in case of 11be multi-link devices).",
+                TypeId::ATTR_GET | TypeId::ATTR_SET, // do not set at construction time
+                UintegerValue(2),
+                MakeUintegerAccessor((void(Txop::*)(uint8_t)) & Txop::SetAifsn,
+                                     (uint8_t(Txop::*)() const) & Txop::GetAifsn),
+                MakeUintegerChecker<uint8_t>(),
+                TypeId::OBSOLETE,
+                "Use Aifsns attribute instead of Aifsn")
+            .AddAttribute(
+                "Aifsns",
+                "The values of AIFSN for all the links (sorted in increasing order "
+                "of link ID). An empty vector is ignored and the default value as per "
+                "Table 9-155 of the IEEE 802.11-2020 standard will be used. Note that, if "
+                "this is a non-AP STA, these values could be overridden by values advertised by "
+                "the AP through EDCA Parameter Set elements.",
+                AttributeContainerValue<UintegerValue>(),
+                MakeAttributeContainerAccessor<UintegerValue>(&Txop::SetAifsns, &Txop::GetAifsns),
+                MakeAttributeContainerChecker<UintegerValue>(MakeUintegerChecker<uint8_t>()))
+            .AddAttribute("TxopLimit",
+                          "The TXOP limit: the default value conforms to non-QoS "
+                          "(just for the first link, in case of 11be multi-link devices).",
+                          TypeId::ATTR_GET | TypeId::ATTR_SET, // do not set at construction time
+                          TimeValue(MilliSeconds(0)),
+                          MakeTimeAccessor((void(Txop::*)(Time)) & Txop::SetTxopLimit,
+                                           (Time(Txop::*)() const) & Txop::GetTxopLimit),
+                          MakeTimeChecker(),
+                          TypeId::OBSOLETE,
+                          "Use TxopLimits attribute instead of TxopLimit")
+            .AddAttribute(
+                "TxopLimits",
+                "The values of TXOP limit for all the links (sorted in increasing order "
+                "of link ID). An empty vector is ignored and the default value as per "
+                "Table 9-155 of the IEEE 802.11-2020 standard will be used. Note that, if "
+                "this is a non-AP STA, these values could be overridden by values advertised by "
+                "the AP through EDCA Parameter Set elements.",
+                AttributeContainerValue<TimeValue>(),
+                MakeAttributeContainerAccessor<TimeValue>(&Txop::SetTxopLimits,
+                                                          &Txop::GetTxopLimits),
+                MakeAttributeContainerChecker<TimeValue>(MakeTimeChecker()))
+            .AddAttribute("Queue",
+                          "The WifiMacQueue object",
+                          PointerValue(),
+                          MakePointerAccessor(&Txop::GetWifiMacQueue),
+                          MakePointerChecker<WifiMacQueue>())
+            .AddTraceSource("BackoffTrace",
+                            "Trace source for backoff values",
+                            MakeTraceSourceAccessor(&Txop::m_backoffTrace),
+                            "ns3::Txop::BackoffValueTracedCallback")
+            .AddTraceSource("CwTrace",
+                            "Trace source for contention window values",
+                            MakeTraceSourceAccessor(&Txop::m_cwTrace),
+                            "ns3::Txop::CwValueTracedCallback");
+    return tid;
 }
 
-Txop::Txop ()
-  : m_channelAccessManager (0),
-    m_cwMin (0),
-    m_cwMax (0),
-    m_cw (0),
-    m_backoff (0),
-    m_accessRequested (false),
-    m_backoffSlots (0),
-    m_backoffStart (Seconds (0.0)),
-    m_currentPacket (0)
+Txop::Txop()
 {
-  NS_LOG_FUNCTION (this);
-  m_queue = CreateObject<WifiMacQueue> ();
-  m_rng = CreateObject<UniformRandomVariable> ();
+    NS_LOG_FUNCTION(this);
+    m_rng = m_shuffleLinkIdsGen.GetRv();
 }
 
-Txop::~Txop ()
+Txop::~Txop()
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 }
 
 void
-Txop::DoDispose (void)
+Txop::DoDispose()
 {
-  NS_LOG_FUNCTION (this);
-  m_queue = 0;
-  m_low = 0;
-  m_stationManager = 0;
-  m_rng = 0;
-  m_txMiddle = 0;
-  m_channelAccessManager = 0;
+    NS_LOG_FUNCTION(this);
+    m_queue = nullptr;
+    m_mac = nullptr;
+    m_rng = nullptr;
+    m_txMiddle = nullptr;
+    m_links.clear();
 }
 
 void
-Txop::SetChannelAccessManager (const Ptr<ChannelAccessManager> manager)
+Txop::CreateQueue(AcIndex aci)
 {
-  NS_LOG_FUNCTION (this << manager);
-  m_channelAccessManager = manager;
-  m_channelAccessManager->Add (this);
+    NS_LOG_FUNCTION(this << aci);
+    NS_ABORT_MSG_IF(m_queue, "Wifi MAC queue can only be created once");
+    m_queue = CreateObject<WifiMacQueue>(aci);
 }
 
-void Txop::SetTxMiddle (const Ptr<MacTxMiddle> txMiddle)
+std::unique_ptr<Txop::LinkEntity>
+Txop::CreateLinkEntity() const
 {
-  NS_LOG_FUNCTION (this);
-  m_txMiddle = txMiddle;
+    return std::make_unique<LinkEntity>();
 }
 
-void
-Txop::SetMacLow (const Ptr<MacLow> low)
+Txop::LinkEntity&
+Txop::GetLink(uint8_t linkId) const
 {
-  NS_LOG_FUNCTION (this << low);
-  m_low = low;
+    auto it = m_links.find(linkId);
+    NS_ASSERT(it != m_links.cend());
+    NS_ASSERT(it->second); // check that the pointer owns an object
+    return *it->second;
 }
 
-void
-Txop::SetWifiRemoteStationManager (const Ptr<WifiRemoteStationManager> remoteManager)
+const std::map<uint8_t, std::unique_ptr<Txop::LinkEntity>>&
+Txop::GetLinks() const
 {
-  NS_LOG_FUNCTION (this << remoteManager);
-  m_stationManager = remoteManager;
-}
-
-void
-Txop::SetTxOkCallback (TxOk callback)
-{
-  NS_LOG_FUNCTION (this << &callback);
-  m_txOkCallback = callback;
+    return m_links;
 }
 
 void
-Txop::SetTxFailedCallback (TxFailed callback)
+Txop::SwapLinks(std::map<uint8_t, uint8_t> links)
 {
-  NS_LOG_FUNCTION (this << &callback);
-  m_txFailedCallback = callback;
-}
+    NS_LOG_FUNCTION(this);
 
-void
-Txop::SetTxDroppedCallback (TxDropped callback)
-{
-  NS_LOG_FUNCTION (this << &callback);
-  m_txDroppedCallback = callback;
-  m_queue->TraceConnectWithoutContext ("Drop", MakeCallback (&Txop::TxDroppedPacket, this));
-}
-
-void
-Txop::TxDroppedPacket (Ptr<const WifiMacQueueItem> item)
-{
-  if (!m_txDroppedCallback.IsNull ())
+    decltype(m_links) tmp;
+    tmp.swap(m_links); // move all links to temporary map
+    for (const auto& [from, to] : links)
     {
-      m_txDroppedCallback (item->GetPacket ());
+        auto nh = tmp.extract(from);
+        nh.key() = to;
+        m_links.insert(std::move(nh));
+    }
+    // move links remaining in tmp to m_links
+    m_links.merge(tmp);
+}
+
+void
+Txop::SetTxMiddle(const Ptr<MacTxMiddle> txMiddle)
+{
+    NS_LOG_FUNCTION(this);
+    m_txMiddle = txMiddle;
+}
+
+void
+Txop::SetWifiMac(const Ptr<WifiMac> mac)
+{
+    NS_LOG_FUNCTION(this << mac);
+    m_mac = mac;
+    for (const auto linkId : m_mac->GetLinkIds())
+    {
+        m_links.emplace(linkId, CreateLinkEntity());
     }
 }
 
-Ptr<WifiMacQueue >
-Txop::GetWifiMacQueue () const
+void
+Txop::SetDroppedMpduCallback(DroppedMpdu callback)
 {
-  NS_LOG_FUNCTION (this);
-  return m_queue;
+    NS_LOG_FUNCTION(this << &callback);
+    m_droppedMpduCallback = callback;
+    m_queue->TraceConnectWithoutContext("DropBeforeEnqueue",
+                                        m_droppedMpduCallback.Bind(WIFI_MAC_DROP_FAILED_ENQUEUE));
+    m_queue->TraceConnectWithoutContext("Expired",
+                                        m_droppedMpduCallback.Bind(WIFI_MAC_DROP_EXPIRED_LIFETIME));
+}
+
+Ptr<WifiMacQueue>
+Txop::GetWifiMacQueue() const
+{
+    return m_queue;
 }
 
 void
-Txop::SetMinCw (uint32_t minCw)
+Txop::SetMinCw(uint32_t minCw)
 {
-  NS_LOG_FUNCTION (this << minCw);
-  bool changed = (m_cwMin != minCw);
-  m_cwMin = minCw;
-  if (changed == true)
+    SetMinCw(minCw, 0);
+}
+
+void
+Txop::SetMinCws(const std::vector<uint32_t>& minCws)
+{
+    if (minCws.empty())
     {
-      ResetCw ();
-      m_cwTrace = GetCw ();
+        // an empty vector is passed to use the default values specified by the standard
+        return;
+    }
+
+    NS_ABORT_MSG_IF(!m_links.empty() && minCws.size() != m_links.size(),
+                    "The size of the given vector (" << minCws.size()
+                                                     << ") does not match the number of links ("
+                                                     << m_links.size() << ")");
+    m_userAccessParams.cwMins = minCws;
+
+    std::size_t i = 0;
+    for (const auto& [id, link] : m_links)
+    {
+        SetMinCw(minCws[i++], id);
     }
 }
 
 void
-Txop::SetMaxCw (uint32_t maxCw)
+Txop::SetMinCw(uint32_t minCw, uint8_t linkId)
 {
-  NS_LOG_FUNCTION (this << maxCw);
-  bool changed = (m_cwMax != maxCw);
-  m_cwMax = maxCw;
-  if (changed == true)
+    NS_LOG_FUNCTION(this << minCw << linkId);
+    NS_ASSERT_MSG(!m_links.empty(),
+                  "This function can only be called after that links have been created");
+    auto& link = GetLink(linkId);
+    bool changed = (link.cwMin != minCw);
+    link.cwMin = minCw;
+    if (changed)
     {
-      ResetCw ();
-      m_cwTrace = GetCw ();
+        ResetCw(linkId);
+    }
+}
+
+void
+Txop::SetMaxCw(uint32_t maxCw)
+{
+    SetMaxCw(maxCw, 0);
+}
+
+void
+Txop::SetMaxCws(const std::vector<uint32_t>& maxCws)
+{
+    if (maxCws.empty())
+    {
+        // an empty vector is passed to use the default values specified by the standard
+        return;
+    }
+
+    NS_ABORT_MSG_IF(!m_links.empty() && maxCws.size() != m_links.size(),
+                    "The size of the given vector (" << maxCws.size()
+                                                     << ") does not match the number of links ("
+                                                     << m_links.size() << ")");
+    m_userAccessParams.cwMaxs = maxCws;
+
+    std::size_t i = 0;
+    for (const auto& [id, link] : m_links)
+    {
+        SetMaxCw(maxCws[i++], id);
+    }
+}
+
+void
+Txop::SetMaxCw(uint32_t maxCw, uint8_t linkId)
+{
+    NS_LOG_FUNCTION(this << maxCw << linkId);
+    NS_ASSERT_MSG(!m_links.empty(),
+                  "This function can only be called after that links have been created");
+    auto& link = GetLink(linkId);
+    bool changed = (link.cwMax != maxCw);
+    link.cwMax = maxCw;
+    if (changed)
+    {
+        ResetCw(linkId);
     }
 }
 
 uint32_t
-Txop::GetCw (void) const
+Txop::GetCw(uint8_t linkId) const
 {
-  return m_cw;
+    return GetLink(linkId).cw;
 }
 
 void
-Txop::ResetCw (void)
+Txop::ResetCw(uint8_t linkId)
 {
-  NS_LOG_FUNCTION (this);
-  m_cw = m_cwMin;
+    NS_LOG_FUNCTION(this << linkId);
+    auto& link = GetLink(linkId);
+    link.cw = GetMinCw(linkId);
+    m_cwTrace(link.cw, linkId);
 }
 
 void
-Txop::UpdateFailedCw (void)
+Txop::UpdateFailedCw(uint8_t linkId)
 {
-  NS_LOG_FUNCTION (this);
-  //see 802.11-2012, section 9.19.2.5
-  m_cw = std::min ( 2 * (m_cw + 1) - 1, m_cwMax);
+    NS_LOG_FUNCTION(this << linkId);
+    auto& link = GetLink(linkId);
+    // see 802.11-2012, section 9.19.2.5
+    link.cw = std::min(2 * (link.cw + 1) - 1, GetMaxCw(linkId));
+    // if the MU EDCA timer is running, CW cannot be less than MU CW min
+    link.cw = std::max(link.cw, GetMinCw(linkId));
+    m_cwTrace(link.cw, linkId);
 }
 
 uint32_t
-Txop::GetBackoffSlots (void) const
+Txop::GetBackoffSlots(uint8_t linkId) const
 {
-  return m_backoffSlots;
+    return GetLink(linkId).backoffSlots;
 }
 
 Time
-Txop::GetBackoffStart (void) const
+Txop::GetBackoffStart(uint8_t linkId) const
 {
-  return m_backoffStart;
+    return GetLink(linkId).backoffStart;
 }
 
 void
-Txop::UpdateBackoffSlotsNow (uint32_t nSlots, Time backoffUpdateBound)
+Txop::UpdateBackoffSlotsNow(uint32_t nSlots, Time backoffUpdateBound, uint8_t linkId)
 {
-  NS_LOG_FUNCTION (this << nSlots << backoffUpdateBound);
-  m_backoffSlots -= nSlots;
-  m_backoffStart = backoffUpdateBound;
-  NS_LOG_DEBUG ("update slots=" << nSlots << " slots, backoff=" << m_backoffSlots);
+    NS_LOG_FUNCTION(this << nSlots << backoffUpdateBound << linkId);
+    auto& link = GetLink(linkId);
+
+    link.backoffSlots -= nSlots;
+    link.backoffStart = backoffUpdateBound;
+    NS_LOG_DEBUG("update slots=" << nSlots << " slots, backoff=" << link.backoffSlots);
 }
 
 void
-Txop::StartBackoffNow (uint32_t nSlots)
+Txop::StartBackoffNow(uint32_t nSlots, uint8_t linkId)
 {
-  NS_LOG_FUNCTION (this << nSlots);
-  if (m_backoffSlots != 0)
+    NS_LOG_FUNCTION(this << nSlots << linkId);
+    auto& link = GetLink(linkId);
+
+    if (link.backoffSlots != 0)
     {
-      NS_LOG_DEBUG ("reset backoff from " << m_backoffSlots << " to " << nSlots << " slots");
+        NS_LOG_DEBUG("reset backoff from " << link.backoffSlots << " to " << nSlots << " slots");
     }
-  else
+    else
     {
-      NS_LOG_DEBUG ("start backoff=" << nSlots << " slots");
+        NS_LOG_DEBUG("start backoff=" << nSlots << " slots");
     }
-  m_backoffSlots = nSlots;
-  m_backoffStart = Simulator::Now ();
+    link.backoffSlots = nSlots;
+    link.backoffStart = Simulator::Now();
 }
 
 void
-Txop::SetAifsn (uint8_t aifsn)
+Txop::SetAifsn(uint8_t aifsn)
 {
-  NS_LOG_FUNCTION (this << +aifsn);
-  m_aifsn = aifsn;
+    SetAifsn(aifsn, 0);
 }
 
 void
-Txop::SetTxopLimit (Time txopLimit)
+Txop::SetAifsns(const std::vector<uint8_t>& aifsns)
 {
-  NS_LOG_FUNCTION (this << txopLimit);
-  NS_ASSERT_MSG ((txopLimit.GetMicroSeconds () % 32 == 0), "The TXOP limit must be expressed in multiple of 32 microseconds!");
-  m_txopLimit = txopLimit;
+    if (aifsns.empty())
+    {
+        // an empty vector is passed to use the default values specified by the standard
+        return;
+    }
+
+    NS_ABORT_MSG_IF(!m_links.empty() && aifsns.size() != m_links.size(),
+                    "The size of the given vector (" << aifsns.size()
+                                                     << ") does not match the number of links ("
+                                                     << m_links.size() << ")");
+    m_userAccessParams.aifsns = aifsns;
+
+    std::size_t i = 0;
+    for (const auto& [id, link] : m_links)
+    {
+        SetAifsn(aifsns[i++], id);
+    }
+}
+
+void
+Txop::SetAifsn(uint8_t aifsn, uint8_t linkId)
+{
+    NS_LOG_FUNCTION(this << aifsn << linkId);
+    NS_ASSERT_MSG(!m_links.empty(),
+                  "This function can only be called after that links have been created");
+    GetLink(linkId).aifsn = aifsn;
+}
+
+void
+Txop::SetTxopLimit(Time txopLimit)
+{
+    SetTxopLimit(txopLimit, 0);
+}
+
+void
+Txop::SetTxopLimits(const std::vector<Time>& txopLimits)
+{
+    if (txopLimits.empty())
+    {
+        // an empty vector is passed to use the default values specified by the standard
+        return;
+    }
+
+    NS_ABORT_MSG_IF(!m_links.empty() && txopLimits.size() != m_links.size(),
+                    "The size of the given vector (" << txopLimits.size()
+                                                     << ") does not match the number of links ("
+                                                     << m_links.size() << ")");
+    m_userAccessParams.txopLimits = txopLimits;
+
+    std::size_t i = 0;
+    for (const auto& [id, link] : m_links)
+    {
+        SetTxopLimit(txopLimits[i++], id);
+    }
+}
+
+void
+Txop::SetTxopLimit(Time txopLimit, uint8_t linkId)
+{
+    NS_LOG_FUNCTION(this << txopLimit << linkId);
+    NS_ASSERT_MSG(txopLimit.IsPositive(), "TXOP limit cannot be negative");
+    NS_ASSERT_MSG((txopLimit.GetMicroSeconds() % 32 == 0),
+                  "The TXOP limit must be expressed in multiple of 32 microseconds!");
+    NS_ASSERT_MSG(!m_links.empty(),
+                  "This function can only be called after that links have been created");
+    GetLink(linkId).txopLimit = txopLimit;
+}
+
+const Txop::UserDefinedAccessParams&
+Txop::GetUserAccessParams() const
+{
+    return m_userAccessParams;
 }
 
 uint32_t
-Txop::GetMinCw (void) const
+Txop::GetMinCw() const
 {
-  return m_cwMin;
+    return GetMinCw(0);
+}
+
+std::vector<uint32_t>
+Txop::GetMinCws() const
+{
+    std::vector<uint32_t> ret;
+    ret.reserve(m_links.size());
+    for (const auto& [id, link] : m_links)
+    {
+        ret.push_back(link->cwMin);
+    }
+    return ret;
 }
 
 uint32_t
-Txop::GetMaxCw (void) const
+Txop::GetMinCw(uint8_t linkId) const
 {
-  return m_cwMax;
+    return GetLink(linkId).cwMin;
+}
+
+uint32_t
+Txop::GetMaxCw() const
+{
+    return GetMaxCw(0);
+}
+
+std::vector<uint32_t>
+Txop::GetMaxCws() const
+{
+    std::vector<uint32_t> ret;
+    ret.reserve(m_links.size());
+    for (const auto& [id, link] : m_links)
+    {
+        ret.push_back(link->cwMax);
+    }
+    return ret;
+}
+
+uint32_t
+Txop::GetMaxCw(uint8_t linkId) const
+{
+    return GetLink(linkId).cwMax;
 }
 
 uint8_t
-Txop::GetAifsn (void) const
+Txop::GetAifsn() const
 {
-  return m_aifsn;
+    return GetAifsn(0);
+}
+
+std::vector<uint8_t>
+Txop::GetAifsns() const
+{
+    std::vector<uint8_t> ret;
+    ret.reserve(m_links.size());
+    for (const auto& [id, link] : m_links)
+    {
+        ret.push_back(link->aifsn);
+    }
+    return ret;
+}
+
+uint8_t
+Txop::GetAifsn(uint8_t linkId) const
+{
+    return GetLink(linkId).aifsn;
 }
 
 Time
-Txop::GetTxopLimit (void) const
+Txop::GetTxopLimit() const
 {
-  return m_txopLimit;
+    return GetTxopLimit(0);
+}
+
+std::vector<Time>
+Txop::GetTxopLimits() const
+{
+    std::vector<Time> ret;
+    ret.reserve(m_links.size());
+    for (const auto& [id, link] : m_links)
+    {
+        ret.push_back(link->txopLimit);
+    }
+    return ret;
+}
+
+Time
+Txop::GetTxopLimit(uint8_t linkId) const
+{
+    return GetLink(linkId).txopLimit;
 }
 
 bool
-Txop::HasFramesToTransmit (void)
+Txop::HasFramesToTransmit(uint8_t linkId)
 {
-  bool ret = (m_currentPacket != 0 || !m_queue->IsEmpty ());
-  NS_LOG_FUNCTION (this << ret);
-  return ret;
+    m_queue->WipeAllExpiredMpdus();
+    bool ret = static_cast<bool>(m_queue->Peek(linkId));
+    NS_LOG_FUNCTION(this << linkId << ret);
+    return ret;
 }
 
 void
-Txop::Queue (Ptr<Packet> packet, const WifiMacHeader &hdr)
+Txop::Queue(Ptr<Packet> packet, const WifiMacHeader& hdr)
 {
-  NS_LOG_FUNCTION (this << packet << &hdr);
-  // remove the priority tag attached, if any
-  SocketPriorityTag priorityTag;
-  packet->RemovePacketTag (priorityTag);
-  if (m_channelAccessManager->NeedBackoffUponAccess (this))
+    NS_LOG_FUNCTION(this << packet << &hdr);
+    // remove the priority tag attached, if any
+    SocketPriorityTag priorityTag;
+    packet->RemovePacketTag(priorityTag);
+    Queue(Create<WifiMpdu>(packet, hdr));
+}
+
+void
+Txop::Queue(Ptr<WifiMpdu> mpdu)
+{
+    NS_LOG_FUNCTION(this << *mpdu);
+
+    // channel access can be requested on a blocked link, if the reason for blocking the link
+    // is temporary
+    auto linkIds = m_mac->GetMacQueueScheduler()->GetLinkIds(
+        m_queue->GetAc(),
+        mpdu,
+        {WifiQueueBlockedReason::USING_OTHER_EMLSR_LINK,
+         WifiQueueBlockedReason::WAITING_EMLSR_TRANSITION_DELAY});
+
+    // ignore the links for which a channel access request event is already running
+    for (auto it = linkIds.begin(); it != linkIds.end();)
     {
-      GenerateBackoff ();
+        if (const auto& event = GetLink(*it).accessRequest.event; event.IsPending())
+        {
+            it = linkIds.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
     }
-  m_queue->Enqueue (Create<WifiMacQueueItem> (packet, hdr));
-  StartAccessIfNeeded ();
+
+    // save the status of the AC queues before enqueuing the MPDU (required to determine if
+    // backoff is needed)
+    std::map<uint8_t, bool> hasFramesToTransmit;
+    for (const auto linkId : linkIds)
+    {
+        hasFramesToTransmit[linkId] = HasFramesToTransmit(linkId);
+    }
+    m_queue->Enqueue(mpdu);
+
+    // shuffle link IDs not to request channel access on links always in the same order
+    std::vector<uint8_t> shuffledLinkIds(linkIds.cbegin(), linkIds.cend());
+    Shuffle(shuffledLinkIds.begin(), shuffledLinkIds.end(), m_shuffleLinkIdsGen.GetRv());
+
+    if (!linkIds.empty() && g_log.IsEnabled(ns3::LOG_DEBUG))
+    {
+        std::stringstream ss;
+        std::copy(shuffledLinkIds.cbegin(),
+                  shuffledLinkIds.cend(),
+                  std::ostream_iterator<uint16_t>(ss, " "));
+        NS_LOG_DEBUG("Request channel access on link IDs: " << ss.str());
+    }
+
+    for (const auto linkId : shuffledLinkIds)
+    {
+        // schedule a call to StartAccessIfNeeded() to request channel access after that all the
+        // packets of a burst have been enqueued, instead of requesting channel access right after
+        // the first packet. The call to StartAccessIfNeeded() is scheduled only after the first
+        // packet
+        GetLink(linkId).accessRequest.event = Simulator::ScheduleNow(&Txop::StartAccessAfterEvent,
+                                                                     this,
+                                                                     linkId,
+                                                                     hasFramesToTransmit.at(linkId),
+                                                                     CHECK_MEDIUM_BUSY);
+    }
 }
 
 int64_t
-Txop::AssignStreams (int64_t stream)
+Txop::AssignStreams(int64_t stream)
 {
-  NS_LOG_FUNCTION (this << stream);
-  m_rng->SetStream (stream);
-  return 1;
+    NS_LOG_FUNCTION(this << stream);
+    m_rng->SetStream(stream);
+    return 1;
 }
 
 void
-Txop::RestartAccessIfNeeded (void)
+Txop::StartAccessAfterEvent(uint8_t linkId, bool hadFramesToTransmit, bool checkMediumBusy)
 {
-  NS_LOG_FUNCTION (this);
-  if ((m_currentPacket != 0
-       || !m_queue->IsEmpty ())
-      && !IsAccessRequested ()
-      && !m_low->IsCfPeriod ())
+    NS_LOG_FUNCTION(this << linkId << hadFramesToTransmit << checkMediumBusy);
+
+    if (!m_mac->GetWifiPhy(linkId))
     {
-      m_channelAccessManager->RequestAccess (this);
+        NS_LOG_DEBUG("No PHY operating on link " << +linkId);
+        return;
+    }
+
+    if (GetLink(linkId).access != NOT_REQUESTED)
+    {
+        NS_LOG_DEBUG("Channel access already requested or granted on link " << +linkId);
+        return;
+    }
+
+    if (!HasFramesToTransmit(linkId))
+    {
+        NS_LOG_DEBUG("No frames to transmit on link " << +linkId);
+        return;
+    }
+
+    if (m_mac->GetChannelAccessManager(linkId)->NeedBackoffUponAccess(this,
+                                                                      hadFramesToTransmit,
+                                                                      checkMediumBusy))
+    {
+        GenerateBackoff(linkId);
+    }
+
+    m_mac->GetChannelAccessManager(linkId)->RequestAccess(this);
+}
+
+void
+Txop::DoInitialize()
+{
+    NS_LOG_FUNCTION(this);
+    for (const auto& [id, link] : m_links)
+    {
+        ResetCw(id);
+        GenerateBackoff(id);
+    }
+}
+
+Txop::ChannelAccessStatus
+Txop::GetAccessStatus(uint8_t linkId) const
+{
+    return GetLink(linkId).access;
+}
+
+void
+Txop::NotifyAccessRequested(uint8_t linkId)
+{
+    NS_LOG_FUNCTION(this << linkId);
+    GetLink(linkId).access = REQUESTED;
+}
+
+void
+Txop::NotifyChannelAccessed(uint8_t linkId, Time txopDuration)
+{
+    NS_LOG_FUNCTION(this << linkId << txopDuration);
+    GetLink(linkId).access = GRANTED;
+}
+
+void
+Txop::NotifyChannelReleased(uint8_t linkId)
+{
+    NS_LOG_FUNCTION(this << linkId);
+    GetLink(linkId).access = NOT_REQUESTED;
+    GenerateBackoff(linkId);
+    if (HasFramesToTransmit(linkId))
+    {
+        Simulator::ScheduleNow(&Txop::RequestAccess, this, linkId);
     }
 }
 
 void
-Txop::StartAccessIfNeeded (void)
+Txop::RequestAccess(uint8_t linkId)
 {
-  NS_LOG_FUNCTION (this);
-  if (m_currentPacket == 0
-      && !m_queue->IsEmpty ()
-      && !IsAccessRequested ()
-      && !m_low->IsCfPeriod ())
+    NS_LOG_FUNCTION(this << linkId);
+    if (GetLink(linkId).access == NOT_REQUESTED)
     {
-      m_channelAccessManager->RequestAccess (this);
+        m_mac->GetChannelAccessManager(linkId)->RequestAccess(this);
     }
 }
 
-Ptr<MacLow>
-Txop::GetLow (void) const
+void
+Txop::GenerateBackoff(uint8_t linkId)
 {
-  return m_low;
+    uint32_t backoff = m_rng->GetInteger(0, GetCw(linkId));
+    NS_LOG_FUNCTION(this << linkId << backoff);
+    m_backoffTrace(backoff, linkId);
+    StartBackoffNow(backoff, linkId);
 }
 
 void
-Txop::DoInitialize ()
+Txop::NotifySleep(uint8_t linkId)
 {
-  NS_LOG_FUNCTION (this);
-  ResetCw ();
-  m_cwTrace = GetCw ();
-  GenerateBackoff ();
+    NS_LOG_FUNCTION(this << linkId);
+}
+
+void
+Txop::NotifyOff()
+{
+    NS_LOG_FUNCTION(this);
+    m_queue->Flush();
+}
+
+void
+Txop::NotifyWakeUp(uint8_t linkId)
+{
+    NS_LOG_FUNCTION(this << linkId);
+    // before wake up, no packet can be transmitted
+    StartAccessAfterEvent(linkId, DIDNT_HAVE_FRAMES_TO_TRANSMIT, DONT_CHECK_MEDIUM_BUSY);
+}
+
+void
+Txop::NotifyOn()
+{
+    NS_LOG_FUNCTION(this);
+    for (const auto& [id, link] : m_links)
+    {
+        // before being turned on, no packet can be transmitted
+        StartAccessAfterEvent(id, DIDNT_HAVE_FRAMES_TO_TRANSMIT, DONT_CHECK_MEDIUM_BUSY);
+    }
 }
 
 bool
-Txop::NeedRtsRetransmission (Ptr<const Packet> packet, const WifiMacHeader &hdr)
+Txop::IsQosTxop() const
 {
-  NS_LOG_FUNCTION (this);
-  return m_stationManager->NeedRetransmission (hdr.GetAddr1 (), &hdr, packet);
+    return false;
 }
 
-bool
-Txop::NeedDataRetransmission (Ptr<const Packet> packet, const WifiMacHeader &hdr)
-{
-  NS_LOG_FUNCTION (this);
-  return m_stationManager->NeedRetransmission (hdr.GetAddr1 (), &hdr, packet);
-}
-
-bool
-Txop::NeedFragmentation (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_stationManager->NeedFragmentation (m_currentHdr.GetAddr1 (), &m_currentHdr,
-                                              m_currentPacket);
-}
-
-void
-Txop::NextFragment (void)
-{
-  NS_LOG_FUNCTION (this);
-  m_fragmentNumber++;
-}
-
-uint32_t
-Txop::GetFragmentSize (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_stationManager->GetFragmentSize (m_currentHdr.GetAddr1 (), &m_currentHdr,
-                                            m_currentPacket, m_fragmentNumber);
-}
-
-bool
-Txop::IsLastFragment (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_stationManager->IsLastFragment (m_currentHdr.GetAddr1 (), &m_currentHdr,
-                                           m_currentPacket, m_fragmentNumber);
-}
-
-uint32_t
-Txop::GetNextFragmentSize (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_stationManager->GetFragmentSize (m_currentHdr.GetAddr1 (), &m_currentHdr,
-                                            m_currentPacket, m_fragmentNumber + 1);
-}
-
-uint32_t
-Txop::GetFragmentOffset (void) const
-{
-  NS_LOG_FUNCTION (this);
-  return m_stationManager->GetFragmentOffset (m_currentHdr.GetAddr1 (), &m_currentHdr,
-                                              m_currentPacket, m_fragmentNumber);
-}
-
-Ptr<Packet>
-Txop::GetFragmentPacket (WifiMacHeader *hdr)
-{
-  NS_LOG_FUNCTION (this << hdr);
-  *hdr = m_currentHdr;
-  hdr->SetFragmentNumber (m_fragmentNumber);
-  uint32_t startOffset = GetFragmentOffset ();
-  Ptr<Packet> fragment;
-  if (IsLastFragment ())
-    {
-      hdr->SetNoMoreFragments ();
-    }
-  else
-    {
-      hdr->SetMoreFragments ();
-    }
-  fragment = m_currentPacket->CreateFragment (startOffset,
-                                              GetFragmentSize ());
-  return fragment;
-}
-
-bool
-Txop::IsAccessRequested (void) const
-{
-  return m_accessRequested;
-}
-
-void
-Txop::NotifyAccessRequested (void)
-{
-  NS_LOG_FUNCTION (this);
-  m_accessRequested = true;
-}
-
-void
-Txop::NotifyAccessGranted (void)
-{
-  NS_LOG_FUNCTION (this);
-  NS_ASSERT (m_accessRequested);
-  m_accessRequested = false;
-  if (m_currentPacket == 0)
-    {
-      if (m_queue->IsEmpty ())
-        {
-          NS_LOG_DEBUG ("queue empty");
-          return;
-        }
-      Ptr<WifiMacQueueItem> item = m_queue->Dequeue ();
-      NS_ASSERT (item != 0);
-      m_currentPacket = item->GetPacket ();
-      m_currentHdr = item->GetHeader ();
-      NS_ASSERT (m_currentPacket != 0);
-      uint16_t sequence = m_txMiddle->GetNextSequenceNumberFor (&m_currentHdr);
-      m_currentHdr.SetSequenceNumber (sequence);
-      m_stationManager->UpdateFragmentationThreshold ();
-      m_currentHdr.SetFragmentNumber (0);
-      m_currentHdr.SetNoMoreFragments ();
-      m_currentHdr.SetNoRetry ();
-      m_fragmentNumber = 0;
-      NS_LOG_DEBUG ("dequeued size=" << m_currentPacket->GetSize () <<
-                    ", to=" << m_currentHdr.GetAddr1 () <<
-                    ", seq=" << m_currentHdr.GetSequenceControl ());
-    }
-  if (m_currentHdr.GetAddr1 ().IsGroup ())
-    {
-      m_currentParams.DisableRts ();
-      m_currentParams.DisableAck ();
-      m_currentParams.DisableNextData ();
-      NS_LOG_DEBUG ("tx broadcast");
-      GetLow ()->StartTransmission (Create<WifiMacQueueItem> (m_currentPacket, m_currentHdr),
-                                    m_currentParams, this);
-    }
-  else
-    {
-      m_currentParams.EnableAck ();
-      if (NeedFragmentation ())
-        {
-          m_currentParams.DisableRts ();
-          WifiMacHeader hdr;
-          Ptr<Packet> fragment = GetFragmentPacket (&hdr);
-          if (IsLastFragment ())
-            {
-              NS_LOG_DEBUG ("fragmenting last fragment size=" << fragment->GetSize ());
-              m_currentParams.DisableNextData ();
-            }
-          else
-            {
-              NS_LOG_DEBUG ("fragmenting size=" << fragment->GetSize ());
-              m_currentParams.EnableNextData (GetNextFragmentSize ());
-            }
-          GetLow ()->StartTransmission (Create<WifiMacQueueItem> (fragment, hdr),
-                                        m_currentParams, this);
-        }
-      else
-        {
-          uint32_t size = m_currentHdr.GetSize () + m_currentPacket->GetSize () + WIFI_MAC_FCS_LENGTH;
-          if (m_stationManager->NeedRts (m_currentHdr, size) && !m_low->IsCfPeriod ())
-            {
-              m_currentParams.EnableRts ();
-            }
-          else
-            {
-              m_currentParams.DisableRts ();
-            }
-          m_currentParams.DisableNextData ();
-          GetLow ()->StartTransmission (Create<WifiMacQueueItem> (m_currentPacket, m_currentHdr),
-                                        m_currentParams, this);
-        }
-    }
-}
-
-void
-Txop::GenerateBackoff (void)
-{
-  NS_LOG_FUNCTION (this);
-  m_backoff = m_rng->GetInteger (0, GetCw ());
-  m_backoffTrace (m_backoff);
-  StartBackoffNow (m_backoff);
-}
-
-void
-Txop::NotifyInternalCollision (void)
-{
-  NS_LOG_FUNCTION (this);
-  GenerateBackoff ();
-  RestartAccessIfNeeded ();
-}
-
-void
-Txop::NotifyChannelSwitching (void)
-{
-  NS_LOG_FUNCTION (this);
-  m_queue->Flush ();
-  m_currentPacket = 0;
-}
-
-void
-Txop::NotifySleep (void)
-{
-  NS_LOG_FUNCTION (this);
-  if (m_currentPacket != 0)
-    {
-      m_queue->PushFront (Create<WifiMacQueueItem> (m_currentPacket, m_currentHdr));
-      m_currentPacket = 0;
-    }
-}
-
-void
-Txop::NotifyOff (void)
-{
-  NS_LOG_FUNCTION (this);
-  m_queue->Flush ();
-  m_currentPacket = 0;
-}
-
-void
-Txop::NotifyWakeUp (void)
-{
-  NS_LOG_FUNCTION (this);
-  RestartAccessIfNeeded ();
-}
-
-void
-Txop::NotifyOn (void)
-{
-  NS_LOG_FUNCTION (this);
-  StartAccessIfNeeded ();
-}
-
-void
-Txop::MissedCts (void)
-{
-  NS_LOG_FUNCTION (this);
-  NS_LOG_DEBUG ("missed cts");
-  if (!NeedRtsRetransmission (m_currentPacket, m_currentHdr))
-    {
-      NS_LOG_DEBUG ("Cts Fail");
-      m_stationManager->ReportFinalRtsFailed (m_currentHdr.GetAddr1 (), &m_currentHdr);
-      if (!m_txFailedCallback.IsNull ())
-        {
-          m_txFailedCallback (m_currentHdr);
-        }
-      //to reset the Txop.
-      m_currentPacket = 0;
-      ResetCw ();
-      m_cwTrace = GetCw ();
-    }
-  else
-    {
-      UpdateFailedCw ();
-      m_cwTrace = GetCw ();
-    }
-  GenerateBackoff ();
-  RestartAccessIfNeeded ();
-}
-
-void
-Txop::GotAck (void)
-{
-  NS_LOG_FUNCTION (this);
-  if (!NeedFragmentation ()
-      || IsLastFragment ())
-    {
-      NS_LOG_DEBUG ("got ack. tx done.");
-      if (!m_txOkCallback.IsNull ())
-        {
-          m_txOkCallback (m_currentHdr);
-        }
-
-      /* we are not fragmenting or we are done fragmenting
-       * so we can get rid of that packet now.
-       */
-      m_currentPacket = 0;
-      ResetCw ();
-      m_cwTrace = GetCw ();
-      GenerateBackoff ();
-      RestartAccessIfNeeded ();
-    }
-  else
-    {
-      NS_LOG_DEBUG ("got ack. tx not done, size=" << m_currentPacket->GetSize ());
-    }
-}
-
-void
-Txop::MissedAck (void)
-{
-  NS_LOG_FUNCTION (this);
-  NS_LOG_DEBUG ("missed ack");
-  if (!NeedDataRetransmission (m_currentPacket, m_currentHdr))
-    {
-      NS_LOG_DEBUG ("Ack Fail");
-      m_stationManager->ReportFinalDataFailed (m_currentHdr.GetAddr1 (), &m_currentHdr,
-                                               m_currentPacket->GetSize ());
-      if (!m_txFailedCallback.IsNull ())
-        {
-          m_txFailedCallback (m_currentHdr);
-        }
-      //to reset the Txop.
-      m_currentPacket = 0;
-      ResetCw ();
-      m_cwTrace = GetCw ();
-    }
-  else
-    {
-      NS_LOG_DEBUG ("Retransmit");
-      m_stationManager->ReportDataFailed (m_currentHdr.GetAddr1 (), &m_currentHdr,
-                                          m_currentPacket->GetSize ());
-      m_currentHdr.SetRetry ();
-      UpdateFailedCw ();
-      m_cwTrace = GetCw ();
-    }
-  GenerateBackoff ();
-  RestartAccessIfNeeded ();
-}
-
-void
-Txop::GotCfEnd (void)
-{
-  NS_LOG_FUNCTION (this);
-  if (m_currentPacket != 0)
-    {
-      RestartAccessIfNeeded ();
-    }
-  else
-    {
-      StartAccessIfNeeded ();
-    }
-}
-
-void
-Txop::MissedCfPollResponse (bool expectedCfAck)
-{
-  NS_LOG_FUNCTION (this);
-  NS_LOG_DEBUG ("missed response to CF-POLL");
-  if (expectedCfAck)
-    {
-      if (!NeedDataRetransmission (m_currentPacket, m_currentHdr))
-        {
-          NS_LOG_DEBUG ("Ack Fail");
-          m_stationManager->ReportFinalDataFailed (m_currentHdr.GetAddr1 (), &m_currentHdr,
-                                                   m_currentPacket->GetSize ());
-          m_currentPacket = 0;
-        }
-      else
-        {
-          NS_LOG_DEBUG ("Retransmit");
-          m_currentHdr.SetRetry ();
-        }
-    }
-  if (!m_txFailedCallback.IsNull ())
-    {
-      m_txFailedCallback (m_currentHdr);
-    }
-}
-
-void
-Txop::StartNextFragment (void)
-{
-  NS_LOG_FUNCTION (this);
-  NS_LOG_DEBUG ("start next packet fragment");
-  /* this callback is used only for fragments. */
-  NextFragment ();
-  WifiMacHeader hdr;
-  Ptr<Packet> fragment = GetFragmentPacket (&hdr);
-  m_currentParams.EnableAck ();
-  m_currentParams.DisableRts ();
-  if (IsLastFragment ())
-    {
-      m_currentParams.DisableNextData ();
-    }
-  else
-    {
-      m_currentParams.EnableNextData (GetNextFragmentSize ());
-    }
-  GetLow ()->StartTransmission (Create<WifiMacQueueItem> (fragment, hdr), m_currentParams, this);
-}
-
-void
-Txop::Cancel (void)
-{
-  NS_LOG_FUNCTION (this);
-  NS_LOG_DEBUG ("transmission cancelled");
-}
-
-void
-Txop::EndTxNoAck (void)
-{
-  NS_LOG_FUNCTION (this);
-  NS_LOG_DEBUG ("a transmission that did not require an ACK just finished");
-  m_currentPacket = 0;
-  ResetCw ();
-  m_cwTrace = GetCw ();
-  GenerateBackoff ();
-  if (!m_txOkCallback.IsNull ())
-    {
-      m_txOkCallback (m_currentHdr);
-    }
-  StartAccessIfNeeded ();
-}
-
-void
-Txop::SendCfFrame (WifiMacType frameType, Mac48Address addr)
-{
-  NS_LOG_FUNCTION (this << frameType << addr);
-  NS_ASSERT (m_low->IsCfPeriod ());
-  if (m_currentPacket != 0 && frameType != WIFI_MAC_CTL_END)
-    {
-      if (!NeedDataRetransmission (m_currentPacket, m_currentHdr))
-        {
-          m_stationManager->ReportFinalDataFailed (m_currentHdr.GetAddr1 (), &m_currentHdr,
-                                                   m_currentPacket->GetSize ());
-          m_currentPacket = 0;
-        }
-      else
-        {
-          m_currentHdr.SetRetry ();
-        }
-    }
-  else if ((m_queue->GetNPacketsByAddress (addr) > 0) && (frameType != WIFI_MAC_CTL_END)) //if no packet for that dest, send to another dest?
-    {
-      Ptr<WifiMacQueueItem> item = m_queue->DequeueByAddress (addr);
-      NS_ASSERT (item != 0);
-      m_currentPacket = item->GetPacket ();
-      m_currentHdr = item->GetHeader ();
-      uint16_t sequence = m_txMiddle->GetNextSequenceNumberFor (&m_currentHdr);
-      m_currentHdr.SetSequenceNumber (sequence);
-      m_currentHdr.SetFragmentNumber (0);
-      m_currentHdr.SetNoMoreFragments ();
-      m_currentHdr.SetNoRetry ();
-    }
-  else
-    {
-      m_currentPacket = Create<Packet> ();
-      m_currentHdr.SetNoRetry ();
-    }
-
-  if (m_currentPacket->GetSize () > 0)
-    {
-      switch (frameType)
-        {
-        case WIFI_MAC_DATA_NULL_CFPOLL:
-          m_currentHdr.SetType (WIFI_MAC_DATA_CFPOLL);
-          break;
-        case WIFI_MAC_DATA_NULL:
-          m_currentHdr.SetType (WIFI_MAC_DATA);
-          break;
-        default:
-          NS_ASSERT (false);
-          break;
-        }
-    }
-  else
-    {
-      m_currentHdr.SetType (frameType);
-    }
-  m_currentHdr.SetAddr1 (addr);
-  m_currentHdr.SetAddr2 (m_low->GetAddress ());
-  if (frameType == WIFI_MAC_DATA_NULL)
-    {
-      m_currentHdr.SetAddr3 (m_low->GetBssid ());
-      m_currentHdr.SetDsTo ();
-      m_currentHdr.SetDsNotFrom ();
-    }
-  else
-    {
-      m_currentHdr.SetAddr3 (m_low->GetAddress ());
-      m_currentHdr.SetDsNotTo ();
-      m_currentHdr.SetDsFrom ();
-    }
-  m_channelAccessManager->RequestAccess (this, true);
-}
-
-bool
-Txop::CanStartNextPolling () const
-{
-  return (!m_channelAccessManager->IsBusy () && GetLow ()->CanTransmitNextCfFrame ());
-}
-
-bool
-Txop::IsQosTxop () const
-{
-  return false;
-}
-
-void
-Txop::StartNextPacket (void)
-{
-  NS_LOG_WARN ("StartNext should not be called for non QoS!");
-}
-
-void
-Txop::GotBlockAck (const CtrlBAckResponseHeader *blockAck, Mac48Address recipient, double rxSnr, double dataSnr, WifiTxVector dataTxVector)
-{
-  NS_LOG_WARN ("GotBlockAck should not be called for non QoS!");
-}
-
-void
-Txop::MissedBlockAck (uint8_t nMpdus)
-{
-  NS_LOG_WARN ("MissedBlockAck should not be called for non QoS!");
-}
-
-Time
-Txop::GetTxopRemaining (void) const
-{
-  NS_LOG_WARN ("GetTxopRemaining should not be called for non QoS!");
-  return Seconds (0);
-}
-
-void
-Txop::TerminateTxop (void)
-{
-  NS_LOG_WARN ("TerminateTxop should not be called for non QoS!");
-}
-
-} //namespace ns3
+} // namespace ns3

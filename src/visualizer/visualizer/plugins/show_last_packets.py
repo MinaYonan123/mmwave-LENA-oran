@@ -1,12 +1,21 @@
-from gi.repository import GObject
-from gi.repository import Gtk
+from gi.repository import GObject, Gtk
 
-import ns.core
-import ns.network
-import ns.visualizer
+try:
+    from ns import ns
+except ModuleNotFoundError:
+    raise SystemExit(
+        "Error: ns3 Python module not found;"
+        " Python bindings may not be enabled"
+        " or your PYTHONPATH might not be properly configured"
+    )
 
-from visualizer.base import InformationWindow
-from kiwi.ui.objectlist import ObjectList, Column
+try:
+    from ns3.visualizer.base import InformationWindow
+except ModuleNotFoundError:
+    from visualizer.base import InformationWindow
+
+from kiwi.ui.objectlist import Column, ObjectList
+
 
 ## ShowLastPackets class
 class ShowLastPackets(InformationWindow):
@@ -34,18 +43,30 @@ class ShowLastPackets(InformationWindow):
     #  AND button
     ## @var op_OR_button
     #  OR button
+    ## @var _response_cb
+    #  _response_cb function
+
     class PacketList(Gtk.ScrolledWindow):
         """
         PacketList class
         """
+
         ## @var table_model
         #  table model
+        ## @var COLUMN_TIME
+        #  COLUMN_TIME constant
+        ## @var COLUMN_INTERFACE
+        #  COLUMN_INTERFACE constant
+        ## @var COLUMN_SIZE
+        #  COLUMN_SIZE constant
+        ## @var COLUMN_CONTENTS
+        #  COLUMN_CONTENTS constant
         (
             COLUMN_TIME,
             COLUMN_INTERFACE,
             COLUMN_SIZE,
             COLUMN_CONTENTS,
-            ) = range(4)
+        ) = range(4)
 
         def __init__(self):
             """
@@ -53,9 +74,11 @@ class ShowLastPackets(InformationWindow):
             @param self this object
             """
             super(ShowLastPackets.PacketList, self).__init__()
-            self.set_properties(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
-                                vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
-            self.table_model = Gtk.ListStore(*([str]*4))
+            self.set_properties(
+                hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+                vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+            )
+            self.table_model = Gtk.ListStore(*([str] * 4))
             treeview = Gtk.TreeView(self.table_model)
             treeview.show()
             self.add(treeview)
@@ -83,39 +106,49 @@ class ShowLastPackets(InformationWindow):
                 if sample.device is None:
                     interface_name = "(unknown)"
                 else:
-                    interface_name = ns.core.Names.FindName(sample.device)
+                    interface_name = ns.Names.FindName(sample.device)
                     if not interface_name:
                         interface_name = "(interface %i)" % sample.device.GetIfIndex()
-                self.table_model.set(tree_iter,
-                                     self.COLUMN_TIME, str(sample.time.GetSeconds()),
-                                     self.COLUMN_INTERFACE, interface_name,
-                                     self.COLUMN_SIZE, str(sample.packet.GetSize ()),
-                                     self.COLUMN_CONTENTS, str(sample.packet)
-                                     )
-
+                self.table_model.set(
+                    tree_iter,
+                    self.COLUMN_TIME,
+                    str(sample.time.GetSeconds()),
+                    self.COLUMN_INTERFACE,
+                    interface_name,
+                    self.COLUMN_SIZE,
+                    str(sample.packet.GetSize()),
+                    self.COLUMN_CONTENTS,
+                    str(sample.packet),
+                )
 
     def __init__(self, visualizer, node_index):
-        """
+        """!
         Initializer
         @param self this object
         @param visualizer the visualizer object
         @param node_index the node index
         """
         InformationWindow.__init__(self)
-        self.win = Gtk.Dialog(parent=visualizer.window,
-                              flags=Gtk.DialogFlags.DESTROY_WITH_PARENT|Gtk.DialogFlags.NO_SEPARATOR,
-                              buttons=(Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE))
+        self.win = Gtk.Dialog(
+            parent=visualizer.window,
+            flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            buttons=("_Close", Gtk.ResponseType.CLOSE),
+        )
         self.win.connect("response", self._response_cb)
         self.win.set_title("Last packets for node %i" % node_index)
         self.visualizer = visualizer
         self.viz_node = visualizer.get_node(node_index)
-        self.node = ns.network.NodeList.GetNode(node_index)
+        self.node = ns.NodeList.GetNode(node_index)
 
         def smart_expand(expander, vbox):
             if expander.get_expanded():
-                vbox.set_child_packing(expander, expand=True, fill=True, padding=0, pack_type=Gtk.PACK_START)
+                vbox.set_child_packing(
+                    expander, expand=True, fill=True, padding=0, pack_type=Gtk.PACK_START
+                )
             else:
-                vbox.set_child_packing(expander, expand=False, fill=False, padding=0, pack_type=Gtk.PACK_START)
+                vbox.set_child_packing(
+                    expander, expand=False, fill=False, padding=0, pack_type=Gtk.PACK_START
+                )
 
         main_hbox = Gtk.HBox(False, 4)
         main_hbox.show()
@@ -148,11 +181,10 @@ class ShowLastPackets(InformationWindow):
         main_vbox.pack_start(group, expand=False, fill=False)
         group.connect_after("activate", smart_expand, main_vbox)
 
-
         # Packet Filter
 
         # - options
-        self.packet_capture_options = ns.visualizer.PyViz.PacketCaptureOptions()
+        self.packet_capture_options = ns.PyViz.PacketCaptureOptions()
         self.packet_capture_options.numLastPackets = 100
 
         packet_filter_vbox = Gtk.VBox(False, 4)
@@ -167,22 +199,25 @@ class ShowLastPackets(InformationWindow):
         sel_buttons_box.add(select_all_button)
         sel_buttons_box.add(select_none_button)
 
-        self.packet_filter_widget = ObjectList([
-                Column('selected', title="Sel.", data_type=bool, editable=True),
-                Column('name', title="Header"),
-                ], sortable=True)
+        self.packet_filter_widget = ObjectList(
+            [
+                Column("selected", title="Sel.", data_type=bool, editable=True),
+                Column("name", title="Header"),
+            ],
+            sortable=True,
+        )
         self.packet_filter_widget.show()
         packet_filter_vbox.pack_start(self.packet_filter_widget, True, True, 4)
 
         class TypeIdConfig(object):
-            __slots__ = ['name', 'selected', 'typeid']
+            __slots__ = ["name", "selected", "typeid"]
 
-        self.packet_filter_list = [] # list of TypeIdConfig instances
+        self.packet_filter_list = []  # list of TypeIdConfig instances
 
-        Header = ns.core.TypeId.LookupByName("ns3::Header")
-        Trailer = ns.core.TypeId.LookupByName("ns3::Trailer")
-        for typeid_i in range(ns.core.TypeId.GetRegisteredN()):
-            typeid = ns.core.TypeId.GetRegistered(typeid_i)
+        Header = ns.TypeId.LookupByName("ns3::Header")
+        Trailer = ns.TypeId.LookupByName("ns3::Trailer")
+        for typeid_i in range(ns.TypeId.GetRegisteredN()):
+            typeid = ns.TypeId.GetRegistered(typeid_i)
             # check if this is a header or trailer subtype
             typeid_tmp = typeid
             type_is_good = False
@@ -207,15 +242,18 @@ class ShowLastPackets(InformationWindow):
 
         def update_capture_options():
             if self.op_AND_button.props.active:
-                self.packet_capture_options.mode = ns.visualizer.PyViz.PACKET_CAPTURE_FILTER_HEADERS_AND
+                self.packet_capture_options.mode = ns.PyViz.PACKET_CAPTURE_FILTER_HEADERS_AND
             else:
-                self.packet_capture_options.mode = ns.visualizer.PyViz.PACKET_CAPTURE_FILTER_HEADERS_OR
+                self.packet_capture_options.mode = ns.PyViz.PACKET_CAPTURE_FILTER_HEADERS_OR
             self.packet_capture_options.numLastPackets = 100
-            self.packet_capture_options.headers = [c.typeid for c in self.packet_filter_list if c.selected]
+            self.packet_capture_options.headers = [
+                c.typeid for c in self.packet_filter_list if c.selected
+            ]
             self.visualizer.simulation.lock.acquire()
             try:
                 self.visualizer.simulation.sim_helper.SetPacketCaptureOptions(
-                    self.node.GetId(), self.packet_capture_options)
+                    self.node.GetId(), self.packet_capture_options
+                )
             finally:
                 self.visualizer.simulation.lock.release()
 
@@ -238,7 +276,9 @@ class ShowLastPackets(InformationWindow):
         op_buttons_box.show()
         packet_filter_vbox.pack_start(op_buttons_box, False, False, 4)
         self.op_AND_button = GObject.new(Gtk.RadioButton, label="AND", visible=True)
-        self.op_OR_button = GObject.new(Gtk.RadioButton, label="OR", visible=True, group=self.op_AND_button)
+        self.op_OR_button = GObject.new(
+            Gtk.RadioButton, label="OR", visible=True, group=self.op_AND_button
+        )
         op_buttons_box.add(self.op_AND_button)
         op_buttons_box.add(self.op_OR_button)
         self.op_OR_button.props.active = True
@@ -247,6 +287,7 @@ class ShowLastPackets(InformationWindow):
 
         def cell_edited(l, obj, attribute):
             update_capture_options()
+
         self.packet_filter_widget.connect("cell-edited", cell_edited)
 
         update_capture_options()
@@ -288,6 +329,7 @@ def populate_node_menu(viz, node, menu):
 
     menu_item.connect("activate", _show_it)
     menu.add(menu_item)
+
 
 def register(viz):
     viz.connect("populate-node-menu", populate_node_menu)

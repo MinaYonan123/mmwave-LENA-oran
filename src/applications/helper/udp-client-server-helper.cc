@@ -1,4 +1,3 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2008 INRIA
  *
@@ -17,130 +16,61 @@
  *
  * Author: Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
  */
+
 #include "udp-client-server-helper.h"
-#include "ns3/udp-server.h"
-#include "ns3/udp-client.h"
-#include "ns3/udp-trace-client.h"
-#include "ns3/uinteger.h"
-#include "ns3/string.h"
 
-namespace ns3 {
+#include <ns3/string.h>
+#include <ns3/uinteger.h>
 
-UdpServerHelper::UdpServerHelper ()
+namespace ns3
 {
-  m_factory.SetTypeId (UdpServer::GetTypeId ());
+
+UdpServerHelper::UdpServerHelper()
+    : ApplicationHelper(UdpServer::GetTypeId())
+{
 }
 
-UdpServerHelper::UdpServerHelper (uint16_t port)
+UdpServerHelper::UdpServerHelper(uint16_t port)
+    : UdpServerHelper()
 {
-  m_factory.SetTypeId (UdpServer::GetTypeId ());
-  SetAttribute ("Port", UintegerValue (port));
+    SetAttribute("Port", UintegerValue(port));
 }
 
-void
-UdpServerHelper::SetAttribute (std::string name, const AttributeValue &value)
+UdpClientHelper::UdpClientHelper()
+    : ApplicationHelper(UdpClient::GetTypeId())
 {
-  m_factory.Set (name, value);
 }
 
-ApplicationContainer
-UdpServerHelper::Install (NodeContainer c)
+UdpClientHelper::UdpClientHelper(const Address& address)
+    : UdpClientHelper()
 {
-  ApplicationContainer apps;
-  for (NodeContainer::Iterator i = c.Begin (); i != c.End (); ++i)
-    {
-      Ptr<Node> node = *i;
-
-      m_server = m_factory.Create<UdpServer> ();
-      node->AddApplication (m_server);
-      apps.Add (m_server);
-
-    }
-  return apps;
+    SetAttribute("RemoteAddress", AddressValue(address));
 }
 
-Ptr<UdpServer>
-UdpServerHelper::GetServer (void)
+UdpClientHelper::UdpClientHelper(const Address& address, uint16_t port)
+    : UdpClientHelper(address)
 {
-  return m_server;
+    SetAttribute("RemotePort", UintegerValue(port));
 }
 
-UdpClientHelper::UdpClientHelper ()
+UdpTraceClientHelper::UdpTraceClientHelper()
+    : ApplicationHelper(UdpTraceClient::GetTypeId())
 {
-  m_factory.SetTypeId (UdpClient::GetTypeId ());
 }
 
-UdpClientHelper::UdpClientHelper (Address address, uint16_t port)
+UdpTraceClientHelper::UdpTraceClientHelper(const Address& address, const std::string& filename)
+    : UdpTraceClientHelper()
 {
-  m_factory.SetTypeId (UdpClient::GetTypeId ());
-  SetAttribute ("RemoteAddress", AddressValue (address));
-  SetAttribute ("RemotePort", UintegerValue (port));
+    SetAttribute("RemoteAddress", AddressValue(address));
+    SetAttribute("TraceFilename", StringValue(filename));
 }
 
-UdpClientHelper::UdpClientHelper (Address address)
+UdpTraceClientHelper::UdpTraceClientHelper(const Address& address,
+                                           uint16_t port,
+                                           const std::string& filename)
+    : UdpTraceClientHelper(address, filename)
 {
-  m_factory.SetTypeId (UdpClient::GetTypeId ());
-  SetAttribute ("RemoteAddress", AddressValue (address));
-}
-
-void
-UdpClientHelper::SetAttribute (std::string name, const AttributeValue &value)
-{
-  m_factory.Set (name, value);
-}
-
-ApplicationContainer
-UdpClientHelper::Install (NodeContainer c)
-{
-  ApplicationContainer apps;
-  for (NodeContainer::Iterator i = c.Begin (); i != c.End (); ++i)
-    {
-      Ptr<Node> node = *i;
-      Ptr<UdpClient> client = m_factory.Create<UdpClient> ();
-      node->AddApplication (client);
-      apps.Add (client);
-    }
-  return apps;
-}
-
-UdpTraceClientHelper::UdpTraceClientHelper ()
-{
-  m_factory.SetTypeId (UdpTraceClient::GetTypeId ());
-}
-
-UdpTraceClientHelper::UdpTraceClientHelper (Address address, uint16_t port, std::string filename)
-{
-  m_factory.SetTypeId (UdpTraceClient::GetTypeId ());
-  SetAttribute ("RemoteAddress", AddressValue (address));
-  SetAttribute ("RemotePort", UintegerValue (port));
-  SetAttribute ("TraceFilename", StringValue (filename));
-}
-
-UdpTraceClientHelper::UdpTraceClientHelper (Address address, std::string filename)
-{
-  m_factory.SetTypeId (UdpTraceClient::GetTypeId ());
-  SetAttribute ("RemoteAddress", AddressValue (address));
-  SetAttribute ("TraceFilename", StringValue (filename));
-}
-
-void
-UdpTraceClientHelper::SetAttribute (std::string name, const AttributeValue &value)
-{
-  m_factory.Set (name, value);
-}
-
-ApplicationContainer
-UdpTraceClientHelper::Install (NodeContainer c)
-{
-  ApplicationContainer apps;
-  for (NodeContainer::Iterator i = c.Begin (); i != c.End (); ++i)
-    {
-      Ptr<Node> node = *i;
-      Ptr<UdpTraceClient> client = m_factory.Create<UdpTraceClient> ();
-      node->AddApplication (client);
-      apps.Add (client);
-    }
-  return apps;
+    SetAttribute("RemotePort", UintegerValue(port));
 }
 
 } // namespace ns3
