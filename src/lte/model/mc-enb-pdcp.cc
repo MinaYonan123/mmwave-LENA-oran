@@ -20,21 +20,15 @@
  * Extension to DC devices by Michele Polese <michele.polese@gmail.com>
  */
 
-<<<<<<< HEAD
 #include "ns3/log.h"
 #include "ns3/simulator.h"
 #include "ns3/random-variable-stream.h"
 
-=======
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 #include "ns3/mc-enb-pdcp.h"
-
 #include "ns3/epc-x2-sap.h"
-#include "ns3/log.h"
 #include "ns3/lte-pdcp-header.h"
 #include "ns3/lte-pdcp-sap.h"
 #include "ns3/lte-pdcp-tag.h"
-#include "ns3/simulator.h"
 
 namespace ns3
 {
@@ -71,7 +65,6 @@ McPdcpSpecificLteRlcSapUser::ReceivePdcpPdu(Ptr<Packet> p)
 
 ///////////////////////////////////////
 
-<<<<<<< HEAD
 NS_OBJECT_ENSURE_REGISTERED (McEnbPdcp);
 
 McEnbPdcp::McEnbPdcp ()
@@ -92,24 +85,6 @@ McEnbPdcp::McEnbPdcp ()
   m_uniformRNG = CreateObject<UniformRandomVariable> ();
   m_uniformRNG->SetAttribute ("Min", DoubleValue (0.0));
   m_uniformRNG->SetAttribute ("Max", DoubleValue (1.0));
-=======
-NS_OBJECT_ENSURE_REGISTERED(McEnbPdcp);
-
-McEnbPdcp::McEnbPdcp()
-    : m_pdcpSapUser(0),
-      m_rlcSapProvider(0),
-      m_rnti(0),
-      m_lcid(0),
-      m_epcX2PdcpProvider(0),
-      m_txSequenceNumber(0),
-      m_rxSequenceNumber(0),
-      m_useMmWaveConnection(false)
-{
-    NS_LOG_FUNCTION(this);
-    m_pdcpSapProvider = new LtePdcpSpecificLtePdcpSapProvider<McEnbPdcp>(this);
-    m_rlcSapUser = new McPdcpSpecificLteRlcSapUser(this);
-    m_epcX2PdcpUser = new EpcX2PdcpSpecificUser<McEnbPdcp>(this);
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 McEnbPdcp::~McEnbPdcp()
@@ -120,7 +95,6 @@ McEnbPdcp::~McEnbPdcp()
 TypeId
 McEnbPdcp::GetTypeId(void)
 {
-<<<<<<< HEAD
   static TypeId tid =
       TypeId ("ns3::McEnbPdcp")
           .SetParent<Object> ()
@@ -136,19 +110,6 @@ McEnbPdcp::GetTypeId(void)
                          MakeDoubleChecker<double> (-1,1.0))
           ;
   return tid;
-=======
-    static TypeId tid = TypeId("ns3::McEnbPdcp")
-                            .SetParent<Object>()
-                            .AddTraceSource("TxPDU",
-                                            "PDU transmission notified to the RLC.",
-                                            MakeTraceSourceAccessor(&McEnbPdcp::m_txPdu),
-                                            "ns3::McEnbPdcp::PduTxTracedCallback")
-                            .AddTraceSource("RxPDU",
-                                            "PDU received.",
-                                            MakeTraceSourceAccessor(&McEnbPdcp::m_rxPdu),
-                                            "ns3::McEnbPdcp::PduRxTracedCallback");
-    return tid;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 void
@@ -289,7 +250,6 @@ McEnbPdcp::DoTransmitPdcpSdu(Ptr<Packet> p)
         m_txSequenceNumber = 0;
     }
 
-<<<<<<< HEAD
   pdcpHeader.SetDcBit (LtePdcpHeader::DATA_PDU);
 
   NS_LOG_LOGIC ("PDCP header: " << pdcpHeader);
@@ -318,45 +278,6 @@ McEnbPdcp::DoTransmitPdcpSdu(Ptr<Packet> p)
   else
     {
       DoTransmitPdcpSduLTE (p, params);
-=======
-    pdcpHeader.SetDcBit(LtePdcpHeader::DATA_PDU);
-
-    NS_LOG_LOGIC("PDCP header: " << pdcpHeader);
-    p->AddHeader(pdcpHeader);
-
-    LteRlcSapProvider::TransmitPdcpPduParameters params;
-    params.rnti = m_rnti;
-    params.lcid = m_lcid;
-
-    if (m_epcX2PdcpProvider == 0 || (!m_useMmWaveConnection))
-    {
-        NS_LOG_INFO(this << " McEnbPdcp: Tx packet to downlink local stack");
-
-        // Sender timestamp. We will use this to measure the delay on top of RLC
-        PdcpTag pdcpTag(Simulator::Now());
-        p->AddByteTag(pdcpTag);
-        m_txPdu(m_rnti, m_lcid, p->GetSize());
-        params.pdcpPdu = p;
-
-        NS_LOG_LOGIC("Params.rnti " << params.rnti);
-        NS_LOG_LOGIC("Params.m_lcid " << params.lcid);
-        NS_LOG_LOGIC("Params.pdcpPdu " << params.pdcpPdu);
-
-        m_rlcSapProvider->TransmitPdcpPdu(params);
-    }
-    else if (m_useMmWaveConnection)
-    {
-        // Do not add sender time stamp: we are not interested in adding X2 delay for MC connections
-        NS_LOG_INFO(this << " McEnbPdcp: Tx packet to downlink MmWave stack on remote cell "
-                         << m_ueDataParams.targetCellId);
-        m_ueDataParams.ueData = p;
-        m_txPdu(m_rnti, m_lcid, p->GetSize());
-        m_epcX2PdcpProvider->SendMcPdcpPdu(m_ueDataParams);
-    }
-    else
-    {
-        NS_FATAL_ERROR("Invalid combination");
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     }
 }
 

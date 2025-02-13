@@ -170,7 +170,6 @@ UeManager::UeManager(Ptr<LteEnbRrc> rrc, uint16_t rnti, State s, uint8_t compone
 }
 
 void
-<<<<<<< HEAD
 UeManager::DoInitialize ()
 {
   NS_LOG_FUNCTION (this);
@@ -291,137 +290,6 @@ UeManager::DoInitialize ()
   // schedule this UeManager instance to be deleted if the UE does not give any sign of life within a reasonable time
   Time maxConnectionDelay;
   switch (m_state)
-=======
-UeManager::DoInitialize()
-{
-    NS_LOG_FUNCTION(this);
-    m_drbPdcpSapUser = new LtePdcpSpecificLtePdcpSapUser<UeManager>(this);
-
-    m_physicalConfigDedicated.haveAntennaInfoDedicated = true;
-    m_physicalConfigDedicated.antennaInfo.transmissionMode = m_rrc->m_defaultTransmissionMode;
-    m_physicalConfigDedicated.haveSoundingRsUlConfigDedicated = true;
-    m_physicalConfigDedicated.soundingRsUlConfigDedicated.srsConfigIndex =
-        m_rrc->GetNewSrsConfigurationIndex();
-    m_physicalConfigDedicated.soundingRsUlConfigDedicated.type =
-        LteRrcSap::SoundingRsUlConfigDedicated::SETUP;
-    m_physicalConfigDedicated.soundingRsUlConfigDedicated.srsBandwidth = 0;
-    m_physicalConfigDedicated.havePdschConfigDedicated = true;
-    m_physicalConfigDedicated.pdschConfigDedicated.pa = LteRrcSap::PdschConfigDedicated::dB0;
-
-    m_rlcMap.clear();
-
-    for (uint8_t i = 0; i < m_rrc->m_numberOfComponentCarriers; i++)
-    {
-        m_rrc->m_cmacSapProvider.at(i)->AddUe(m_rnti);
-        m_rrc->m_cphySapProvider.at(i)->AddUe(m_rnti);
-    }
-
-    // setup the eNB side of SRB0
-    {
-        uint8_t lcid = 0;
-
-        Ptr<LteRlc> rlc = CreateObject<LteRlcTm>()->GetObject<LteRlc>();
-        rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
-        rlc->SetRnti(m_rnti);
-        rlc->SetLcId(lcid);
-
-        m_srb0 = CreateObject<LteSignalingRadioBearerInfo>();
-        m_srb0->m_rlc = rlc;
-        m_srb0->m_srbIdentity = 0;
-        // no need to store logicalChannelConfig as SRB0 is pre-configured
-
-        LteEnbCmacSapProvider::LcInfo lcinfo;
-        lcinfo.rnti = m_rnti;
-        lcinfo.lcId = lcid;
-        // Initialise the rest of lcinfo structure even if CCCH (LCID 0) is pre-configured, and only
-        // m_rnti and lcid will be used from passed lcinfo structure. See FF LTE MAC Scheduler
-        // Iinterface Specification v1.11, 4.3.4 logicalChannelConfigListElement
-        lcinfo.lcGroup = 0;
-        lcinfo.qci = 0;
-        lcinfo.isGbr = false;
-        lcinfo.mbrUl = 0;
-        lcinfo.mbrDl = 0;
-        lcinfo.gbrUl = 0;
-        lcinfo.gbrDl = 0;
-
-        // MacSapUserForRlc in the ComponentCarrierManager MacSapUser
-        LteMacSapUser* lteMacSapUser =
-            m_rrc->m_ccmRrcSapProvider->ConfigureSignalBearer(lcinfo, rlc->GetLteMacSapUser());
-        // Signal Channel are only on Primary Carrier
-        m_rrc->m_cmacSapProvider.at(m_componentCarrierId)->AddLc(lcinfo, lteMacSapUser);
-        m_rrc->m_ccmRrcSapProvider->AddLc(lcinfo, lteMacSapUser);
-    }
-
-    // setup the eNB side of SRB1; the UE side will be set up upon RRC connection establishment
-    {
-        uint8_t lcid = 1;
-
-        Ptr<LteRlc> rlc = CreateObject<LteRlcAm>()->GetObject<LteRlc>();
-        rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
-        rlc->SetRnti(m_rnti);
-        rlc->SetLcId(lcid);
-
-        Ptr<LtePdcp> pdcp = CreateObject<LtePdcp>();
-        pdcp->SetRnti(m_rnti);
-        pdcp->SetLcId(lcid);
-        pdcp->SetLtePdcpSapUser(m_drbPdcpSapUser);
-        pdcp->SetLteRlcSapProvider(rlc->GetLteRlcSapProvider());
-        rlc->SetLteRlcSapUser(pdcp->GetLteRlcSapUser());
-
-        m_srb1 = CreateObject<LteSignalingRadioBearerInfo>();
-        m_srb1->m_rlc = rlc;
-        m_srb1->m_pdcp = pdcp;
-        m_srb1->m_srbIdentity = 1;
-        m_srb1->m_logicalChannelConfig.priority = 1;
-        m_srb1->m_logicalChannelConfig.prioritizedBitRateKbps = 100;
-        m_srb1->m_logicalChannelConfig.bucketSizeDurationMs = 100;
-        m_srb1->m_logicalChannelConfig.logicalChannelGroup = 0;
-
-        LteEnbCmacSapProvider::LcInfo lcinfo;
-        lcinfo.rnti = m_rnti;
-        lcinfo.lcId = lcid;
-        lcinfo.lcGroup = 0; // all SRBs always mapped to LCG 0
-        lcinfo.qci =
-            EpsBearer::GBR_CONV_VOICE; // not sure why the FF API requires a CQI even for SRBs...
-        lcinfo.isGbr = true;
-        lcinfo.mbrUl = 1e6;
-        lcinfo.mbrDl = 1e6;
-        lcinfo.gbrUl = 1e4;
-        lcinfo.gbrDl = 1e4;
-        // MacSapUserForRlc in the ComponentCarrierManager MacSapUser
-        LteMacSapUser* MacSapUserForRlc =
-            m_rrc->m_ccmRrcSapProvider->ConfigureSignalBearer(lcinfo, rlc->GetLteMacSapUser());
-        // Signal Channel are only on Primary Carrier
-        m_rrc->m_cmacSapProvider.at(m_componentCarrierId)->AddLc(lcinfo, MacSapUserForRlc);
-        m_rrc->m_ccmRrcSapProvider->AddLc(lcinfo, MacSapUserForRlc);
-    }
-
-    LteEnbRrcSapUser::SetupUeParameters ueParams;
-    ueParams.srb0SapProvider = m_srb0->m_rlc->GetLteRlcSapProvider();
-    ueParams.srb1SapProvider = m_srb1->m_pdcp->GetLtePdcpSapProvider();
-    m_rrc->m_rrcSapUser->SetupUe(m_rnti, ueParams);
-
-    // configure MAC (and scheduler)
-    LteEnbCmacSapProvider::UeConfig req;
-    req.m_rnti = m_rnti;
-    req.m_transmissionMode = m_physicalConfigDedicated.antennaInfo.transmissionMode;
-
-    // configure PHY
-    for (uint16_t i = 0; i < m_rrc->m_numberOfComponentCarriers; i++)
-    {
-        m_rrc->m_cmacSapProvider.at(i)->UeUpdateConfigurationReq(req);
-        m_rrc->m_cphySapProvider.at(i)->SetTransmissionMode(
-            m_rnti,
-            m_physicalConfigDedicated.antennaInfo.transmissionMode);
-        m_rrc->m_cphySapProvider.at(i)->SetSrsConfigurationIndex(
-            m_rnti,
-            m_physicalConfigDedicated.soundingRsUlConfigDedicated.srsConfigIndex);
-    }
-    // schedule this UeManager instance to be deleted if the UE does not give any sign of life
-    // within a reasonable time
-    Time maxConnectionDelay;
-    switch (m_state)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     {
     case INITIAL_RANDOM_ACCESS:
         m_connectionRequestTimeout = Simulator::Schedule(m_rrc->m_connectionRequestTimeoutDuration,
@@ -593,7 +461,6 @@ UeManager::SetupDataRadioBearer(EpsBearer bearer,
         NS_ASSERT_MSG(ret.second == true, "overwriting a pre-existing entry in m_x2uTeidInfoMap");
     }
 
-<<<<<<< HEAD
   TypeId rlcTypeId = m_rrc->GetRlcType (bearer);
 
   ObjectFactory rlcObjectFactory;
@@ -606,19 +473,6 @@ UeManager::SetupDataRadioBearer(EpsBearer bearer,
   drbInfo->m_rlc = rlc;
 
   rlc->SetLcId (lcid);
-=======
-    TypeId rlcTypeId = m_rrc->GetRlcType(bearer);
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
-
-    ObjectFactory rlcObjectFactory;
-    rlcObjectFactory.SetTypeId(rlcTypeId);
-    Ptr<LteRlc> rlc = rlcObjectFactory.Create()->GetObject<LteRlc>();
-    rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
-    rlc->SetRnti(m_rnti);
-
-    drbInfo->m_rlc = rlc;
-
-    rlc->SetLcId(lcid);
 
     // we need PDCP only for real RLC, i.e., RLC/UM or RLC/AM
     // if we are using RLC/SM we don't care of anything above RLC
@@ -1589,69 +1443,6 @@ UeManager::RecvRlcSetupRequest(EpcX2SapUser::RlcSetupRequest params) // TODO onl
         // to the othe MmWaveEnb
         m_rlcRequestVector.push_back(params);
 
-<<<<<<< HEAD
-    ObjectFactory rlcObjectFactory;
-    rlcObjectFactory.SetTypeId (rlcTypeId);
-    Ptr<LteRlc> rlc = rlcObjectFactory.Create ()->GetObject<LteRlc> ();
-    NS_LOG_INFO("Created rlc " << rlc);
-    rlc->SetLteMacSapProvider (m_rrc->m_macSapProvider);
-    rlc->SetRnti (m_rnti);
-    rlc->SetImsi (m_imsi);
-
-    rlcInfo->m_rlc = rlc;
-
-    rlc->SetLcId (lcid);
-
-    if (rlcTypeId != LteRlcSm::GetTypeId ())
-    {
-      // connect with remote PDCP
-      rlc->SetEpcX2RlcProvider (m_rrc->GetEpcX2RlcProvider());
-      EpcX2Sap::UeDataParams ueParams;
-      ueParams.sourceCellId = m_rrc->GetCellId();
-      ueParams.targetCellId = rlcInfo->targetCellId; // the LTE cell
-      ueParams.gtpTeid = rlcInfo->gtpTeid;
-      rlc->SetUeDataParams(ueParams);
-      m_rrc->m_x2SapProvider->SetEpcX2RlcUser (params.gtpTeid, rlc->GetEpcX2RlcUser());
-    }
-
-    std::vector<LteCcmRrcSapProvider::LcsConfig> lcOnCcMapping = m_rrc->m_ccmRrcSapProvider->SetupDataRadioBearer (bearer, bid, m_rnti, lcid, m_rrc->GetLogicalChannelGroup (bearer), rlc->GetLteMacSapUser ());
-    // LteEnbCmacSapProvider::LcInfo lcinfo;
-    // lcinfo.rnti = m_rnti;
-    // lcinfo.lcId = lcid;
-    // lcinfo.lcGroup = m_rrc->GetLogicalChannelGroup (params.lcinfo.isGbr);
-    // lcinfo.qci = params.lcinfo.qci;
-    // lcinfo.isGbr = params.lcinfo.isGbr;
-    // lcinfo.mbrUl = params.lcinfo.mbrUl;
-    // lcinfo.mbrDl = params.lcinfo.mbrDl;
-    // lcinfo.gbrUl = params.lcinfo.gbrUl;
-    // lcinfo.gbrDl = params.lcinfo.gbrDl;
-    std::vector<LteCcmRrcSapProvider::LcsConfig>::iterator itLcOnCcMapping = lcOnCcMapping.begin ();
-    NS_ASSERT_MSG (itLcOnCcMapping != lcOnCcMapping.end (), "Problem");
-    for (itLcOnCcMapping = lcOnCcMapping.begin (); itLcOnCcMapping != lcOnCcMapping.end (); ++itLcOnCcMapping)
-      {
-        NS_LOG_DEBUG (this << " RNTI " << itLcOnCcMapping->lc.rnti << "Lcid " << (uint16_t) itLcOnCcMapping->lc.lcId << " lcGroup " << (uint16_t) itLcOnCcMapping->lc.lcGroup << " ComponentCarrierId " << itLcOnCcMapping->componentCarrierId);
-        uint8_t index = itLcOnCcMapping->componentCarrierId;
-        LteEnbCmacSapProvider::LcInfo lcinfo = itLcOnCcMapping->lc;
-        LteMacSapUser *msu = itLcOnCcMapping->msu;
-        m_rrc->m_cmacSapProvider.at (index)->AddLc (lcinfo, msu);
-        m_rrc->m_ccmRrcSapProvider->AddLc (lcinfo, msu);
-      }
-
-    //rlcInfo->lcinfo = lcinfo;
-
-    rlcInfo->logicalChannelIdentity = lcid;
-    rlcInfo->logicalChannelConfig.priority = m_rrc->GetLogicalChannelPriority (bearer);
-    rlcInfo->logicalChannelConfig.logicalChannelGroup = m_rrc->GetLogicalChannelGroup (bearer);
-    if (bearer.IsGbr ())
-      {
-        rlcInfo->logicalChannelConfig.prioritizedBitRateKbps = params.logicalChannelConfig.prioritizedBitRateKbps;
-      }
-    else
-      {
-        rlcInfo->logicalChannelConfig.prioritizedBitRateKbps = 0;
-      }
-    rlcInfo->logicalChannelConfig.bucketSizeDurationMs = params.logicalChannelConfig.bucketSizeDurationMs;
-=======
         // setup TEIDs to receive data eventually forwarded over X2-U
         LteEnbRrc::X2uTeidInfo x2uTeidInfo;
         x2uTeidInfo.rnti = m_rnti;
@@ -1754,7 +1545,6 @@ UeManager::RecvRlcSetupRequest(EpcX2SapUser::RlcSetupRequest params) // TODO onl
         }
         rlcInfo->logicalChannelConfig.bucketSizeDurationMs =
             params.logicalChannelConfig.bucketSizeDurationMs;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
         m_rlcMap[params.drbid] = rlcInfo; // TODO add assert
 
@@ -1822,7 +1612,6 @@ UeManager::RecvRrcConnectionRequest(LteRrcSap::RrcConnectionRequest msg)
 
             // send RRC CONNECTION SETUP to UE
             LteRrcSap::RrcConnectionSetup msg2;
-<<<<<<< HEAD
             msg2.rrcTransactionIdentifier = GetNewRrcTransactionIdentifier ();
             msg2.radioResourceConfigDedicated = BuildRadioResourceConfigDedicated ();
             NS_LOG_INFO (this << " Send RrcConnectionSetupto source cellId " << m_sourceCellId
@@ -1836,19 +1625,6 @@ UeManager::RecvRrcConnectionRequest(LteRrcSap::RrcConnectionRequest msg)
                 &LteEnbRrc::ConnectionSetupTimeout, m_rrc, m_rnti);
             SwitchToState (CONNECTION_SETUP);
           }
-=======
-            msg2.rrcTransactionIdentifier = GetNewRrcTransactionIdentifier();
-            msg2.radioResourceConfigDedicated = BuildRadioResourceConfigDedicated();
-            m_rrc->m_rrcSapUser->SendRrcConnectionSetup(m_rnti, msg2);
-
-            RecordDataRadioBearersToBeStarted();
-            m_connectionSetupTimeout = Simulator::Schedule(m_rrc->m_connectionSetupTimeoutDuration,
-                                                           &LteEnbRrc::ConnectionSetupTimeout,
-                                                           m_rrc,
-                                                           m_rnti);
-            SwitchToState(CONNECTION_SETUP);
-        }
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
         else
         {
             NS_LOG_INFO("rejecting connection request for RNTI " << m_rnti);
@@ -2476,53 +2252,7 @@ UeManager::SendRrcConnectionSwitch(bool useMmWaveConnection)
                     m_rrc->m_x2SapProvider->SendSwitchConnectionToMmWave(params);
                 }
             }
-<<<<<<< HEAD
-
-          TypeId rlcTypeId = m_rrc->GetRlcType (it->second->m_epsBearer);
-
-          ObjectFactory rlcObjectFactory;
-          rlcObjectFactory.SetTypeId (rlcTypeId);
-          Ptr<LteRlc> rlc = rlcObjectFactory.Create ()->GetObject<LteRlc> ();
-          rlc->SetLteMacSapProvider (m_rrc->m_macSapProvider);
-          rlc->SetRnti (m_rnti);
-          rlc->SetImsi (m_imsi);
-
-          it->second->m_rlc = rlc;
-
-          NS_LOG_INFO("Reset RLC in LTE eNB after switch, new rlc " << rlc);
-
-          rlc->SetLcId (lcid);
-
-          // we need PDCP only for real RLC, i.e., RLC/UM or RLC/AM
-          // if we are using RLC/SM we don't care of anything above RLC
-          if (rlcTypeId != LteRlcSm::GetTypeId ())
-          {
-            DynamicCast<McEnbPdcp>(it->second->m_pdcp)->SetLteRlcSapProvider (rlc->GetLteRlcSapProvider ());
-            rlc->SetLteRlcSapUser (DynamicCast<McEnbPdcp>(it->second->m_pdcp)->GetLteRlcSapUser ());
-          }
-
-          uint8_t drbid = it->first;
-          uint8_t bid = Drbid2Bid (drbid);
-
-          std::vector<LteCcmRrcSapProvider::LcsConfig> lcOnCcMapping = m_rrc->m_ccmRrcSapProvider->SetupDataRadioBearer (it->second->m_epsBearer, bid, m_rnti, lcid, m_rrc->GetLogicalChannelGroup (it->second->m_epsBearer), rlc->GetLteMacSapUser ());
-          //LteEnbCmacSapProvider::LcInfo lcinfo;
-          //lcinfo.rnti = m_rnti;
-          //lcinfo.lcId = lcid;
-          //lcinfo.lcGroup = m_rrc->GetLogicalChannelGroup (it->second->m_epsBearer);
-          //lcinfo.qci =   it->second->m_epsBearer.qci;
-          //lcinfo.isGbr = it->second->m_epsBearer.IsGbr ();
-          //lcinfo.mbrUl = it->second->m_epsBearer.gbrQosInfo.mbrUl;
-          //lcinfo.mbrDl = it->second->m_epsBearer.gbrQosInfo.mbrDl;
-          //lcinfo.gbrUl = it->second->m_epsBearer.gbrQosInfo.gbrUl;
-          //lcinfo.gbrDl = it->second->m_epsBearer.gbrQosInfo.gbrDl;
-          //TODO needs to be corrected
-          //m_rrc->m_cmacSapProvider.at(0)->AddLc (lcinfo, rlc->GetLteMacSapUser ());
-          std::vector<LteCcmRrcSapProvider::LcsConfig>::iterator itLcOnCcMapping = lcOnCcMapping.begin ();
-          NS_ASSERT_MSG (itLcOnCcMapping != lcOnCcMapping.end (), "Problem");
-          for (itLcOnCcMapping = lcOnCcMapping.begin (); itLcOnCcMapping != lcOnCcMapping.end (); ++itLcOnCcMapping)
-=======
             else
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
             {
                 NS_FATAL_ERROR("A device defined as MC has not a McEnbPdcp");
             }
@@ -2572,47 +2302,6 @@ UeManager::RecvConnectionSwitchToMmWave(bool useMmWaveConnection, uint8_t drbid)
             m_rrc->m_cmacSapProvider.at(*itCcToRelease)->ReleaseLc(m_rnti, lcid);
         }
 
-<<<<<<< HEAD
-    ObjectFactory rlcObjectFactory;
-    rlcObjectFactory.SetTypeId (rlcTypeId);
-    Ptr<LteRlc> rlc = rlcObjectFactory.Create ()->GetObject<LteRlc> ();
-    NS_LOG_INFO("Reset rlc in mmWave after switch to LTE " << rlc);
-    rlc->SetLteMacSapProvider (m_rrc->m_macSapProvider);
-    rlc->SetRnti (m_rnti);
-    rlc->SetImsi (m_imsi);
-
-    m_rlcMap.find(drbid)->second->m_rlc = rlc;
-    rlc->SetLcId (lcid);
-
-    if (rlcTypeId != LteRlcSm::GetTypeId ())
-    {
-      // connect with remote PDCP
-      rlc->SetEpcX2RlcProvider (m_rrc->GetEpcX2RlcProvider());
-      EpcX2Sap::UeDataParams ueParams;
-      ueParams.sourceCellId = m_rrc->GetCellId();
-      ueParams.targetCellId = m_rlcMap.find(drbid)->second->targetCellId; // the LTE cell
-      ueParams.gtpTeid = m_rlcMap.find(drbid)->second->gtpTeid;
-      rlc->SetUeDataParams(ueParams);
-      m_rrc->m_x2SapProvider->SetEpcX2RlcUser (m_rlcMap.find(drbid)->second->gtpTeid, rlc->GetEpcX2RlcUser());
-    }
-    //TODO needs to be corrected
-    //m_rrc->m_cmacSapProvider.at(0)->AddLc (m_rlcMap.find(drbid)->second->lcinfo, rlc->GetLteMacSapUser ());
-
-    std::vector<LteCcmRrcSapProvider::LcsConfig> lcOnCcMapping = m_rrc->m_ccmRrcSapProvider->SetupDataRadioBearer (bearer, Drbid2Bid (drbid), m_rnti, lcid, m_rrc->GetLogicalChannelGroup (bearer), rlc->GetLteMacSapUser ());
-
-    std::vector<LteCcmRrcSapProvider::LcsConfig>::iterator itLcOnCcMapping = lcOnCcMapping.begin ();
-    NS_ASSERT_MSG (itLcOnCcMapping != lcOnCcMapping.end (), "Problem");
-    for (itLcOnCcMapping = lcOnCcMapping.begin (); itLcOnCcMapping != lcOnCcMapping.end (); ++itLcOnCcMapping)
-      {
-        NS_LOG_DEBUG (this << " RNTI " << itLcOnCcMapping->lc.rnti << "Lcid " << (uint16_t) itLcOnCcMapping->lc.lcId << " lcGroup " << (uint16_t) itLcOnCcMapping->lc.lcGroup << " ComponentCarrierId " << itLcOnCcMapping->componentCarrierId);
-        uint8_t index = itLcOnCcMapping->componentCarrierId;
-        LteEnbCmacSapProvider::LcInfo lcinfo = itLcOnCcMapping->lc;
-        LteMacSapUser *msu = itLcOnCcMapping->msu;
-        m_rrc->m_cmacSapProvider.at (index)->AddLc (lcinfo, msu);
-        m_rrc->m_ccmRrcSapProvider->AddLc (lcinfo, msu);
-      }
-  }
-=======
         EpsBearer bearer;
         TypeId rlcTypeId = m_rrc->GetRlcType(bearer); // actually, this doesn't depend on bearer
 
@@ -2667,7 +2356,6 @@ UeManager::RecvConnectionSwitchToMmWave(bool useMmWaveConnection, uint8_t drbid)
             m_rrc->m_ccmRrcSapProvider->AddLc(lcinfo, msu);
         }
     }
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 // methods forwarded from CMAC SAP
@@ -2951,25 +2639,12 @@ UeManager::Bid2Drbid(uint8_t bid)
 void
 UeManager::SwitchToState(State newState)
 {
-<<<<<<< HEAD
   NS_LOG_FUNCTION (this << ToString (newState));
   State oldState = m_state;
   m_state = newState;
   NS_LOG_INFO (this << " ENB Switch to state IMSI " << m_imsi << " RNTI " << m_rnti << " UeManager "
                     << ToString (oldState) << " --> " << ToString (newState));
   m_stateTransitionTrace (m_imsi, m_rrc->ComponentCarrierToCellId (m_componentCarrierId), m_rnti, oldState, newState);
-=======
-    NS_LOG_FUNCTION(this << ToString(newState));
-    State oldState = m_state;
-    m_state = newState;
-    NS_LOG_INFO(this << " IMSI " << m_imsi << " RNTI " << m_rnti << " UeManager "
-                     << ToString(oldState) << " --> " << ToString(newState));
-    m_stateTransitionTrace(m_imsi,
-                           m_rrc->ComponentCarrierToCellId(m_componentCarrierId),
-                           m_rnti,
-                           oldState,
-                           newState);
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
     switch (newState)
     {
@@ -3400,7 +3075,6 @@ LteEnbRrc::DoDispose()
 }
 
 TypeId
-<<<<<<< HEAD
 LteEnbRrc::GetTypeId (void)
 {
   NS_LOG_FUNCTION ("LteEnbRrc::GetTypeId");
@@ -3630,250 +3304,6 @@ LteEnbRrc::GetTypeId (void)
                 "ns3::LteEnbRrc::NotifyMmWaveSinrTracedCallback")
   ;
   return tid;
-=======
-LteEnbRrc::GetTypeId(void)
-{
-    NS_LOG_FUNCTION("LteEnbRrc::GetTypeId");
-    static TypeId tid =
-        TypeId("ns3::LteEnbRrc")
-            .SetParent<Object>()
-            .SetGroupName("Lte")
-            .AddConstructor<LteEnbRrc>()
-            .AddAttribute("UeMap",
-                          "List of UeManager by C-RNTI.",
-                          ObjectMapValue(),
-                          MakeObjectMapAccessor(&LteEnbRrc::m_ueMap),
-                          MakeObjectMapChecker<UeManager>())
-            .AddAttribute("DefaultTransmissionMode",
-                          "The default UEs' transmission mode (0: SISO)",
-                          UintegerValue(0), // default tx-mode
-                          MakeUintegerAccessor(&LteEnbRrc::m_defaultTransmissionMode),
-                          MakeUintegerChecker<uint8_t>())
-            .AddAttribute("EpsBearerToRlcMapping",
-                          "Specify which type of RLC will be used for each type of EPS bearer. ",
-                          EnumValue(RLC_SM_ALWAYS),
-                          MakeEnumAccessor<LteEpsBearerToRlcMapping_t>(&LteEnbRrc::m_epsBearerToRlcMapping),
-                          MakeEnumChecker(RLC_SM_ALWAYS,
-                                          "RlcSmAlways",
-                                          RLC_UM_ALWAYS,
-                                          "RlcUmAlways",
-                                          RLC_AM_ALWAYS,
-                                          "RlcAmAlways",
-                                          PER_BASED,
-                                          "PacketErrorRateBased",
-                                          RLC_UM_LOWLAT_ALWAYS,
-                                          "MmwRlcUmAlways"))
-            .AddAttribute("SystemInformationPeriodicity",
-                          "The interval for sending system information (Time value)",
-                          TimeValue(MilliSeconds(5)),
-                          MakeTimeAccessor(&LteEnbRrc::m_systemInformationPeriodicity),
-                          MakeTimeChecker())
-
-            // SRS related attributes
-            .AddAttribute(
-                "SrsPeriodicity",
-                "The SRS periodicity in milliseconds",
-                UintegerValue(320),
-                MakeUintegerAccessor(&LteEnbRrc::SetSrsPeriodicity, &LteEnbRrc::GetSrsPeriodicity),
-                MakeUintegerChecker<uint32_t>())
-
-            // Timeout related attributes
-            .AddAttribute("ConnectionRequestTimeoutDuration",
-                          "After a RA attempt, if no RRC CONNECTION REQUEST is "
-                          "received before this time, the UE context is destroyed. "
-                          "Must account for reception of RAR and transmission of "
-                          "RRC CONNECTION REQUEST over UL GRANT.",
-                          TimeValue(MilliSeconds(15)),
-                          MakeTimeAccessor(&LteEnbRrc::m_connectionRequestTimeoutDuration),
-                          MakeTimeChecker())
-            .AddAttribute("ConnectionSetupTimeoutDuration",
-                          "After accepting connection request, if no RRC CONNECTION "
-                          "SETUP COMPLETE is received before this time, the UE "
-                          "context is destroyed. Must account for the UE's reception "
-                          "of RRC CONNECTION SETUP and transmission of RRC CONNECTION "
-                          "SETUP COMPLETE.",
-                          TimeValue(MilliSeconds(150)),
-                          MakeTimeAccessor(&LteEnbRrc::m_connectionSetupTimeoutDuration),
-                          MakeTimeChecker())
-            .AddAttribute("ConnectionRejectedTimeoutDuration",
-                          "Time to wait between sending a RRC CONNECTION REJECT and "
-                          "destroying the UE context",
-                          TimeValue(MilliSeconds(30)),
-                          MakeTimeAccessor(&LteEnbRrc::m_connectionRejectedTimeoutDuration),
-                          MakeTimeChecker())
-            .AddAttribute("HandoverJoiningTimeoutDuration",
-                          "After accepting a handover request, if no RRC CONNECTION "
-                          "RECONFIGURATION COMPLETE is received before this time, the "
-                          "UE context is destroyed. Must account for reception of "
-                          "X2 HO REQ ACK by source eNB, transmission of the Handover "
-                          "Command, non-contention-based random access and reception "
-                          "of the RRC CONNECTION RECONFIGURATION COMPLETE message.",
-                          TimeValue(Seconds(45)),
-                          MakeTimeAccessor(&LteEnbRrc::m_handoverJoiningTimeoutDuration),
-                          MakeTimeChecker())
-            .AddAttribute("HandoverLeavingTimeoutDuration",
-                          "After issuing a Handover Command, if neither RRC "
-                          "CONNECTION RE-ESTABLISHMENT nor X2 UE Context Release has "
-                          "been previously received, the UE context is destroyed.",
-                          TimeValue(Seconds(45)),
-                          MakeTimeAccessor(&LteEnbRrc::m_handoverLeavingTimeoutDuration),
-                          MakeTimeChecker())
-            .AddAttribute("OutageThreshold",
-                          "SNR threshold for outage events [dB]",
-                          DoubleValue(-5.0),
-                          MakeDoubleAccessor(&LteEnbRrc::m_outageThreshold),
-                          MakeDoubleChecker<long double>(-10000.0, 10.0))
-
-            // Cell selection related attribute
-            .AddAttribute("QRxLevMin",
-                          "One of information transmitted within the SIB1 message, "
-                          "indicating the required minimum RSRP level that any UE must "
-                          "receive from this cell before it is allowed to camp to this "
-                          "cell. The default value -70 corresponds to -140 dBm and is "
-                          "the lowest possible value as defined by Section 6.3.4 of "
-                          "3GPP TS 36.133. This restriction, however, only applies to "
-                          "initial cell selection and EPC-enabled simulation.",
-                          TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT,
-                          IntegerValue(-70),
-                          MakeIntegerAccessor(&LteEnbRrc::m_qRxLevMin),
-                          MakeIntegerChecker<int8_t>(-70, -22))
-            .AddAttribute("NumberOfComponentCarriers",
-                          "Number of Component Carriers ",
-                          UintegerValue(1),
-                          MakeIntegerAccessor(&LteEnbRrc::m_numberOfComponentCarriers),
-                          MakeIntegerChecker<int16_t>(MIN_NO_CC, MAX_NO_CC))
-
-            // Handover related attributes
-            .AddAttribute("AdmitHandoverRequest",
-                          "Whether to admit an X2 handover request from another eNB",
-                          BooleanValue(true),
-                          MakeBooleanAccessor(&LteEnbRrc::m_admitHandoverRequest),
-                          MakeBooleanChecker())
-            .AddAttribute("AdmitRrcConnectionRequest",
-                          "Whether to admit a connection request from a UE",
-                          BooleanValue(true),
-                          MakeBooleanAccessor(&LteEnbRrc::m_admitRrcConnectionRequest),
-                          MakeBooleanChecker())
-
-            // UE measurements related attributes
-            .AddAttribute("RsrpFilterCoefficient",
-                          "Determines the strength of smoothing effect induced by "
-                          "layer 3 filtering of RSRP in all attached UE; "
-                          "if set to 0, no layer 3 filtering is applicable",
-                          // i.e. the variable k in 3GPP TS 36.331 section 5.5.3.2
-                          UintegerValue(4),
-                          MakeUintegerAccessor(&LteEnbRrc::m_rsrpFilterCoefficient),
-                          MakeUintegerChecker<uint8_t>(0))
-            .AddAttribute("RsrqFilterCoefficient",
-                          "Determines the strength of smoothing effect induced by "
-                          "layer 3 filtering of RSRQ in all attached UE; "
-                          "if set to 0, no layer 3 filtering is applicable",
-                          // i.e. the variable k in 3GPP TS 36.331 section 5.5.3.2
-                          UintegerValue(4),
-                          MakeUintegerAccessor(&LteEnbRrc::m_rsrqFilterCoefficient),
-                          MakeUintegerChecker<uint8_t>(0))
-            .AddAttribute("mmWaveDevice",
-                          "Indicates whether RRC is for mmWave base station",
-                          BooleanValue(false),
-                          MakeBooleanAccessor(&LteEnbRrc::m_ismmWave),
-                          MakeBooleanChecker())
-            .AddAttribute("FirstSibTime",
-                          "Time in ms of initial SIB message",
-                          // i.e. the variable k in 3GPP TS 36.331 section 5.5.3.2
-                          UintegerValue(2),
-                          MakeUintegerAccessor(&LteEnbRrc::m_firstSibTime),
-                          MakeUintegerChecker<uint32_t>(0))
-            .AddAttribute("InterRatHoMode",
-                          "Indicates whether RRC is for LTE base station that coordinates "
-                          "InterRatHo among eNBs",
-                          BooleanValue(false),
-                          MakeBooleanAccessor(&LteEnbRrc::m_interRatHoMode),
-                          MakeBooleanChecker())
-            .AddAttribute("HoSinrDifference",
-                          "The value for which an handover between MmWave eNB is triggered",
-                          DoubleValue(3),
-                          MakeDoubleAccessor(&LteEnbRrc::m_sinrThresholdDifference),
-                          MakeDoubleChecker<double>())
-            .AddAttribute("SecondaryCellHandoverMode",
-                          "Select the secondary cell handover mode",
-                          EnumValue(DYNAMIC_TTT),
-                          MakeEnumAccessor<HandoverMode>(&LteEnbRrc::m_handoverMode),
-                          MakeEnumChecker(FIXED_TTT,
-                                          "FixedTtt",
-                                          DYNAMIC_TTT,
-                                          "DynamicTtt",
-                                          THRESHOLD,
-                                          "Threshold"))
-            .AddAttribute("FixedTttValue",
-                          "The value of TTT in case of fixed TTT handover (in ms)",
-                          UintegerValue(110),
-                          MakeUintegerAccessor(&LteEnbRrc::m_fixedTttValue),
-                          MakeUintegerChecker<uint8_t>()) // TODO consider using a TimeValue
-            .AddAttribute("MinDynTttValue",
-                          "The minimum value of TTT in case of dynamic TTT handover (in ms)",
-                          UintegerValue(25),
-                          MakeUintegerAccessor(&LteEnbRrc::m_minDynTttValue),
-                          MakeUintegerChecker<uint8_t>()) // TODO consider using a TimeValue
-            .AddAttribute("MaxDynTttValue",
-                          "The maximum value of TTT in case of dynamic TTT handover (in ms)",
-                          UintegerValue(150),
-                          MakeUintegerAccessor(&LteEnbRrc::m_maxDynTttValue),
-                          MakeUintegerChecker<uint8_t>()) // TODO consider using a TimeValue
-            .AddAttribute(
-                "MinDiffValue",
-                "The minimum value of the difference in case of dynamic TTT handover [dB]",
-                DoubleValue(3),
-                MakeDoubleAccessor(&LteEnbRrc::m_minDiffTttValue),
-                MakeDoubleChecker<double>()) // TODO set the proper value
-            .AddAttribute(
-                "MaxDiffValue",
-                "The maximum value of the difference in case of dynamic TTT handover [dB]",
-                DoubleValue(20),
-                MakeDoubleAccessor(&LteEnbRrc::m_maxDiffTttValue),
-                MakeDoubleChecker<double>()) // TODO set the proper value
-            .AddAttribute("CrtPeriod",
-                          "The periodicity of a CRT (us)",
-                          IntegerValue(1600),
-                          MakeIntegerAccessor(&LteEnbRrc::m_crtPeriod),
-                          MakeIntegerChecker<int>()) // TODO consider using a TimeValue
-            .AddAttribute("ReportAllUeMeas",
-                          "If true, the MmWave eNB sends to the LTE coordinator all the received "
-                          "UE measures (one per CC). If false, it sends only the maximum measures",
-                          BooleanValue(true),
-                          MakeBooleanAccessor(&LteEnbRrc::m_reportAllUeMeas),
-                          MakeBooleanChecker())
-            // Trace sources
-            .AddTraceSource("NewUeContext",
-                            "Fired upon creation of a new UE context.",
-                            MakeTraceSourceAccessor(&LteEnbRrc::m_newUeContextTrace),
-                            "ns3::LteEnbRrc::NewUeContextTracedCallback")
-            .AddTraceSource("ConnectionEstablished",
-                            "Fired upon successful RRC connection establishment.",
-                            MakeTraceSourceAccessor(&LteEnbRrc::m_connectionEstablishedTrace),
-                            "ns3::LteEnbRrc::ConnectionHandoverTracedCallback")
-            .AddTraceSource("ConnectionReconfiguration",
-                            "trace fired upon RRC connection reconfiguration",
-                            MakeTraceSourceAccessor(&LteEnbRrc::m_connectionReconfigurationTrace),
-                            "ns3::LteEnbRrc::ConnectionHandoverTracedCallback")
-            .AddTraceSource("HandoverStart",
-                            "trace fired upon start of a handover procedure",
-                            MakeTraceSourceAccessor(&LteEnbRrc::m_handoverStartTrace),
-                            "ns3::LteEnbRrc::HandoverStartTracedCallback")
-            .AddTraceSource("HandoverEndOk",
-                            "trace fired upon successful termination of a handover procedure",
-                            MakeTraceSourceAccessor(&LteEnbRrc::m_handoverEndOkTrace),
-                            "ns3::LteEnbRrc::ConnectionHandoverTracedCallback")
-            .AddTraceSource("RecvMeasurementReport",
-                            "trace fired when measurement report is received",
-                            MakeTraceSourceAccessor(&LteEnbRrc::m_recvMeasurementReportTrace),
-                            "ns3::LteEnbRrc::ReceiveReportTracedCallback")
-            .AddTraceSource("NotifyMmWaveSinr",
-                            "trace fired when measurement report is received from mmWave cells, "
-                            "for each cell, for each UE",
-                            MakeTraceSourceAccessor(&LteEnbRrc::m_notifyMmWaveSinrTrace),
-                            "ns3::LteEnbRrc::NotifyMmWaveSinrTracedCallback");
-    return tid;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 void
@@ -4095,7 +3525,6 @@ LteEnbRrc::HasUeManager(uint16_t rnti) const
 Ptr<UeManager>
 LteEnbRrc::GetUeManager(uint16_t rnti)
 {
-<<<<<<< HEAD
   NS_LOG_FUNCTION (this << (uint32_t) rnti);
   NS_ASSERT (0 != rnti);
 //   for (const auto& entry : m_ueMap)
@@ -4105,13 +3534,6 @@ LteEnbRrc::GetUeManager(uint16_t rnti)
   std::map<uint16_t, Ptr<UeManager>>::iterator it = m_ueMap.find (rnti);
   NS_ASSERT_MSG (it != m_ueMap.end (), "UE manager for RNTI " << rnti << " not found");
   return it->second;
-=======
-    NS_LOG_FUNCTION(this << (uint32_t)rnti);
-    NS_ASSERT(0 != rnti);
-    std::map<uint16_t, Ptr<UeManager>>::iterator it = m_ueMap.find(rnti);
-    NS_ASSERT_MSG(it != m_ueMap.end(), "UE manager for RNTI " << rnti << " not found");
-    return it->second;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 void
@@ -4559,7 +3981,6 @@ LteEnbRrc::DoUpdateUeSinrEstimate(LteEnbCphySapUser::UeAssociatedSinrInfo info)
 void
 LteEnbRrc::DoRecvUeSinrUpdate(EpcX2SapUser::UeImsiSinrParams params)
 {
-<<<<<<< HEAD
   NS_LOG_FUNCTION(this);
   NS_LOG_LOGIC("Recv Ue SINR Update from cell " << params.sourceCellId);
   uint16_t mmWaveCellId = params.sourceCellId;
@@ -4584,28 +4005,6 @@ LteEnbRrc::DoRecvUeSinrUpdate(EpcX2SapUser::UeImsiSinrParams params)
   {
     uint64_t imsi = imsiIter->first;
     double sinr = imsiIter->second;
-=======
-    NS_LOG_FUNCTION(this);
-    NS_LOG_LOGIC("Recv Ue SINR Update from cell " << params.sourceCellId);
-    uint16_t mmWaveCellId = params.sourceCellId;
-    if (m_cellSinrMap.find(mmWaveCellId) != m_cellSinrMap.end())
-    { // update the entry
-        m_cellSinrMap[mmWaveCellId] = params.ueImsiSinrMap;
-        m_numNewSinrReports++;
-    }
-    else // add the entry
-    {
-        m_cellSinrMap.insert(std::pair<uint16_t, ImsiSinrMap>(mmWaveCellId, params.ueImsiSinrMap));
-        m_numNewSinrReports++;
-    }
-    // cycle on all the Imsi whose SINR is known in cell mmWaveCellId
-    for (std::map<uint64_t, double>::iterator imsiIter = params.ueImsiSinrMap.begin();
-         imsiIter != params.ueImsiSinrMap.end();
-         ++imsiIter)
-    {
-        uint64_t imsi = imsiIter->first;
-        double sinr = imsiIter->second;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
         m_notifyMmWaveSinrTrace(imsi, mmWaveCellId, sinr);
 
@@ -4659,20 +4058,16 @@ LteEnbRrc::DoRecvUeSinrUpdate(EpcX2SapUser::UeImsiSinrParams params)
         case THRESHOLD:
             NS_LOG_INFO("Handover Mode: Threshold");
             break;
+        case NO_AUTOMATIC_HANDOVER :
+            NS_LOG_INFO("Handover Mode: No automatic handover"); 
+            break;    
         }
         Simulator::Schedule(MilliSeconds(0), &LteEnbRrc::TriggerUeAssociationUpdate, this);
     }
     else if (!m_ismmWave && m_interRatHoMode && m_firstReport)
     {
-<<<<<<< HEAD
-      case FIXED_TTT : NS_LOG_INFO("Handover Mode: Fixed TTT"); break;
-      case DYNAMIC_TTT : NS_LOG_INFO("Handover Mode: Dynamic TTT"); break;
-      case THRESHOLD : NS_LOG_INFO("Handover Mode: Threshold"); break;
-      case NO_AUTOMATIC_HANDOVER : NS_LOG_INFO("Handover Mode: No automatic handover"); break;
-=======
         m_firstReport = false;
         Simulator::Schedule(MilliSeconds(0), &LteEnbRrc::UpdateUeHandoverAssociation, this);
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     }
 }
 
@@ -4947,12 +4342,14 @@ LteEnbRrc::ComputeTtt(double sinrDifference)
 void
 LteEnbRrc::PerformHandover(uint64_t imsi)
 {
-<<<<<<< HEAD
   NS_ASSERT_MSG(m_imsiHandoverEventsMap.find(imsi) != m_imsiHandoverEventsMap.end(), "No handover event for this imsi!");
   LteEnbRrc::HandoverEventInfo handoverInfo = m_imsiHandoverEventsMap.find(imsi)->second;
   NS_ASSERT_MSG(handoverInfo.sourceCellId == m_lastMmWaveCell[imsi], "The secondary cell to which the UE is attached has changed handoverInfo.sourceCellId "
     << handoverInfo.sourceCellId << " m_lastMmWaveCell[imsi] " << m_lastMmWaveCell[imsi] << " imsi " << imsi);
-  bool alreadyAssociatedImsi = false;
+  bool alreadyAssoc }
+    else
+    {
+       iatedImsi = false;
   bool onHandoverImsi = true;
   // On RecvRrcConnectionRequest for a new RNTI, the Lte Enb RRC stores the imsi
   // of the UE and insert a new false entry in m_mmWaveCellSetupCompleted.
@@ -5064,79 +4461,20 @@ LteEnbRrc::PerformHandoverToTargetCell (uint64_t imsi, uint16_t targetCellId)
       m_x2SapProvider->SendMcHandoverRequest(params);
 
       m_mmWaveCellSetupCompleted[imsi] = false;
-=======
-    NS_ASSERT_MSG(m_imsiHandoverEventsMap.find(imsi) != m_imsiHandoverEventsMap.end(),
-                  "No handover event for this imsi!");
-    LteEnbRrc::HandoverEventInfo handoverInfo = m_imsiHandoverEventsMap.find(imsi)->second;
-    NS_ASSERT_MSG(
-        handoverInfo.sourceCellId == m_lastMmWaveCell[imsi],
-        "The secondary cell to which the UE is attached has changed handoverInfo.sourceCellId "
-            << handoverInfo.sourceCellId << " m_lastMmWaveCell[imsi] " << m_lastMmWaveCell[imsi]
-            << " imsi " << imsi);
-    bool alreadyAssociatedImsi = false;
-    bool onHandoverImsi = true;
-    // On RecvRrcConnectionRequest for a new RNTI, the Lte Enb RRC stores the imsi
-    // of the UE and insert a new false entry in m_mmWaveCellSetupCompleted.
-    // After the first connection to a MmWave eNB, the entry becomes true.
-    // When an handover between MmWave cells is triggered, it is set to false.
-    if (m_mmWaveCellSetupCompleted.find(imsi) != m_mmWaveCellSetupCompleted.end())
-    {
-        alreadyAssociatedImsi = true;
-        // onHandoverImsi = (!m_switchEnabled) ? true :
-        // !m_mmWaveCellSetupCompleted.find(imsi)->second;
-        onHandoverImsi = !m_mmWaveCellSetupCompleted.find(imsi)->second;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     }
-    else
-    {
-        alreadyAssociatedImsi = false;
-        onHandoverImsi = true;
-    }
-<<<<<<< HEAD
+       else
+        {
+            // TODO Do nothing or what?
+            NS_LOG_UNCOND(
+                "## Warn: handover not triggered because the UE is already performing HO!");
+        }
   }
   else
   {
     //NS_LOG_UNCOND("## Warn: handover not triggered because the UE is not associated yet!");
   }
 }
-=======
-    NS_LOG_INFO("PerformHandover: alreadyAssociatedImsi " << alreadyAssociatedImsi
-                                                          << " onHandoverImsi " << onHandoverImsi);
 
-    if (alreadyAssociatedImsi)
-    {
-        if (!onHandoverImsi)
-        {
-            // The new secondary cell HO procedure does not require to switch to LTE
-            NS_LOG_INFO("PerformHandover ----- handover from "
-                        << m_lastMmWaveCell[imsi] << " to " << handoverInfo.targetCellId
-                        << " at time " << Simulator::Now().GetSeconds());
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
-
-            // trigger ho via X2
-            EpcX2SapProvider::SecondaryHandoverParams params;
-            params.imsi = imsi;
-            params.targetCellId = handoverInfo.targetCellId;
-            params.oldCellId = m_lastMmWaveCell[imsi];
-            m_x2SapProvider->SendMcHandoverRequest(params);
-
-            m_mmWaveCellSetupCompleted[imsi] = false;
-        }
-        else
-        {
-            // TODO Do nothing or what?
-            NS_LOG_UNCOND(
-                "## Warn: handover not triggered because the UE is already performing HO!");
-        }
-    }
-    else
-    {
-        NS_LOG_UNCOND("## Warn: handover not triggered because the UE is not associated yet!");
-    }
-
-    // remove the HandoverEvent from the map
-    m_imsiHandoverEventsMap.erase(m_imsiHandoverEventsMap.find(imsi));
-}
 
 void
 LteEnbRrc::ThresholdBasedSecondaryCellHandover(std::map<uint64_t, CellSinrMap>::iterator imsiIter,
@@ -5144,32 +4482,6 @@ LteEnbRrc::ThresholdBasedSecondaryCellHandover(std::map<uint64_t, CellSinrMap>::
                                                uint16_t maxSinrCellId,
                                                double maxSinrDb)
 {
-<<<<<<< HEAD
-  if(m_imsiCellSinrMap.size() > 0) // there are some entries
-  {
-    for(std::map<uint64_t, CellSinrMap>::iterator imsiIter = m_imsiCellSinrMap.begin(); imsiIter != m_imsiCellSinrMap.end(); ++imsiIter)
-    {
-      
-      uint64_t imsi = imsiIter->first;
-      if (m_e2ControlledUes.find (imsi) != m_e2ControlledUes.end ())
-      {
-        // HO for this UE is controlled externally
-        continue;
-      }
-      
-      long double maxSinr = 0;
-      long double currentSinr = 0;
-      uint16_t maxSinrCellId = 0;
-      bool alreadyAssociatedImsi = false;
-      bool onHandoverImsi = true;
-      Ptr<UeManager> ueMan;
-      // On RecvRrcConnectionRequest for a new RNTI, the Lte Enb RRC stores the imsi
-      // of the UE and insert a new false entry in m_mmWaveCellSetupCompleted.
-      // After the first connection to a MmWave eNB, the entry becomes true.
-      // When an handover between MmWave cells is triggered, it is set to false.
-      if(m_mmWaveCellSetupCompleted.find(imsi) != m_mmWaveCellSetupCompleted.end())
-      {
-=======
     uint64_t imsi = imsiIter->first;
     bool alreadyAssociatedImsi = false;
     bool onHandoverImsi = true;
@@ -5179,7 +4491,6 @@ LteEnbRrc::ThresholdBasedSecondaryCellHandover(std::map<uint64_t, CellSinrMap>::
     // When an handover between MmWave cells is triggered, it is set to false.
     if (m_mmWaveCellSetupCompleted.find(imsi) != m_mmWaveCellSetupCompleted.end())
     {
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
         alreadyAssociatedImsi = true;
         // onHandoverImsi = (!m_switchEnabled) ? true :
         // !m_mmWaveCellSetupCompleted.find(imsi)->second;
@@ -5193,24 +4504,6 @@ LteEnbRrc::ThresholdBasedSecondaryCellHandover(std::map<uint64_t, CellSinrMap>::
     NS_LOG_INFO("ThresholdBasedSecondaryCellHandover: alreadyAssociatedImsi "
                 << alreadyAssociatedImsi << " onHandoverImsi " << onHandoverImsi);
 
-<<<<<<< HEAD
-      for(CellSinrMap::iterator cellIter = imsiIter->second.begin(); cellIter != imsiIter->second.end(); ++cellIter)
-      {
-        // check if the BS is barred from HOs and in case ignore it
-        if(m_allowHandoverTo.find(cellIter->first)->second) {
-          NS_LOG_INFO("Cell " << cellIter->first << " reports " << 10*std::log10(cellIter->second));
-          if(cellIter->second > maxSinr)
-          {
-            maxSinr = cellIter->second;
-            maxSinrCellId = cellIter->first;
-          }
-        }
-        else {
-          NS_LOG_DEBUG("Cell " << cellIter->first << " reports " << 10*std::log10(cellIter->second) << " but HO not allowed to");
-        }
-
-        if(m_lastMmWaveCell[imsi] == cellIter->first)
-=======
     if (maxSinrCellId == m_bestMmWaveCellForImsiMap.at(imsi) && !m_imsiUsingLte[imsi])
     {
         if (alreadyAssociatedImsi && !onHandoverImsi && m_lastMmWaveCell[imsi] != maxSinrCellId &&
@@ -5243,7 +4536,6 @@ LteEnbRrc::ThresholdBasedSecondaryCellHandover(std::map<uint64_t, CellSinrMap>::
         else if (alreadyAssociatedImsi && !onHandoverImsi &&
                  m_lastMmWaveCell[imsi] != maxSinrCellId &&
                  sinrDifference < m_sinrThresholdDifference)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
         {
             NS_LOG_INFO("----- handover from " << m_lastMmWaveCell[imsi] << " to " << maxSinrCellId
                                                << " not triggered due to small diff "
@@ -5314,17 +4606,9 @@ LteEnbRrc::ThresholdBasedSecondaryCellHandover(std::map<uint64_t, CellSinrMap>::
 
             m_mmWaveCellSetupCompleted[imsi] = false;
         }
-<<<<<<< HEAD
-        else if(m_handoverMode == NO_AUTOMATIC_HANDOVER)
-        {
-          NS_LOG_INFO("Do not check for automatic handover");
-        }
-        else
-=======
         else if (alreadyAssociatedImsi && !onHandoverImsi &&
                  m_lastMmWaveCell[imsi] != maxSinrCellId &&
                  sinrDifference < m_sinrThresholdDifference)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
         {
             NS_LOG_INFO("----- handover from " << m_lastMmWaveCell[imsi] << " to " << maxSinrCellId
                                                << " not triggered due to small diff "
@@ -5336,89 +4620,6 @@ LteEnbRrc::ThresholdBasedSecondaryCellHandover(std::map<uint64_t, CellSinrMap>::
                                 << m_bestMmWaveCellForImsiMap.at(imsi) << " with SINR "
                                 << maxSinrDb);
     }
-<<<<<<< HEAD
-  }
-
-  //Simulator::Schedule(MicroSeconds(m_crtPeriod), &LteEnbRrc::TriggerUeAssociationUpdate, this);  //Add flag 
-}
-
-void
-LteEnbRrc::ThresholdBasedInterRatHandover(std::map<uint64_t, CellSinrMap>::iterator imsiIter, double sinrDifference, uint16_t maxSinrCellId, double maxSinrDb)
-{
-  uint64_t imsi = imsiIter->first;
-  bool alreadyAssociatedImsi = false;
-  bool onHandoverImsi = true;
-  // On RecvRrcConnectionRequest for a new RNTI, the Lte Enb RRC stores the imsi
-  // of the UE and insert a new false entry in m_mmWaveCellSetupCompleted.
-  // After the first connection to a MmWave eNB, the entry becomes true.
-  // When an handover between MmWave cells is triggered, it is set to false.
-  if(m_mmWaveCellSetupCompleted.find(imsi) != m_mmWaveCellSetupCompleted.end())
-  {
-    alreadyAssociatedImsi = true;
-    //onHandoverImsi = (!m_switchEnabled) ? true : !m_mmWaveCellSetupCompleted.find(imsi)->second;
-    onHandoverImsi = !m_mmWaveCellSetupCompleted.find(imsi)->second;
-  }
-  else
-  {
-    alreadyAssociatedImsi = false;
-    onHandoverImsi = true;
-  }
-  NS_LOG_INFO("ThresholdBasedSecondaryCellHandover: alreadyAssociatedImsi " << alreadyAssociatedImsi << " onHandoverImsi " << onHandoverImsi);
-
-  if(maxSinrCellId == m_bestMmWaveCellForImsiMap.at(imsi) && !m_imsiUsingLte.at(imsi))
-  {
-    if (alreadyAssociatedImsi && !onHandoverImsi && m_lastMmWaveCell[imsi] != maxSinrCellId && sinrDifference > m_sinrThresholdDifference) // not on LTE, handover between MmWave cells
-    // this may happen when channel changes while there is an handover
-    {
-      NS_LOG_INFO("----- handover from " << m_lastMmWaveCell[imsi] << " to " << maxSinrCellId << " channel changed previously");
-      // trigger ho via X2
-      EpcX2SapProvider::SecondaryHandoverParams params;
-      params.imsi = imsi;
-      params.targetCellId = maxSinrCellId;
-      params.oldCellId = m_lastMmWaveCell[imsi];
-      m_x2SapProvider->SendMcHandoverRequest(params);
-
-      m_mmWaveCellSetupCompleted[imsi] = false;
-      m_bestMmWaveCellForImsiMap[imsi] = maxSinrCellId;
-      NS_LOG_INFO("For imsi " << imsi << " the best cell is " << m_bestMmWaveCellForImsiMap.at(imsi) << " with SINR " << maxSinrDb);
-    }
-    else if(alreadyAssociatedImsi && !onHandoverImsi && m_lastMmWaveCell[imsi] != maxSinrCellId && sinrDifference < m_sinrThresholdDifference)
-    {
-      NS_LOG_INFO("----- handover from " << m_lastMmWaveCell[imsi] << " to " << maxSinrCellId << " not triggered due to small diff " << sinrDifference);
-    }
-  }
-  else
-  {
-    if(m_imsiUsingLte[imsi] && alreadyAssociatedImsi && !onHandoverImsi)
-    // it is on LTE, but now the a MmWave cell is not in outage
-    {
-      // switch back to MmWave
-      m_mmWaveCellSetupCompleted[imsi] = false;
-      m_bestMmWaveCellForImsiMap[imsi] = maxSinrCellId;
-      NS_LOG_INFO("Handover to MmWave " << m_bestMmWaveCellForImsiMap.at(imsi));
-      SendHandoverRequest(GetRntiFromImsi(imsi), m_bestMmWaveCellForImsiMap.at(imsi));
-    }
-    else if (!m_imsiUsingLte[imsi] && alreadyAssociatedImsi && !onHandoverImsi && m_lastMmWaveCell[imsi] != maxSinrCellId && sinrDifference > m_sinrThresholdDifference) // not on LTE, handover between MmWave cells
-    {
-      NS_LOG_INFO("----- handover from " << m_lastMmWaveCell[imsi] << " to " << maxSinrCellId);
-                  // trigger ho via X2
-      EpcX2SapProvider::SecondaryHandoverParams params;
-      params.imsi = imsi;
-      params.targetCellId = maxSinrCellId;
-      params.oldCellId = m_lastMmWaveCell[imsi];
-      m_x2SapProvider->SendMcHandoverRequest(params);
-
-      m_mmWaveCellSetupCompleted[imsi] = false;
-    }
-    else if(alreadyAssociatedImsi && !onHandoverImsi && m_lastMmWaveCell[imsi] != maxSinrCellId && sinrDifference < m_sinrThresholdDifference)
-    {
-      NS_LOG_INFO("----- handover from " << m_lastMmWaveCell[imsi] << " to " << maxSinrCellId << " not triggered due to small diff " << sinrDifference);
-    }
-    m_bestMmWaveCellForImsiMap[imsi] = maxSinrCellId;
-    NS_LOG_INFO("For imsi " << imsi << " the best cell is " << m_bestMmWaveCellForImsiMap.at(imsi) << " with SINR " << maxSinrDb);
-  }
-=======
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 void
@@ -5633,13 +4834,6 @@ LteEnbRrc::ThresholdBasedInterRatHandover(std::map<uint64_t, CellSinrMap>::itera
                                                << " not triggered due to small diff "
                                                << sinrDifference);
         }
-<<<<<<< HEAD
-        else if(m_handoverMode == NO_AUTOMATIC_HANDOVER)
-        {
-          NS_LOG_INFO("Do not check for automatic handover");
-        }
-        else
-=======
         m_bestMmWaveCellForImsiMap[imsi] = maxSinrCellId;
         NS_LOG_INFO("For imsi " << imsi << " the best cell is "
                                 << m_bestMmWaveCellForImsiMap.at(imsi) << " with SINR "
@@ -5662,7 +4856,6 @@ LteEnbRrc::UpdateUeHandoverAssociation()
         for (std::map<uint64_t, CellSinrMap>::iterator imsiIter = m_imsiCellSinrMap.begin();
              imsiIter != m_imsiCellSinrMap.end();
              ++imsiIter)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
         {
             uint64_t imsi = imsiIter->first;
             long double maxSinr = 0;
@@ -5919,7 +5112,6 @@ LteEnbRrc::HandoverLeavingTimeout(uint16_t rnti)
 void
 LteEnbRrc::SendHandoverRequest(uint16_t rnti, uint16_t cellId)
 {
-<<<<<<< HEAD
   NS_LOG_FUNCTION (this << rnti << cellId);
   NS_LOG_LOGIC ("Request to send HANDOVER REQUEST");
   NS_ASSERT (m_configured);
@@ -5930,18 +5122,6 @@ LteEnbRrc::SendHandoverRequest(uint16_t rnti, uint16_t cellId)
   Ptr<UeManager> ueManager = GetUeManager (usedRnti);
   ueManager->PrepareHandover (cellId);
   defaultRnti++;
-=======
-    NS_LOG_FUNCTION(this << rnti << cellId);
-    NS_LOG_LOGIC("Request to send HANDOVER REQUEST");
-    NS_ASSERT(m_configured);
-
-    NS_LOG_INFO("LteEnbRrc on cell " << m_cellId << " for rnti " << rnti
-                                     << " SendHandoverRequest at time "
-                                     << Simulator::Now().GetSeconds() << " to cellId " << cellId);
-
-    Ptr<UeManager> ueManager = GetUeManager(rnti);
-    ueManager->PrepareHandover(cellId);
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 void
@@ -6218,7 +5398,6 @@ LteEnbRrc::DoRecvUeContextRelease(EpcX2SapUser::UeContextReleaseParams params)
 
     uint16_t rnti = params.oldEnbUeX2apId;
 
-<<<<<<< HEAD
   if(m_interRatHoMode && m_ismmWave)
   {
     NS_LOG_INFO("Notify LTE eNB that the handover is completed from cell " << m_cellId << " to " << params.sourceCellId);
@@ -6235,25 +5414,6 @@ LteEnbRrc::DoRecvUeContextRelease(EpcX2SapUser::UeContextReleaseParams params)
     m_mmWaveCellSetupCompleted[GetImsiFromRnti(rnti)] = true;
     m_imsiUsingLte[GetImsiFromRnti(rnti)] = false;
   }
-=======
-    if (m_interRatHoMode && m_ismmWave)
-    {
-        NS_LOG_INFO("Notify LTE eNB that the handover is completed from cell "
-                    << m_cellId << " to " << params.sourceCellId);
-        EpcX2Sap::SecondaryHandoverParams sendParams;
-        sendParams.imsi = GetImsiFromRnti(rnti);
-        sendParams.oldCellId = m_lteCellId;
-        sendParams.targetCellId = params.sourceCellId;
-        m_x2SapProvider->NotifyLteMmWaveHandoverCompleted(sendParams);
-    }
-    else if (m_interRatHoMode && !m_ismmWave)
-    {
-        NS_LOG_INFO("LTE eNB received UE context release from cell " << params.sourceCellId);
-        m_lastMmWaveCell[GetImsiFromRnti(rnti)] = params.sourceCellId;
-        m_mmWaveCellSetupCompleted[GetImsiFromRnti(rnti)] = true;
-        m_imsiUsingLte[GetImsiFromRnti(rnti)] = false;
-    }
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
     GetUeManager(rnti)->RecvUeContextRelease(params);
     RemoveUe(rnti);

@@ -100,7 +100,6 @@ LteRlcSpecificLteMacSapUser::ReceivePdu(LteMacSapUser::ReceivePduParameters para
 
 NS_OBJECT_ENSURE_REGISTERED(LteRlc);
 
-<<<<<<< HEAD
 LteRlc::LteRlc ()
   : m_rlcSapUser (0),
     m_macSapProvider (0),
@@ -110,14 +109,6 @@ LteRlc::LteRlc ()
     isMc(false), // TODO refactor this!!
     m_txPacketsInReportingPeriod(0),
     m_txBytesInReportingPeriod(0)
-=======
-LteRlc::LteRlc()
-    : m_rlcSapUser(0),
-      m_macSapProvider(0),
-      m_rnti(0),
-      m_lcid(0),
-      isMc(false) // TODO refactor this!!
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 {
     NS_LOG_FUNCTION(this);
     m_rlcSapProvider = new LteRlcSpecificLteRlcSapProvider<LteRlc>(this);
@@ -175,7 +166,6 @@ LteRlc::SetLcId(uint8_t lcId)
 }
 
 void
-<<<<<<< HEAD
 LteRlc::SetImsi (uint64_t imsi)
 {
   NS_LOG_FUNCTION (this << imsi);
@@ -184,9 +174,6 @@ LteRlc::SetImsi (uint64_t imsi)
 
 void
 LteRlc::SetLteRlcSapUser (LteRlcSapUser * s)
-=======
-LteRlc::SetLteRlcSapUser(LteRlcSapUser* s)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 {
     NS_LOG_FUNCTION(this << s);
     m_rlcSapUser = s;
