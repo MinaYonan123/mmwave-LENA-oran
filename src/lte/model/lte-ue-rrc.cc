@@ -1146,7 +1146,7 @@ LteUeRrc::DoRecvSystemInformation(LteRrcSap::SystemInformation msg)
 
 void
 LteUeRrc::DoRecvRrcConnectionSetup(LteRrcSap::RrcConnectionSetup msg)
-{ 
+{
   switch (m_state)
     {
     case IDLE_CONNECTING:

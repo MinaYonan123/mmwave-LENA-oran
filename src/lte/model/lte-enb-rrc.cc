@@ -474,16 +474,6 @@ UeManager::SetupDataRadioBearer(EpsBearer bearer,
 
   rlc->SetLcId (lcid);
 
-    ObjectFactory rlcObjectFactory;
-    rlcObjectFactory.SetTypeId(rlcTypeId);
-    Ptr<LteRlc> rlc = rlcObjectFactory.Create()->GetObject<LteRlc>();
-    rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
-    rlc->SetRnti(m_rnti);
-
-    drbInfo->m_rlc = rlc;
-
-    rlc->SetLcId(lcid);
-
     // we need PDCP only for real RLC, i.e., RLC/UM or RLC/AM
     // if we are using RLC/SM we don't care of anything above RLC
     if (rlcTypeId != LteRlcSm::GetTypeId())
@@ -1451,42 +1441,7 @@ UeManager::RecvRlcSetupRequest (EpcX2SapUser::RlcSetupRequest params) // TODO on
     // store the params, so that on handover the eNB sends the RLC request
     // to the othe MmWaveEnb
     m_rlcRequestVector.push_back(params);
-
-    // setup TEIDs to receive data eventually forwarded over X2-U
-    LteEnbRrc::X2uTeidInfo x2uTeidInfo;
-    x2uTeidInfo.rnti = m_rnti;
-    x2uTeidInfo.drbid = params.drbid;
-    std::pair<std::map<uint32_t, LteEnbRrc::X2uTeidInfo>::iterator, bool> ret;
-    ret = m_rrc->m_x2uMcTeidInfoMap.insert (std::pair<uint32_t, LteEnbRrc::X2uTeidInfo> (params.gtpTeid, x2uTeidInfo));
-    // TODO overwrite may be legit, as in EpcX2::SetMcEpcX2PdcpUser
-    //NS_ASSERT_MSG (ret.second == true, "overwriting a pre-existing entry in m_x2uTeidInfoMap");
-    NS_LOG_INFO("Added entry in m_x2uMcTeidInfoMap");
-
-    // create new Rlc
-    // define a new struct similar to LteDataRadioBearerInfo with only rlc
-    Ptr<RlcBearerInfo> rlcInfo = CreateObject<RlcBearerInfo> ();
-    rlcInfo->targetCellId = params.sourceCellId; // i.e. the LTE cell
-    rlcInfo->gtpTeid = params.gtpTeid;
-    rlcInfo->mmWaveRnti = m_rnti;
-    rlcInfo->lteRnti = params.lteRnti;
-    rlcInfo->drbid = params.drbid;
-    rlcInfo->rlcConfig = params.rlcConfig;
-    rlcInfo->logicalChannelConfig = params.logicalChannelConfig;
-
-    uint8_t lcid = Drbid2Lcid(params.drbid);
-    uint8_t bid = Drbid2Bid (params.drbid);
-
-    EpsBearer bearer;
-    TypeId rlcTypeId = m_rrc->GetRlcType (bearer); // actually, this doesn't depend on bearer
-
-    ObjectFactory rlcObjectFactory;
-    rlcObjectFactory.SetTypeId (rlcTypeId);
-    Ptr<LteRlc> rlc = rlcObjectFactory.Create ()->GetObject<LteRlc> ();
-    NS_LOG_INFO("Created rlc " << rlc);
-    rlc->SetLteMacSapProvider (m_rrc->m_macSapProvider);
-    rlc->SetRnti (m_rnti);
-    rlc->SetImsi (m_imsi);
-
+    
         // setup TEIDs to receive data eventually forwarded over X2-U
         LteEnbRrc::X2uTeidInfo x2uTeidInfo;
         x2uTeidInfo.rnti = m_rnti;
