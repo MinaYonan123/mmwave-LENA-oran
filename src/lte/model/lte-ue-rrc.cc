@@ -808,14 +808,8 @@ LteUeRrc::DoNotifyRandomAccessSuccessful()
         if (m_isSecondaryRRC) // an handover for secondary cells has happened.
         // this trace is used to keep a consistent trace of the cell to which the UE is connected
         {
-<<<<<<< HEAD
           NS_LOG_INFO("DoNotifyRandomAccessSuccessful at time " << Simulator::Now().GetSeconds());
           m_switchToMmWaveTrace(m_imsi, m_cellId, m_rnti);
-=======
-            NS_LOG_UNCOND("DoNotifyRandomAccessSuccessful at time "
-                          << Simulator::Now().GetSeconds());
-            m_switchToMmWaveTrace(m_imsi, m_cellId, m_rnti);
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
         }
     }
     break;
@@ -1153,7 +1147,6 @@ LteUeRrc::DoRecvSystemInformation(LteRrcSap::SystemInformation msg)
 void
 LteUeRrc::DoRecvRrcConnectionSetup(LteRrcSap::RrcConnectionSetup msg)
 {
-<<<<<<< HEAD
   switch (m_state)
     {
     case IDLE_CONNECTING:
@@ -1174,26 +1167,6 @@ LteUeRrc::DoRecvRrcConnectionSetup(LteRrcSap::RrcConnectionSetup msg)
                           << " UeRrc  m_state " << ToString (m_state));
       NS_FATAL_ERROR ("method unexpected in state " << ToString (m_state));
       break;
-=======
-    NS_LOG_FUNCTION(this << " RNTI " << m_rnti);
-    switch (m_state)
-    {
-    case IDLE_CONNECTING: {
-        ApplyRadioResourceConfigDedicated(msg.radioResourceConfigDedicated);
-        m_connectionTimeout.Cancel();
-        SwitchToState(CONNECTED_NORMALLY);
-        LteRrcSap::RrcConnectionSetupCompleted msg2;
-        msg2.rrcTransactionIdentifier = msg.rrcTransactionIdentifier;
-        m_rrcSapUser->SendRrcConnectionSetupCompleted(msg2);
-        m_asSapUser->NotifyConnectionSuccessful(m_rnti);
-        m_connectionEstablishedTrace(m_imsi, m_cellId, m_rnti);
-    }
-    break;
-
-    default:
-        NS_FATAL_ERROR("method unexpected in state " << ToString(m_state));
-        break;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     }
 }
 
@@ -4183,7 +4156,6 @@ LteUeRrc::Bid2Drbid(uint8_t bid)
 void
 LteUeRrc::SwitchToState(State newState)
 {
-<<<<<<< HEAD
   NS_LOG_FUNCTION (this << ToString (newState));
   State oldState = m_state;
   m_state = newState;
@@ -4193,16 +4165,6 @@ LteUeRrc::SwitchToState(State newState)
   m_stateTransitionTrace (m_imsi, m_cellId, m_rnti, oldState, newState);
 
   switch (newState)
-=======
-    NS_LOG_FUNCTION(this << ToString(newState));
-    State oldState = m_state;
-    m_state = newState;
-    NS_LOG_INFO(this << " IMSI " << m_imsi << " RNTI " << m_rnti << " CellId " << m_cellId
-                     << " UeRrc " << ToString(oldState) << " --> " << ToString(newState));
-    m_stateTransitionTrace(m_imsi, m_cellId, m_rnti, oldState, newState);
-
-    switch (newState)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     {
     case IDLE_START:
         NS_FATAL_ERROR("cannot switch to an initial state");

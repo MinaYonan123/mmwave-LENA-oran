@@ -269,7 +269,6 @@ LteNetDevice::SetPromiscReceiveCallback(PromiscReceiveCallback cb)
 void
 LteNetDevice::Receive(Ptr<Packet> p)
 {
-<<<<<<< HEAD
   NS_LOG_FUNCTION (this << p);
   uint8_t ipType;
 
@@ -282,20 +281,6 @@ LteNetDevice::Receive(Ptr<Packet> p)
     m_rxCallback (this, p, Ipv6L3Protocol::PROT_NUMBER, Address ());
   else
     NS_LOG_UNCOND ("LteNetDevice::Receive - Unknown IP type...");
-=======
-    NS_LOG_FUNCTION(this << p);
-    uint8_t ipType;
-
-    p->CopyData(&ipType, 1);
-    ipType = (ipType >> 4) & 0x0f;
-
-    if (ipType == 0x04)
-        m_rxCallback(this, p, Ipv4L3Protocol::PROT_NUMBER, Address());
-    else if (ipType == 0x06)
-        m_rxCallback(this, p, Ipv6L3Protocol::PROT_NUMBER, Address());
-    else
-        NS_ABORT_MSG("LteNetDevice::Receive - Unknown IP type...");
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 } // namespace ns3

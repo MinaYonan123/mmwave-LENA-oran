@@ -111,14 +111,10 @@ LteRlcUm::DoTransmitPdcpPdu(Ptr<Packet> p)
 {
     NS_LOG_FUNCTION(this << m_rnti << (uint32_t)m_lcid << p->GetSize());
 
-<<<<<<< HEAD
   ++m_txPacketsInReportingPeriod;
   m_txBytesInReportingPeriod += p->GetSize();
 
   if (m_txBufferSize + p->GetSize () <= m_maxTxBufferSize)
-=======
-    if (m_txBufferSize + p->GetSize() <= m_maxTxBufferSize)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     {
         /** Store arrival time */
         RlcTag timeTag(Simulator::Now());

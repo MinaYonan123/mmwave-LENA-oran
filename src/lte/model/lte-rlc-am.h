@@ -47,73 +47,6 @@ namespace ns3
  */
 class LteRlcAm : public LteRlc
 {
-<<<<<<< HEAD
-public:
-  LteRlcAm ();
-  virtual ~LteRlcAm ();
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
-  static TypeId GetTypeId (void);
-  virtual void DoDispose ();
-
-  struct RetxPdu
-  {
-    Ptr<Packet> m_pdu;
-    uint16_t    m_retxCount;
-  };
-
-  /**
-   * RLC SAP
-   *
-   * \param p packet
-   */
-  virtual void DoTransmitPdcpPdu (Ptr<Packet> p);
-
-  /**
-   * RLC EPC X2 SAP
-   */
-  virtual void DoSendMcPdcpSdu(EpcX2Sap::UeDataParams params);
-
-  // LL HO
-  std::vector < Ptr<Packet> > GetTxBuffer();
-  uint32_t GetTxBufferSize() const;
-
-  std::vector < RetxPdu > GetTxedBuffer();
-  uint32_t GetTxedBufferSize() const;
-
-  std::vector < RetxPdu > GetRetxBuffer();
-  uint32_t GetRetxBufferSize() const;
-
-  std::map < uint32_t, Ptr<Packet> > GetTransmittingRlcSduBuffer();
-  uint32_t GetTransmittingRlcSduBufferSize() const;
-
-  Ptr<Packet> GetSegmentedRlcsdu();
-  ///< translate a vector of Rlc PDUs to Rlc SDUs
-  ///< and put the Rlc SDUs into m_transmittingRlcSdus.
-  void  RlcPdusToRlcSdus (std::vector < RetxPdu >  Pdus);
-
-  std::vector < Ptr<Packet> > GetTxedRlcSduBuffer (){
-    return m_txedRlcSduBuffer;
-  }
-
-private:
-  //whether the last SDU in the txonBuffer is a complete SDU.
-  bool is_fragmented;
-
-  //
-  std::vector < Ptr <Packet> > m_txedRlcSduBuffer;
-  uint32_t m_txedRlcSduBufferSize;
-
-public:
-  /**
-   * MAC SAP
-   *
-   * \param txOpParams the LteMacSapUser::TxOpportunityParameters
-   */
-  virtual void DoNotifyTxOpportunity (LteMacSapUser::TxOpportunityParameters txOpParams);
-=======
   public:
     LteRlcAm();
     virtual ~LteRlcAm();
@@ -130,7 +63,6 @@ public:
         uint16_t m_retxCount;
     };
 
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     /**
      * RLC SAP
      *
