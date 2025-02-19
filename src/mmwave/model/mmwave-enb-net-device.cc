@@ -590,6 +590,7 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
               memcpy (&imsi, UEgnb->ran_UEID->buf, UEgnb->ran_UEID->size);
               //uint16_t targetCellId = std::stoi(controlMessage->GetSecondaryCellIdHO());
               uint16_t targetCellId = controlMessage->GetTargetCell ();
+              // controlMessage->GetSecondaryCellIdHO();
               m_rrc->TakeUeHoControl (imsi);
               if (!m_forceE2FileLogging)
                 {
@@ -623,6 +624,20 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
         break;
       }
       case RicControlMessage::ControlMessageServiceStyle::Energy_state: {
+        // TODO: Encode the RIC contol request and turn off incoming old cell.
+        // int flexric_cell_id = 2; // from control req
+        // Ptr<MmWaveEnbPhy> enbPhy =
+        //         mmWaveEnbNodes.Get (flexric_cell_id)->GetDevice (0)->GetObject<MmWaveEnbNetDevice> ()->GetPhy ();
+        //     Ptr<MmWaveEnbNetDevice> mmdev =
+        //         DynamicCast<MmWaveEnbNetDevice> (mmWaveEnbNodes.Get (flexric_cell_id)->GetDevice (0));
+            // uint16_t cell_id = mmdev->GetCellId ();
+            // if (cell_id == 2)
+            //   {
+                // printf ("Cell Id %u ", cell_id);
+                // Simulator::ScheduleWithContext (1, MilliSeconds (15), &SetBSTX, enbPhy, 0, flexric_cell_id,
+        //  mmWaveEnbNodes.Get             
+        
+        // Bug 
         for (uint32_t i = 0; i < mmWaveEnbNodes.GetN (); i++)
           {
             Ptr<MmWaveEnbPhy> enbPhy =
@@ -630,13 +645,14 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
             Ptr<MmWaveEnbNetDevice> mmdev =
                 DynamicCast<MmWaveEnbNetDevice> (mmWaveEnbNodes.Get (i)->GetDevice (0));
             uint16_t cell_id = mmdev->GetCellId ();
-            if (cell_id == 2)
-              {
+            // TODO: Fix get target cell for turn off - from old state.
+            // if (cell_id == 2)
+            //   {
                 printf ("Cell Id %u ", cell_id);
                 Simulator::ScheduleWithContext (1, MilliSeconds (15), &SetBSTX, enbPhy, 0, cell_id,
                                                 true);
                 //Simulator::ScheduleWithContext (1,Seconds (tim+5), &SetBSTX, enbPhy, 30, cell_id, false);
-              }
+              // }
           }
         break;
       }
