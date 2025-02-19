@@ -1,6 +1,5 @@
 /* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 /*
-<<<<<<< HEAD
 *   Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
 *   Copyright (c) 2015, NYU WIRELESS, Tandon School of Engineering, New York University
 *   Copyright (c) 2016, 2018, University of Padova, Dep. of Information Engineering, SIGNET lab.
@@ -39,41 +38,6 @@
 */
 
 
-=======
- *   Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *   Copyright (c) 2015, NYU WIRELESS, Tandon School of Engineering, New York University
- *   Copyright (c) 2016, 2018, University of Padova, Dep. of Information Engineering, SIGNET lab.
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License version 2 as
- *   published by the Free Software Foundation;
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *   Author: Marco Miozzo <marco.miozzo@cttc.es>
- *           Nicola Baldo  <nbaldo@cttc.es>
- *
- *   Modified by: Marco Mezzavilla < mezzavilla@nyu.edu>
- *                         Sourjya Dutta <sdutta@nyu.edu>
- *                         Russell Ford <russell.ford@nyu.edu>
- *                         Menglei Zhang <menglei@nyu.edu>
- *
- * Modified by: Michele Polese <michele.polese@gmail.com>
- *                Dual Connectivity and Handover functionalities
- *
- * Modified by: Tommaso Zugno <tommasozugno@gmail.com>
- *                               Integration of Carrier Aggregation
- * Modified by: Argha Sen <arghasen10@gmail.com>
- *                 MmWave Radio Energy Model
- */
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
 #ifndef SRC_MMWAVE_MODEL_MMWAVE_SPECTRUM_PHY_H_
 #define SRC_MMWAVE_MODEL_MMWAVE_SPECTRUM_PHY_H_
@@ -116,176 +80,6 @@ namespace mmwave
  */
 struct ExpectedTb
 {
-<<<<<<< HEAD
-public:
-  MmWaveSpectrumPhy ();
-  virtual ~MmWaveSpectrumPhy ();
-
-  enum State
-  {
-    IDLE = 0,
-    TX = 1,
-    RX_DATA = 2,
-    RX_CTRL = 3,
-    Deep_Sleep = 4
-  };
-
-  TracedValue<int32_t> m_intState; //!< used to trace the value of m_state
-  static TypeId GetTypeId (void);
-  virtual void DoDispose () override;
-
-  void Reset ();
-  void ResetSpectrumModel ();
-
-  void SetDevice (Ptr<NetDevice> d) override;
-  Ptr<NetDevice> GetDevice () const override;
-  void SetMobility (Ptr<MobilityModel> m) override;
-  Ptr<MobilityModel> GetMobility () override;
-  void SetChannel (Ptr<SpectrumChannel> c) override;
-  Ptr<const SpectrumModel> GetRxSpectrumModel () const override;
-
-  /**
-   * \brief Set Error model type
-   * \param type the Error model type
-   */
-  void SetErrorModelType (TypeId errorModelType); 
-
-  /**
-   * \brief Get the error model type
-   * \return the error model type
-   */
-  TypeId GetErrorModelType () const;
-
-  /**
-  * This function is used by SpectrumChannel to account for the antenna gain.
-  * However, in our module the antenna gain is implicitly accounted in the
-  * channel model classes, therefore this function returns 0.
-  * \return 0
-  */
-  Ptr<AntennaModel> GetRxAntenna () override;
-
-  /**
-  * Set the beamforming module
-  * \param bfModule the beamforming module
-  */
-  void SetBeamformingModel (Ptr<MmWaveBeamformingModel> bfModule);
-
-  /**
-  * Returns the beamforming module
-  * \return the beamforming module
-  */
-  Ptr<MmWaveBeamformingModel> GetBeamformingModel () const;
-
-  /**
-  * Compute the beamforming vector and update the antenna configuration
-  * to point the beam towards the target device.
-  * \param device target device
-  */
-  void ConfigureBeamforming (Ptr<NetDevice> device);
-
-  void SetNoisePowerSpectralDensity (Ptr<const SpectrumValue> noisePsd);
-  void SetTxPowerSpectralDensity (Ptr<SpectrumValue> TxPsd);
-  void StartRx (Ptr<SpectrumSignalParameters> params) override;
-  void StartRxData (Ptr<MmwaveSpectrumSignalParametersDataFrame> params);
-  void StartRxCtrl (Ptr<MmWaveSpectrumSignalParametersDlCtrlFrame> params);
-  Ptr<SpectrumChannel> GetSpectrumChannel ();
-  void SetCellId (uint16_t cellId);
-
-  /**
-   *
-   * \param componentCarrierId the component carrier id
-   */
-  void SetComponentCarrierId (uint8_t componentCarrierId);
-
-
-  bool StartTxDataFrames (Ptr<PacketBurst> pb, std::list<Ptr<MmWaveControlMessage> > ctrlMsgList, Time duration, uint8_t slotInd);
-
-  bool StartTxDlControlFrames (std::list<Ptr<MmWaveControlMessage> > ctrlMsgList, Time duration);       // control frames from enb to ue
-  bool StartTxUlControlFrames (void);       // control frames from ue to enb
-
-  void SetPhyRxDataEndOkCallback (MmWavePhyRxDataEndOkCallback c);
-  void SetPhyRxCtrlEndOkCallback (MmWavePhyRxCtrlEndOkCallback c);
-  void SetPhyDlHarqFeedbackCallback (MmWavePhyDlHarqFeedbackCallback c);
-  void SetPhyUlHarqFeedbackCallback (MmWavePhyUlHarqFeedbackCallback c);
-
-  void AddDataPowerChunkProcessor (Ptr<mmWaveChunkProcessor> p);
-  void AddDataSinrChunkProcessor (Ptr<mmWaveChunkProcessor> p);
-
-  void UpdateSinrPerceived (const SpectrumValue& sinr);
-
-  /**
-   * Add the transport block that the spectrum should expect to receive.
-   *
-   * \param rnti the RNTI of the UE
-   * \param ndi the New Data Indicator
-   * \param tbSize the size of the transport block
-   * \param mcs the modulation and coding scheme to use
-   * \param map a map of the resource blocks used
-   * \param harqId the ID of the HARQ process
-   * \param rv the number of retransmissions
-   * \param downlink a boolean flag for a downlink transmission
-   * \param symStart the first symbol of this TB
-   * \param numSym the number of symbols of the TB
-   */
-  void AddExpectedTb (uint16_t rnti, uint8_t ndi, uint32_t tbSize, uint8_t mcs, std::vector<int> map, uint8_t harqId,
-                      uint8_t rv, bool downlink, uint8_t symStart, uint8_t numSym);
-
-  void SetHarqPhyModule (Ptr<MmWaveHarqPhy> harq);
-  void SetSleep_EM (bool val);
-
-
-private:
-
-  /**
-   * \brief change the state
-   * \param newState the new state
-   */
-  void ChangeState (State newState);
-  void EndTx ();
-  void EndRxData ();
-  void EndRxCtrl ();
-
-  /**
-   * \brief Computes the minimum of the stored values
-   * \param specVal the SpectrumValue
-   */
-  double Min (const SpectrumValue& specVal);
-
-  Ptr<mmWaveInterference> m_interferenceData;
-  Ptr<MobilityModel> m_mobility;
-  Ptr<NetDevice> m_device;
-  Ptr<SpectrumChannel> m_channel;
-  Ptr<const SpectrumModel> m_rxSpectrumModel;
-  Ptr<SpectrumValue> m_txPsd;
-  //Ptr<PacketBurst> m_txPacketBurst;
-  std::list<Ptr<PacketBurst> > m_rxPacketBurstList;
-  std::list<Ptr<MmWaveControlMessage> > m_rxControlMessageList;
-
-  Time m_firstRxStart;
-  Time m_firstRxDuration;
-
-  Ptr<AntennaModel> m_antenna; // TODO can we remove this? it is never used
-  Ptr<MmWaveBeamformingModel> m_beamforming; //!< used to compute the beamforming vector
-
-  uint16_t m_cellId;
-
-  State m_state;
-
-  uint8_t m_componentCarrierId; ///< the component carrier ID
-
-  MmWavePhyRxCtrlEndOkCallback    m_phyRxCtrlEndOkCallback;
-  MmWavePhyRxDataEndOkCallback            m_phyRxDataEndOkCallback;
-
-  MmWavePhyDlHarqFeedbackCallback m_phyDlHarqFeedbackCallback;
-  MmWavePhyUlHarqFeedbackCallback m_phyUlHarqFeedbackCallback;
-
-  TracedCallback<RxPacketTraceParams> m_rxPacketTraceEnb;
-  TracedCallback<RxPacketTraceParams> m_rxPacketTraceUe;
-
-  SpectrumValue m_sinrPerceived;
-
-  TbInfoMap_t m_transportBlocks;
-=======
     ExpectedTb(uint8_t ndi,
                uint32_t tbSize,
                uint8_t mcs,
@@ -320,7 +114,6 @@ private:
     uint8_t m_symStart{0};       //!< Sym start
     uint8_t m_numSym{0};         //!< Num sym
 };
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
 struct TransportBlockInfo
 {
@@ -341,16 +134,9 @@ struct TransportBlockInfo
     double m_sinrMin{0.0}; //!< MIN SINR (only between the RB used to transmit the TB)
 };
 
-<<<<<<< HEAD
-  bool m_sleepEnabled;
-  bool m_dataErrorModelEnabled;       // when true (default) the phy error model is enabled
-  bool m_ctrlErrorModelEnabled;       // when true (default) the phy error model is enabled for DL ctrl frame
-  TypeId m_errorModelType {Object::GetTypeId()}; //!< Error model type by default is MmWaveLteMiErrorModel
-=======
 typedef std::unordered_map<uint16_t, TransportBlockInfo>
     TbInfoMap_t; //!< Transport block map per RNTI of TBs which are expected to be received by
                  //!< reading DL or UL DCIs
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
 typedef Callback<void, Ptr<Packet>> MmWavePhyRxDataEndOkCallback;
 typedef Callback<void, std::list<Ptr<MmWaveControlMessage>>> MmWavePhyRxCtrlEndOkCallback;
@@ -493,7 +279,6 @@ class MmWaveSpectrumPhy : public SpectrumPhy
                        uint8_t numSym);
 
     void SetHarqPhyModule(Ptr<MmWaveHarqPhy> harq);
-
   private:
     /**
      * \brief change the state
@@ -551,6 +336,7 @@ class MmWaveSpectrumPhy : public SpectrumPhy
                                   // frame
     TypeId m_errorModelType{
         Object::GetTypeId()}; //!< Error model type by default is MmWaveLteMiErrorModel
+    bool m_sleepEnabled;                // when true make the base station to sleep or IDLE
 
     Ptr<MmWaveHarqPhy> m_harqPhyModule;
 
@@ -567,4 +353,3 @@ class MmWaveSpectrumPhy : public SpectrumPhy
 } // namespace ns3
 
 #endif /* SRC_MMWAVE_MODEL_MMWAVE_SPECTRUM_PHY_H_ */
-

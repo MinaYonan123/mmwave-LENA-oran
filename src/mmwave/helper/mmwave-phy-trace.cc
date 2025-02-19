@@ -239,7 +239,6 @@ MmWavePhyTrace::ReportDlPhyTransmissionCallback(Ptr<MmWavePhyTrace> phyStats,
 }
 
 void
-<<<<<<< HEAD
 MmWavePhyTrace::UpdateTraces(RxPacketTraceParams params)
 {
   RntiCellIdPair_t pair {params.m_rnti, params.m_cellId};
@@ -398,11 +397,6 @@ MmWavePhyTrace::ResetMapValue (std::map<RntiCellIdPair_t, uint32_t> map,
 
 void
 MmWavePhyTrace::RxPacketTraceUeCallback (Ptr<MmWavePhyTrace> phyStats, std::string path, RxPacketTraceParams params)
-=======
-MmWavePhyTrace::RxPacketTraceUeCallback(Ptr<MmWavePhyTrace> phyStats,
-                                        std::string path,
-                                        RxPacketTraceParams params)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 {
     if (!m_rxPacketTraceFile.is_open())
     {
@@ -416,7 +410,6 @@ MmWavePhyTrace::RxPacketTraceUeCallback(Ptr<MmWavePhyTrace> phyStats,
             NS_FATAL_ERROR("Could not open tracefile");
         }
     }
-<<<<<<< HEAD
   m_rxPacketTraceFile << "DL\t" << Simulator::Now ().GetSeconds () << "\t" 
                       << params.m_frameNum << "\t" << +params.m_sfNum << "\t" 
                       << +params.m_slotNum << "\t" << +params.m_symStart << "\t" 
@@ -431,17 +424,6 @@ MmWavePhyTrace::RxPacketTraceUeCallback(Ptr<MmWavePhyTrace> phyStats,
   phyStats->UpdateTraces(params);
 
   if (params.m_corrupt)
-=======
-    m_rxPacketTraceFile << "DL\t" << Simulator::Now().GetSeconds() << "\t" << params.m_frameNum
-                        << "\t" << +params.m_sfNum << "\t" << +params.m_slotNum << "\t"
-                        << +params.m_symStart << "\t" << +params.m_numSym << "\t" << params.m_cellId
-                        << "\t" << params.m_rnti << "\t" << +params.m_ccId << "\t"
-                        << params.m_tbSize << "\t" << +params.m_mcs << "\t" << +params.m_rv << "\t"
-                        << 10 * std::log10(params.m_sinr) << "\t" << params.m_corrupt << "\t"
-                        << params.m_tbler << std::endl;
-
-    if (params.m_corrupt)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     {
         NS_LOG_DEBUG("DL TB error\t"
                      << params.m_frameNum << "\t" << +params.m_sfNum << "\t" << +params.m_slotNum

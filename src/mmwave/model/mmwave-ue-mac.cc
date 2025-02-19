@@ -341,13 +341,9 @@ MmWaveUeMac::DoTransmitPdu(LteMacSapProvider::TransmitPduParameters params)
         if (it->second.m_size <
             (params.pdu->GetSize() + it->second.m_macHeader.GetSerializedSize()))
         {
-<<<<<<< HEAD
           m_macPduMap.erase (it);                // delete map entry
           return;
           NS_FATAL_ERROR ("Maximum TB size exceeded");
-=======
-            NS_FATAL_ERROR("Maximum TB size exceeded");
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
         }
 
         if (it->second.m_numRlcPdu <= 1)
@@ -773,7 +769,6 @@ MmWaveUeMac::DoReceiveControlMessage(Ptr<MmWaveControlMessage> msg)
                     NS_LOG_DEBUG(this << " Reduced resource -> send only Status, bytes "
                                       << statusPduMinSize);
                     if (dciInfoElem.m_tbSize < statusPduMinSize)
-<<<<<<< HEAD
                       {
                         // erase the entry in the mac pdu map
                         auto it = m_macPduMap.find (dciInfoElem.m_harqProcess);
@@ -784,16 +779,6 @@ MmWaveUeMac::DoReceiveControlMessage(Ptr<MmWaveControlMessage> msg)
                       }
                   }
                 NS_LOG_LOGIC (this << " UE " << m_rnti << ": UL-CQI notified TxOpportunity of " << dciInfoElem.m_tbSize << " => " << bytesPerActiveLc << " bytes per active LC" << " statusPduMinSize " << statusPduMinSize);
-=======
-                    {
-                        NS_FATAL_ERROR("Insufficient Tx Opportunity for sending a status message");
-                    }
-                }
-                NS_LOG_LOGIC(this << " UE " << m_rnti << ": UL-CQI notified TxOpportunity of "
-                                  << dciInfoElem.m_tbSize << " => " << bytesPerActiveLc
-                                  << " bytes per active LC"
-                                  << " statusPduMinSize " << statusPduMinSize);
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
                 LteMacSapUser::TxOpportunityParameters txOpParams;
 

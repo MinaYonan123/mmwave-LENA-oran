@@ -1,6 +1,5 @@
 /* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 /*
-<<<<<<< HEAD
 *   Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
 *   Copyright (c) 2015, NYU WIRELESS, Tandon School of Engineering, New York University
 *   Copyright (c) 2016, 2018, University of Padova, Dep. of Information Engineering, SIGNET lab.
@@ -38,56 +37,17 @@
 */
 
 #include "ns3/mmwave-helper.h"
-#include <ns3/llc-snap-header.h>
 #include <ns3/simulator.h>
-#include <ns3/callback.h>
 #include <ns3/node.h>
 #include <ns3/packet.h>
 #include "mmwave-net-device.h"
 #include <ns3/packet-burst.h>
-#include <ns3/uinteger.h>
 #include <ns3/trace-source-accessor.h>
 #include <ns3/pointer.h>
-#include <ns3/enum.h>
 #include <ns3/uinteger.h>
 #include <ns3/double.h>
 #include "mmwave-enb-net-device.h"
-=======
- *   Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *   Copyright (c) 2015, NYU WIRELESS, Tandon School of Engineering, New York University
- *   Copyright (c) 2016, 2018, University of Padova, Dep. of Information Engineering, SIGNET lab.
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License version 2 as
- *   published by the Free Software Foundation;
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *   Author: Marco Miozzo <marco.miozzo@cttc.es>
- *           Nicola Baldo  <nbaldo@cttc.es>
- *
- *   Modified by: Marco Mezzavilla < mezzavilla@nyu.edu>
- *                         Sourjya Dutta <sdutta@nyu.edu>
- *                         Russell Ford <russell.ford@nyu.edu>
- *                         Menglei Zhang <menglei@nyu.edu>
- *
- *       Modified by: Tommaso Zugno <tommasozugno@gmail.com>
- *                               Integration of Carrier Aggregation
- */
-
-#include "mmwave-enb-net-device.h"
-
-#include "mmwave-net-device.h"
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 #include "mmwave-ue-net-device.h"
-
 #include <ns3/abort.h>
 #include <ns3/callback.h>
 #include <ns3/enum.h>
@@ -98,7 +58,6 @@
 #include <ns3/lte-enb-component-carrier-manager.h>
 #include <ns3/lte-enb-rrc.h>
 #include <ns3/mmwave-component-carrier-enb.h>
-<<<<<<< HEAD
 #include <ns3/config.h>
 #include <ns3/lte-rlc-um.h>
 #include <ns3/lte-rlc-um-lowlat.h>
@@ -112,15 +71,6 @@
 #include <arpa/inet.h>
 #include "encode_e2apv1.hpp"
 #include "ns3/network-module.h"
-=======
-#include <ns3/node.h>
-#include <ns3/packet-burst.h>
-#include <ns3/packet.h>
-#include <ns3/pointer.h>
-#include <ns3/simulator.h>
-#include <ns3/trace-source-accessor.h>
-#include <ns3/uinteger.h>
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
 namespace ns3
 {
@@ -130,7 +80,6 @@ NS_LOG_COMPONENT_DEFINE("MmWaveEnbNetDevice");
 namespace mmwave
 {
 
-<<<<<<< HEAD
 
 NS_OBJECT_ENSURE_REGISTERED (MmWaveEnbNetDevice);
 
@@ -163,14 +112,10 @@ MmWaveEnbNetDevice::KpmSubscriptionCallback (E2AP_PDU_t* sub_req_pdu)
 void MmWaveEnbNetDevice::stopSendingAndCancelSchedule() {
     m_stopSendingMessages = true;
 }
-=======
-NS_OBJECT_ENSURE_REGISTERED(MmWaveEnbNetDevice);
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
 TypeId
 MmWaveEnbNetDevice::GetTypeId()
 {
-<<<<<<< HEAD
   static TypeId
     tid =
     TypeId ("ns3::MmWaveEnbNetDevice")
@@ -273,46 +218,12 @@ MmWaveEnbNetDevice::MmWaveEnbNetDevice ()
     m_cuUpFileName (),
     m_cuCpFileName (),
     m_duFileName ()
-=======
-    static TypeId tid =
-        TypeId("ns3::MmWaveEnbNetDevice")
-            .SetParent<MmWaveNetDevice>()
-            .AddConstructor<MmWaveEnbNetDevice>()
-            .AddAttribute("LteEnbComponentCarrierManager",
-                          "The ComponentCarrierManager associated to this EnbNetDevice",
-                          PointerValue(),
-                          MakePointerAccessor(&MmWaveEnbNetDevice::m_componentCarrierManager),
-                          MakePointerChecker<LteEnbComponentCarrierManager>())
-            .AddAttribute("LteEnbRrc",
-                          "The RRC layer associated with the ENB",
-                          PointerValue(),
-                          MakePointerAccessor(&MmWaveEnbNetDevice::m_rrc),
-                          MakePointerChecker<LteEnbRrc>())
-            .AddAttribute("CellId",
-                          "Cell Identifier",
-                          UintegerValue(0),
-                          MakeUintegerAccessor(&MmWaveEnbNetDevice::m_cellId),
-                          MakeUintegerChecker<uint16_t>());
-    return tid;
-}
-
-MmWaveEnbNetDevice::MmWaveEnbNetDevice()
-    //: m_cellId(0),
-    // m_Bandwidth (72),
-    // m_Earfcn(1),
-    : m_componentCarrierManager(0),
-      m_isConfigured(false)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 {
     NS_LOG_FUNCTION(this);
 }
 
-<<<<<<< HEAD
 
 MmWaveEnbNetDevice::~MmWaveEnbNetDevice ()
-=======
-MmWaveEnbNetDevice::~MmWaveEnbNetDevice()
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 {
     NS_LOG_FUNCTION(this);
 }
@@ -327,7 +238,6 @@ MmWaveEnbNetDevice::DoInitialize(void)
     {
         it->second->Initialize();
     }
-<<<<<<< HEAD
   m_rrc->Initialize ();
   m_componentCarrierManager->Initialize ();
 
@@ -337,10 +247,6 @@ MmWaveEnbNetDevice::DoInitialize(void)
     Config::ConnectFailSafe ("/NodeList/*/DeviceList/*/LteEnbRrc/NotifyMmWaveSinr",
     MakeBoundCallback (&MmWaveEnbNetDevice::RegisterNewSinrReadingCallback, this));
   }
-=======
-    m_rrc->Initialize();
-    m_componentCarrierManager->Initialize();
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 void
@@ -426,22 +332,11 @@ MmWaveEnbNetDevice::GetUeMap ()
 bool
 MmWaveEnbNetDevice::HasCellId(uint16_t cellId) const
 {
-<<<<<<< HEAD
     for (auto &it : m_ccMap){
     if (DynamicCast<MmWaveComponentCarrierEnb> (it.second)->GetCellId () == cellId){
           return true;}
 }
   return false;
-=======
-    for (auto& it : m_ccMap)
-    {
-        if (DynamicCast<MmWaveComponentCarrierEnb>(it.second)->GetCellId() == cellId)
-        {
-            return true;
-        }
-    }
-    return false;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 uint8_t
@@ -520,12 +415,11 @@ MmWaveEnbNetDevice::UpdateConfig(void)
                 ccConfMap[it->first] = ccConf;
             }
 
-<<<<<<< HEAD
           m_rrc->ConfigureCell (ccConfMap);
 
           // trigger E2Termination activation for when the simulation starts
           // schedule at start time
-          if (m_e2term != 0)
+          if (m_e2term)
           {
               NS_LOG_DEBUG ("E2sim start in cell " << m_cellId << " force CSV logging "
                                                              << m_forceE2FileLogging);
@@ -626,15 +520,10 @@ MmWaveEnbNetDevice::UpdateConfig(void)
                         }
                     }
                     m_isConfigured = true;
-=======
-            m_rrc->ConfigureCell(ccConfMap);
-            m_isConfigured = true;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
         }
 
         // m_rrc->SetCsgId (m_csgId, m_csgIndication);
     }
-<<<<<<< HEAD
   else
   {
       /*
@@ -642,15 +531,6 @@ MmWaveEnbNetDevice::UpdateConfig(void)
       * ``DoInitialize`` to re-invoke this function.
       */
   }
-=======
-    else
-    {
-        /*
-         * Lower layers are not ready yet, so do nothing now and expect
-         * ``DoInitialize`` to re-invoke this function.
-         */
-    }
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 void
@@ -660,7 +540,6 @@ MmWaveEnbNetDevice::SetCcMap(std::map<uint8_t, Ptr<MmWaveComponentCarrier>> ccm)
     m_ccMap = ccm;
 }
 
-<<<<<<< HEAD
 Ptr<E2Termination>
 MmWaveEnbNetDevice::GetE2Termination() const
 {
@@ -693,7 +572,7 @@ SetBSTX (Ptr<MmWaveEnbPhy> phy, int val, uint16_t cellid, bool m_esON)
 void
   MmWaveEnbNetDevice::ControlMessageReceivedCallback(E2AP_PDU_t *sub_req_pdu) {
     NodeContainer &mmWaveEnbNodes = NodeContainerManager::GetInstance().GetMmWaveEnbNodes();
-    NS_LOG_DEBUG("\n\nLteEnbNetDevice::ControlMessageReceivedCallback: Received RIC Control Message");
+    NS_LOG_DEBUG("\nMmWaveEnbNetDevice::ControlMessageReceivedCallback: Received RIC Control Message");
     // Create RIC Control ACK
     Ptr <RicControlMessage> controlMessage = Create<RicControlMessage>(sub_req_pdu);
     //BIT_STRING_t *bit_string = &controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID->ran_UEID
@@ -703,29 +582,57 @@ void
     NS_LOG_INFO("Request type " << controlMessage->m_e2SmRcControlHeaderFormat1->ric_Style_Type);
      
     switch (controlMessage->m_e2SmRcControlHeaderFormat1->ric_Style_Type) {
-        case RicControlMessage::ControlMessageRequestIdType::HO : {
-            NS_LOG_INFO("Connected mobility, do the handover");
-            // do handover
-            UEID_GNB_t *UEgnb = (UEID_GNB_t *) calloc (1, sizeof (UEID_GNB_t));
-                                                                
-            UEgnb = controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID;
-            uint64_t imsi = {0};
-            memcpy(&imsi, UEgnb->ran_UEID->buf, UEgnb->ran_UEID->size);
-            //uint16_t targetCellId = std::stoi(controlMessage->GetSecondaryCellIdHO());
-            uint16_t targetCellId = controlMessage->GetTargetCell();
-            NS_LOG_INFO("Imsi Decoded: " << imsi);        
-            NS_LOG_UNCOND("Target Cell id " << targetCellId);
-            m_rrc->TakeUeHoControl(imsi);
-            if (!m_forceE2FileLogging) {             
-                Simulator::ScheduleWithContext(1, Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
+       case RicControlMessage::ControlMessageServiceStyle::Radio_Bearer_Control : {
+          NS_LOG_UNCOND("Unsupported RIC Style Type ");
+        break;
+       }
+
+       case RicControlMessage::ControlMessageServiceStyle::Radio_Resource_Allocation_Control : {
+         NS_LOG_UNCOND("Unsupported RIC Style Type ");
+        break;
+       }
+        case RicControlMessage::ControlMessageServiceStyle::Connected_Mode_Mobility : {
+            
+                  switch (controlMessage->m_e2SmRcControlHeaderFormat1->ric_ControlAction_ID) {
+                    case RicControlMessage::Connected_Mode_Mobility_Control_Action_ID::Handover_Control :{
+                        NS_LOG_INFO("Connected mobility, do the handover");
+                      // do handover
+                        UEID_GNB_t *UEgnb = (UEID_GNB_t *) calloc (1, sizeof (UEID_GNB_t));
+
+                        UEgnb = controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID;
+                        uint64_t imsi = {0};
+                        memcpy(&imsi, UEgnb->ran_UEID->buf, UEgnb->ran_UEID->size);
+                        //uint16_t targetCellId = std::stoi(controlMessage->GetSecondaryCellIdHO());
+                        uint16_t targetCellId = controlMessage->GetTargetCell();
+                        NS_LOG_INFO("Imsi Decoded: " << imsi);
+                        NS_LOG_UNCOND("Target Cell id " << targetCellId);
+                        m_rrc->TakeUeHoControl(imsi);
+                        if (!m_forceE2FileLogging) {
+                            Simulator::ScheduleWithContext(1, Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
+                                                            m_rrc, imsi, targetCellId);
+                        } else {
+                            Simulator::Schedule(Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
                                                 m_rrc, imsi, targetCellId);
-            } else {
-                Simulator::Schedule(Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
-                                    m_rrc, imsi, targetCellId);
-            }
-            break;
-        }
-         case RicControlMessage::ControlMessageRequestIdType::Es : {       
+                        }
+                      break;
+                    }
+                  
+                    case RicControlMessage::Connected_Mode_Mobility_Control_Action_ID::Conditional_Handover_Control :{
+                        NS_LOG_UNCOND("Unsupported Control Action ");
+                        break; 
+                    }
+                    case RicControlMessage::Connected_Mode_Mobility_Control_Action_ID::DAPS_Handover_Control :{
+                        NS_LOG_UNCOND("Unsupported Control Action ");
+                        break; 
+                    }
+                    default: {
+                    NS_LOG_INFO("Unrecognized Control Action type of Ric Control Message");
+                    break;
+                    }
+                }
+        break;
+    }
+         case RicControlMessage::ControlMessageServiceStyle::Energy_state : {
                  for (uint32_t i = 0; i < mmWaveEnbNodes.GetN (); i++)
                       {
                         Ptr<MmWaveEnbPhy> enbPhy =
@@ -736,14 +643,14 @@ void
                     if (cell_id == 2)
                       {
                         printf("Cell Id %u ",cell_id);
-                         Simulator::ScheduleWithContext (1,MilliSeconds(20), &SetBSTX, enbPhy, 0, cell_id, true);
+                         Simulator::ScheduleWithContext (1,MilliSeconds(15), &SetBSTX, enbPhy, 0, cell_id, true);
                          //Simulator::ScheduleWithContext (1,Seconds (tim+5), &SetBSTX, enbPhy, 30, cell_id, false);
                       }
                       }           
                 break;
            }
                 default: {
-            NS_LOG_INFO("Unrecognized id type of Ric Control Message");
+            NS_LOG_INFO("Unrecognized Ric Style Type of Ric Control Message");
             break;
             }
           }   
@@ -1144,15 +1051,15 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuCp(std::string plmId)
 uint32_t
 MmWaveEnbNetDevice::GetRlcBufferOccupancy(Ptr<LteRlc> rlc) const
 {
-  if (DynamicCast<LteRlcAm>(rlc) != 0)
+  if (DynamicCast<LteRlcAm>(rlc))
   {
     return DynamicCast<LteRlcAm>(rlc)->GetTxBufferSize();
   }
-  else if(DynamicCast<LteRlcUm>(rlc) != 0)
+  else if(DynamicCast<LteRlcUm>(rlc))
   {
     return DynamicCast<LteRlcUm>(rlc)->GetTxBufferSize();
   }
-  else if(DynamicCast<LteRlcUmLowLat>(rlc) != 0)
+  else if(DynamicCast<LteRlcUmLowLat>(rlc))
   {
     return DynamicCast<LteRlcUmLowLat>(rlc)->GetTxBufferSize();
   }
@@ -1641,7 +1548,3 @@ MmWaveEnbNetDevice::SetStartTime (uint64_t st)
 
 }
 }
-=======
-} // namespace mmwave
-} // namespace ns3
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0

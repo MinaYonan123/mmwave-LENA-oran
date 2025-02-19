@@ -58,19 +58,14 @@
 #include <ns3/pointer.h>
 #include <ns3/string.h>
 #include <ns3/three-gpp-propagation-loss-model.h>
-<<<<<<< HEAD
-#include <ns3/mmwave-beamforming-model.h>
 #include <sys/time.h>
 #include <ctime>
-=======
 #include <ns3/three-gpp-spectrum-propagation-loss-model.h>
 #include <ns3/uinteger.h>
 #include <ns3/uniform-planar-array.h>
 
 #include <iostream>
 #include <sstream>
-#include <string>
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
 namespace ns3
 {
@@ -83,7 +78,6 @@ namespace mmwave
 
 NS_OBJECT_ENSURE_REGISTERED(MmWaveHelper);
 
-<<<<<<< HEAD
 MmWaveHelper::MmWaveHelper (void)
   : m_imsiCounter (0),
     m_cellIdCounter (1),
@@ -92,15 +86,6 @@ MmWaveHelper::MmWaveHelper (void)
     m_rlcAmEnabled (false),
     m_snrTest (false),
     m_useIdealRrc (false)
-=======
-MmWaveHelper::MmWaveHelper(void)
-    : m_imsiCounter(0),
-      m_cellIdCounter(1),
-      m_harqEnabled(false),
-      m_rlcAmEnabled(false),
-      m_snrTest(false),
-      m_useIdealRrc(false)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 {
     NS_LOG_FUNCTION(this);
     m_channelFactory.SetTypeId(MultiModelSpectrumChannel::GetTypeId());
@@ -121,19 +106,10 @@ MmWaveHelper::MmWaveHelper(void)
     m_enbPhasedArrayModelFactory.Set("NumColumns", UintegerValue(8));
     m_enbPhasedArrayModelFactory.Set("NumRows", UintegerValue(8));
 
-<<<<<<< HEAD
-  m_lteUeAntennaModelFactory.SetTypeId (IsotropicAntennaModel::GetTypeId ());
-  m_lteEnbAntennaModelFactory.SetTypeId (IsotropicAntennaModel::GetTypeId ());
-  
-  m_bfModelFactory.SetTypeId (MmWaveSvdBeamforming::GetTypeId ());
-  
-  m_startTime = GetStartTime ();
-=======
     m_ueBeamformingCodebookFactory.SetTypeId(FileBeamformingCodebook::GetTypeId());
     m_enbBeamformingCodebookFactory.SetTypeId(FileBeamformingCodebook::GetTypeId());
 
     m_bfModelFactory.SetTypeId(MmWaveSvdBeamforming::GetTypeId());
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 MmWaveHelper::~MmWaveHelper(void)
@@ -142,7 +118,6 @@ MmWaveHelper::~MmWaveHelper(void)
 }
 
 TypeId
-<<<<<<< HEAD
 MmWaveHelper::GetTypeId (void)
 {
   static TypeId
@@ -321,162 +296,6 @@ MmWaveHelper::GetTypeId (void)
   ;
 
   return tid;
-=======
-MmWaveHelper::GetTypeId(void)
-{
-    static TypeId tid =
-        TypeId("ns3::MmWaveHelper")
-            .SetParent<Object>()
-            .AddConstructor<MmWaveHelper>()
-            .AddAttribute("PathlossModel",
-                          "The type of path-loss model to be used. "
-                          "The allowed values for this attributes are the type names "
-                          "of any class inheriting from ns3::PropagationLossModel.",
-                          StringValue("ns3::ThreeGppUmaPropagationLossModel"),
-                          MakeStringAccessor(&MmWaveHelper::SetPathlossModelType),
-                          MakeStringChecker())
-            .AddAttribute("ChannelModel",
-                          "The type of MIMO channel model to be used. "
-                          "The allowed values for this attributes are the type names "
-                          "of any class inheriting from ns3::SpectrumPropagationLossModel.",
-                          StringValue("ns3::ThreeGppSpectrumPropagationLossModel"),
-                          MakeStringAccessor(&MmWaveHelper::SetChannelModelType),
-                          MakeStringChecker())
-            .AddAttribute("Scheduler",
-                          "The type of scheduler to be used for MmWave eNBs. "
-                          "The allowed values for this attributes are the type names "
-                          "of any class inheriting from ns3::MmWaveMacScheduler.",
-                          StringValue("ns3::MmWaveFlexTtiMacScheduler"),
-                          MakeStringAccessor(&MmWaveHelper::SetSchedulerType,
-                                             &MmWaveHelper::GetSchedulerType),
-                          MakeStringChecker())
-            .AddAttribute("HarqEnabled",
-                          "Enable Hybrid ARQ",
-                          BooleanValue(true),
-                          MakeBooleanAccessor(&MmWaveHelper::m_harqEnabled),
-                          MakeBooleanChecker())
-            .AddAttribute("RlcAmEnabled",
-                          "Enable RLC Acknowledged Mode",
-                          BooleanValue(false),
-                          MakeBooleanAccessor(&MmWaveHelper::m_rlcAmEnabled),
-                          MakeBooleanChecker())
-            .AddAttribute("LteScheduler",
-                          "The type of scheduler to be used for LTE eNBs. "
-                          "The allowed values for this attributes are the type names "
-                          "of any class inheriting from ns3::FfMacScheduler.",
-                          StringValue("ns3::PfFfMacScheduler"),
-                          MakeStringAccessor(&MmWaveHelper::SetLteSchedulerType,
-                                             &MmWaveHelper::GetLteSchedulerType),
-                          MakeStringChecker())
-            .AddAttribute("LteFfrAlgorithm",
-                          "The type of FFR algorithm to be used for LTE eNBs. "
-                          "The allowed values for this attributes are the type names "
-                          "of any class inheriting from ns3::LteFfrAlgorithm.",
-                          StringValue("ns3::LteFrNoOpAlgorithm"),
-                          MakeStringAccessor(&MmWaveHelper::SetLteFfrAlgorithmType,
-                                             &MmWaveHelper::GetLteFfrAlgorithmType),
-                          MakeStringChecker())
-            .AddAttribute("LteHandoverAlgorithm",
-                          "The type of handover algorithm to be used for LTE eNBs. "
-                          "The allowed values for this attributes are the type names "
-                          "of any class inheriting from ns3::LteHandoverAlgorithm.",
-                          StringValue("ns3::NoOpHandoverAlgorithm"),
-                          MakeStringAccessor(&MmWaveHelper::SetLteHandoverAlgorithmType,
-                                             &MmWaveHelper::GetLteHandoverAlgorithmType),
-                          MakeStringChecker())
-            .AddAttribute("LtePathlossModel",
-                          "The type of pathloss model to be used for the 2 LTE channels. "
-                          "The allowed values for this attributes are the type names "
-                          "of any class inheriting from ns3::PropagationLossModel.",
-                          StringValue("ns3::FriisPropagationLossModel"),
-                          MakeStringAccessor(&MmWaveHelper::SetLtePathlossModelType),
-                          MakeStringChecker())
-            .AddAttribute("BeamformingModel",
-                          "The type of beamforming model to be used.",
-                          StringValue("ns3::MmWaveSvdBeamforming"),
-                          MakeStringAccessor(&MmWaveHelper::SetBeamformingModelType),
-                          MakeStringChecker())
-            .AddAttribute(
-                "UsePdschForCqiGeneration",
-                "If true, DL-CQI will be calculated from PDCCH as signal and PDSCH as interference "
-                "If false, DL-CQI will be calculated from PDCCH as signal and PDCCH as "
-                "interference  ",
-                BooleanValue(true),
-                MakeBooleanAccessor(&MmWaveHelper::m_usePdschForCqiGeneration),
-                MakeBooleanChecker())
-            .AddAttribute("AnrEnabled",
-                          "Activate or deactivate Automatic Neighbour Relation function",
-                          BooleanValue(true),
-                          MakeBooleanAccessor(&MmWaveHelper::m_isAnrEnabled),
-                          MakeBooleanChecker())
-            .AddAttribute("UseIdealRrc",
-                          "Use Ideal or Real RRC",
-                          BooleanValue(false),
-                          MakeBooleanAccessor(&MmWaveHelper::m_useIdealRrc),
-                          MakeBooleanChecker())
-            .AddAttribute("BasicCellId",
-                          "The next value will be the first cellId",
-                          UintegerValue(1),
-                          MakeUintegerAccessor(&MmWaveHelper::m_cellIdCounter),
-                          MakeUintegerChecker<uint16_t>())
-            .AddAttribute("BasicImsi",
-                          "The next value will be the first  imsi",
-                          UintegerValue(0),
-                          MakeUintegerAccessor(&MmWaveHelper::m_imsiCounter),
-                          MakeUintegerChecker<uint16_t>())
-            .AddAttribute("EnbComponentCarrierManager",
-                          "The type of Component Carrier Manager to be used for gNBs. "
-                          "The allowed values for this attributes are the type names "
-                          "of any class inheriting ns3::LteEnbComponentCarrierManager.",
-                          StringValue("ns3::MmWaveNoOpComponentCarrierManager"),
-                          MakeStringAccessor(&MmWaveHelper::SetEnbComponentCarrierManagerType,
-                                             &MmWaveHelper::GetEnbComponentCarrierManagerType),
-                          MakeStringChecker())
-            .AddAttribute("UeComponentCarrierManager",
-                          "The type of Component Carrier Manager to be used for UEs. "
-                          "The allowed values for this attributes are the type names "
-                          "of any class inheriting ns3::LteUeComponentCarrierManager.",
-                          StringValue("ns3::SimpleUeComponentCarrierManager"),
-                          MakeStringAccessor(&MmWaveHelper::SetUeComponentCarrierManagerType,
-                                             &MmWaveHelper::GetUeComponentCarrierManagerType),
-                          MakeStringChecker())
-            .AddAttribute("LteEnbComponentCarrierManager",
-                          "The type of Component Carrier Manager to be used for eNBs. "
-                          "The allowed values for this attributes are the type names "
-                          "of any class inheriting ns3::LteEnbComponentCarrierManager.",
-                          StringValue("ns3::NoOpComponentCarrierManager"),
-                          MakeStringAccessor(&MmWaveHelper::SetLteEnbComponentCarrierManagerType,
-                                             &MmWaveHelper::GetLteEnbComponentCarrierManagerType),
-                          MakeStringChecker())
-            .AddAttribute("UseCa",
-                          "If true, Carrier Aggregation feature is enabled in the mmWave stack and "
-                          "a valid Component Carrier Map is expected."
-                          "If false, single carrier simulation.",
-                          BooleanValue(false),
-                          MakeBooleanAccessor(&MmWaveHelper::m_useCa),
-                          MakeBooleanChecker())
-            .AddAttribute("LteUseCa",
-                          "If true, Carrier Aggregation feature is enabled in the LTE stack and a "
-                          "valid Component Carrier Map is expected."
-                          "If false, single carrier simulation.",
-                          BooleanValue(false),
-                          MakeBooleanAccessor(&MmWaveHelper::m_lteUseCa),
-                          MakeBooleanChecker())
-            .AddAttribute("NumberOfComponentCarriers",
-                          "Set the number of mmWave Component Carriers to use "
-                          "If it is more than one and m_useCa is false, it will raise an error ",
-                          UintegerValue(1),
-                          MakeUintegerAccessor(&MmWaveHelper::m_noOfCcs),
-                          MakeUintegerChecker<uint16_t>(MIN_NO_MMW_CC, MAX_NO_MMW_CC))
-            .AddAttribute("NumberOfLteComponentCarriers",
-                          "Set the number of LTE Component Carriers to use "
-                          "If it is more than one and m_lteUseCa is false, it will raise an error ",
-                          UintegerValue(1),
-                          MakeUintegerAccessor(&MmWaveHelper::m_noOfLteCcs),
-                          MakeUintegerChecker<uint16_t>(MIN_NO_CC, MAX_NO_CC));
-
-    return tid;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 void
@@ -519,7 +338,6 @@ MmWaveHelper::DoInitialize()
     m_radioBearerStatsConnector = CreateObject<MmWaveBearerStatsConnector>();
     m_enbStats = CreateObject<MmWaveMacTrace>();
 
-<<<<<<< HEAD
   // DoInitialize() will be called only once over the lifetime of an Object, 
   // just like DoDispose() is called only once.
   m_basicCellId = m_cellIdCounter;
@@ -527,11 +345,6 @@ MmWaveHelper::DoInitialize()
   // lte cc initialization
   // if m_lteUseCa=false and SetLteCcPhyParams() has not been called, setup a default LTE CC
   if (!m_lteUseCa && m_lteComponentCarrierPhyParams.size () == 0)
-=======
-    // lte cc initialization
-    // if m_lteUseCa=false and SetLteCcPhyParams() has not been called, setup a default LTE CC
-    if (!m_lteUseCa && m_lteComponentCarrierPhyParams.size() == 0)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     {
         // create the map of LTE component carriers
         Ptr<CcHelper> lteCcHelper = CreateObject<CcHelper>();
@@ -553,7 +366,6 @@ MmWaveHelper::DoInitialize()
 }
 
 void
-<<<<<<< HEAD
 MmWaveHelper::SetBasicCellId (uint16_t basicCellId)
 {
   m_cellIdCounter = basicCellId;
@@ -583,28 +395,6 @@ MmWaveHelper::MmWaveChannelModelInitialization (void)
       {
         ccm = m_channelConditionModelFactory.Create<ChannelConditionModel> ();
       }
-=======
-MmWaveHelper::MmWaveChannelModelInitialization(void)
-{
-    NS_LOG_FUNCTION(this);
-    // setup of mmWave channel & related
-    // create a channel for each CC
-    for (std::map<uint8_t, MmWaveComponentCarrier>::iterator it =
-             m_componentCarrierPhyParams.begin();
-         it != m_componentCarrierPhyParams.end();
-         ++it)
-    {
-        Ptr<SpectrumChannel> channel = m_channelFactory.Create<SpectrumChannel>();
-        Ptr<MmWavePhyMacCommon> phyMacCommon =
-            m_componentCarrierPhyParams.at(it->first).GetConfigurationParameters();
-
-        // create the channel condition model (if needed)
-        Ptr<ChannelConditionModel> ccm;
-        if (!m_channelConditionModelType.empty())
-        {
-            ccm = m_channelConditionModelFactory.Create<ChannelConditionModel>();
-        }
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
         // create the propagation loss model
         if (!m_pathlossModelType.empty())
@@ -1082,42 +872,13 @@ MmWaveHelper::InstallLteEnbDevice(NodeContainer c)
 }
 
 Ptr<NetDevice>
-<<<<<<< HEAD
-MmWaveHelper::InstallSingleMcUeDevice (Ptr<Node> n)
-{
-  NS_LOG_FUNCTION (this);
-
-
-  NS_ABORT_MSG_IF (m_imsiCounter >= 0xFFFFFFFF, "max num UEs exceeded");
-  uint64_t imsi = ++m_imsiCounter;
-  NS_LOG_INFO("imsi = " << imsi);
-  
-  Ptr<McUeNetDevice> device = m_mcUeNetDeviceFactory.Create<McUeNetDevice> ();
-  device->SetNode (n);
-
-  // mmWave phy, mac and channel
-  NS_ABORT_MSG_IF (m_componentCarrierPhyParams.size () == 0 && m_useCa, "If CA is enabled, before call this method you need to install Enbs --> InstallEnbDevice()");
-  std::map<uint8_t, Ptr<MmWaveComponentCarrierUe> > mmWaveUeCcMap;
-
-  for (std::map< uint8_t, MmWaveComponentCarrier >::iterator it = m_componentCarrierPhyParams.begin (); it != m_componentCarrierPhyParams.end (); ++it)
-    {
-      Ptr <MmWaveComponentCarrierUe> cc =  CreateObject<MmWaveComponentCarrierUe> ();
-      //cc->SetBandwidth ( it->second.GetBandwidth ());
-      //cc->SetEarfcn ( it->second.GetUlEarfcn ());
-      cc->SetConfigurationParameters (it->second.GetConfigurationParameters ());
-      cc->SetAsPrimary (it->second.IsPrimary ());
-      Ptr<MmWaveUeMac> mac = CreateObject<MmWaveUeMac> ();
-      cc->SetMac (mac);
-      // cc->GetPhy ()->Initialize (); // it is initialized within the LteUeNetDevice::DoInitialize ()
-      mmWaveUeCcMap.insert (std::pair<uint8_t, Ptr<MmWaveComponentCarrierUe> > (it->first, cc));
-    }
-=======
 MmWaveHelper::InstallSingleMcUeDevice(Ptr<Node> n)
 {
     NS_LOG_FUNCTION(this);
 
     NS_ABORT_MSG_IF(m_imsiCounter >= 0xFFFFFFFF, "max num UEs exceeded");
     uint64_t imsi = ++m_imsiCounter;
+    NS_LOG_INFO("imsi = " << imsi);
 
     Ptr<McUeNetDevice> device = m_mcUeNetDeviceFactory.Create<McUeNetDevice>();
     device->SetNode(n);
@@ -1185,7 +946,6 @@ MmWaveHelper::InstallSingleMcUeDevice(Ptr<Node> n)
             dlPhy->SetPhyDlHarqFeedbackCallback(
                 MakeCallback(&MmWaveUePhy::ReceiveLteDlHarqFeedback, phy));
         }
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
         /*Check if this is supported in mmwave
         if (m_usePdschForCqiGeneration)
@@ -1781,21 +1541,8 @@ MmWaveHelper::InstallSingleUeDevice(Ptr<Node> n)
 {
     NS_LOG_FUNCTION(this);
 
-<<<<<<< HEAD
-  //Before calling InstallEnbDevice:
-  //1) create a std::map where the key is index of
-  //component carrier starting from 0, where 0 refers to PCC. The value is
-  //an instance of MmWaveComponentCarrier which contains the attribute members for the
-  //configuration of the phy paramenters
-  //2) call SetCcPhyParams
-  NS_ASSERT_MSG (m_componentCarrierPhyParams.size () != 0, "Cannot create enb ccm map. Call SetCcPhyParams first.");
-  Ptr<MmWaveEnbNetDevice> device = m_enbNetDeviceFactory.Create<MmWaveEnbNetDevice> ();
-  device->SetStartTime (m_startTime);
-  device->SetNode (n);
-=======
     NS_ABORT_MSG_IF(m_componentCarrierPhyParams.size() == 0,
                     "Before call this method you need to install Enbs --> InstallEnbDevice()");
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
     Ptr<MmWaveUeNetDevice> device = m_ueNetDeviceFactory.Create<MmWaveUeNetDevice>();
     device->SetNode(n);
@@ -2008,20 +1755,8 @@ MmWaveHelper::InstallSingleUeDevice(Ptr<Node> n)
         }
     }
 
-<<<<<<< HEAD
-  device->SetAttribute ("CellId", UintegerValue (cellId));
-  device->SetAttribute ("BasicCellId", UintegerValue(m_basicCellId));
-  device->SetAttribute ("LteEnbComponentCarrierManager", PointerValue (ccmEnbManager));
-  device->SetCcMap (ccMap);
-
-  //device->SetAttribute ("MmWaveEnbPhy", PointerValue (phy));
-  //device->SetAttribute ("MmWaveEnbMac", PointerValue (mac));
-  //device->SetAttribute ("mmWaveScheduler", PointerValue(sched));
-  device->SetAttribute ("LteEnbRrc", PointerValue (rrc));
-=======
     NS_ABORT_MSG_IF(m_imsiCounter >= 0xFFFFFFFF, "max num UEs exceeded");
     uint64_t imsi = ++m_imsiCounter;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
     device->SetAttribute("Imsi", UintegerValue(imsi));
     // device->SetAttribute ("MmWaveUePhy", PointerValue(phy));
@@ -2051,31 +1786,7 @@ MmWaveHelper::InstallSingleUeDevice(Ptr<Node> n)
 
     n->AddDevice(device);
 
-<<<<<<< HEAD
-  if(m_e2mode_nr) {
-    const uint16_t local_port = m_e2localPort + (uint16_t) cellId;
-    const std::string gnb_id{std::to_string (cellId)};
-    
-    std::string plmnId = "111";
-
-    NS_LOG_INFO ("cell_id " << gnb_id);
-    Ptr<E2Termination> e2term =
-        CreateObject<E2Termination> (m_e2ip, m_e2port, local_port, gnb_id, plmnId);
-
-    device->SetAttribute("E2Termination", PointerValue(e2term));
-
-    EnableE2PdcpTraces();
-    EnableE2RlcTraces();
-    device->SetAttribute("E2PdcpCalculator", PointerValue(m_e2PdcpStats));
-    device->SetAttribute("E2RlcCalculator", PointerValue(m_e2RlcStats));
-    device->SetAttribute("E2DuCalculator", PointerValue(m_phyStats));
-  }
-
-  device->Initialize ();
-  n->AddDevice (device);
-=======
     nas->SetForwardUpCallback(MakeCallback(&MmWaveUeNetDevice::Receive, device));
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
     if (m_epcHelper)
     {
@@ -2177,15 +1888,9 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
             NS_LOG_WARN(this << " No PropagationLossModel!");
         }
 
-<<<<<<< HEAD
-  Ptr<LteEnbNetDevice> dev = m_lteEnbNetDeviceFactory.Create<LteEnbNetDevice> ();
-  dev->SetStartTime (m_startTime);
-  Ptr<LteHandoverAlgorithm> handoverAlgorithm = m_lteHandoverAlgorithmFactory.Create<LteHandoverAlgorithm> ();
-=======
         NS_LOG_DEBUG("Create antenna");
         Ptr<PhasedArrayModel> antenna = m_enbPhasedArrayModelFactory.Create<PhasedArrayModel>();
         NS_ASSERT_MSG(antenna, "error in creating the AntennaModel object");
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
         // initialize the 3GPP channel model
         [[maybe_unused]] Ptr<SpectrumPropagationLossModel> splm;
@@ -2749,7 +2454,6 @@ MmWaveHelper::InstallSingleLteEnbDevice(Ptr<Node> n)
         {
             NS_LOG_WARN("UL propagation model does not have a Frequency attribute");
         }
-<<<<<<< HEAD
     }  //end for
   rrc->SetForwardUpCallback (MakeCallback (&LteEnbNetDevice::Receive, dev));
 
@@ -2772,12 +2476,6 @@ MmWaveHelper::InstallSingleLteEnbDevice(Ptr<Node> n)
 
   dev->Initialize ();
   n->AddDevice (dev);
-=======
-    } // end for
-    rrc->SetForwardUpCallback(MakeCallback(&LteEnbNetDevice::Receive, dev));
-    dev->Initialize();
-    n->AddDevice(dev);
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
     for (it = ccMap.begin(); it != ccMap.end(); ++it)
     {
@@ -3440,10 +3138,9 @@ MmWaveHelper::GetPdcpStats(void)
 }
 
 void
-<<<<<<< HEAD
 MmWaveHelper::EnableE2PdcpTraces (void)
 {
-  if (m_e2PdcpStats == 0 && (m_e2mode_nr || m_e2mode_lte))
+  if (m_e2PdcpStats==nullptr && (m_e2mode_nr || m_e2mode_lte))
   {
     m_e2PdcpStats = CreateObject<MmWaveBearerStatsCalculator> ("E2PDCP");
     m_e2PdcpStats->SetAttribute("DlPdcpOutputFilename", StringValue("DlE2PdcpStats.txt"));
@@ -3473,7 +3170,7 @@ MmWaveHelper::GetE2PdcpStats (void)
 void
 MmWaveHelper::EnableE2RlcTraces (void)
 {
-  if (m_e2RlcStats == 0 && (m_e2mode_nr || m_e2mode_lte))
+  if (m_e2RlcStats==nullptr && (m_e2mode_nr || m_e2mode_lte))
   {
     m_e2RlcStats = CreateObject<MmWaveBearerStatsCalculator> ("E2RLC");
     m_e2RlcStats->SetAttribute("DlPdcpOutputFilename", StringValue("DlE2RlcStats.txt"));
@@ -3501,9 +3198,6 @@ MmWaveHelper::GetE2RlcStats (void)
 
 void
 MmWaveHelper::EnableMcTraces (void)
-=======
-MmWaveHelper::EnableMcTraces(void)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 {
     NS_ASSERT_MSG(!m_mcStats,
                   "please make sure that MmWaveHelper::EnableMcTraces is called at most once");
@@ -3559,7 +3253,6 @@ MmWaveHelper::SetUeComponentCarrierManagerType(std::string type)
     m_ueComponentCarrierManagerFactory.SetTypeId(type);
 }
 
-<<<<<<< HEAD
 uint64_t
 MmWaveHelper::GetStartTime ()
 {
@@ -3570,7 +3263,3 @@ MmWaveHelper::GetStartTime ()
 }
 }
 }
-=======
-} // namespace mmwave
-} // namespace ns3
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0

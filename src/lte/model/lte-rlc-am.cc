@@ -303,7 +303,7 @@ LteRlcAm::DoTransmitPdcpPdu(Ptr<Packet> p)
     m_rbsTimer.Cancel();
     m_rbsTimer = Simulator::Schedule(m_rbsTimerValue, &LteRlcAm::ExpireRbsTimer, this);
 }
-
+}
 void
 LteRlcAm::DoSendMcPdcpSdu(EpcX2Sap::UeDataParams params)
 {

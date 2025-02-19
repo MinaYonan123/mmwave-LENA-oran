@@ -49,7 +49,6 @@ typedef std::pair<uint16_t, uint16_t> RntiCellIdPair_t;
 
 class MmWavePhyTrace : public Object
 {
-<<<<<<< HEAD
 public:
   MmWavePhyTrace ();
   virtual ~MmWavePhyTrace ();
@@ -345,69 +344,6 @@ private:
    */
   std::map<RntiCellIdPair_t, uint32_t> ResetMapValue (std::map<RntiCellIdPair_t, uint32_t> map, 
                       RntiCellIdPair_t key);
-=======
-  public:
-    MmWavePhyTrace();
-    virtual ~MmWavePhyTrace();
-    static TypeId GetTypeId(void);
-    static void ReportCurrentCellRsrpSinrCallback(Ptr<MmWavePhyTrace> phyStats,
-                                                  std::string path,
-                                                  uint64_t imsi,
-                                                  SpectrumValue& sinr,
-                                                  SpectrumValue& power);
-    static void ReportDownLinkTBSize(Ptr<MmWavePhyTrace> phyStats,
-                                     std::string path,
-                                     uint64_t imsi,
-                                     uint64_t tbSize);
-    static void RxPacketTraceUeCallback(Ptr<MmWavePhyTrace> phyStats,
-                                        std::string path,
-                                        RxPacketTraceParams param);
-    static void RxPacketTraceEnbCallback(Ptr<MmWavePhyTrace> phyStats,
-                                         std::string path,
-                                         RxPacketTraceParams param);
-
-    /**
-     * Callback used to trace an UL PHY tranmission
-     */
-    static void ReportUlPhyTransmissionCallback(Ptr<MmWavePhyTrace> phyStats,
-                                                PhyTransmissionTraceParams param);
-
-    /**
-     * Callback used to trace a DL PHY tranmission
-     */
-    static void ReportDlPhyTransmissionCallback(Ptr<MmWavePhyTrace> phyStats,
-                                                PhyTransmissionTraceParams param);
-
-    /**
-     * Sets the filename of the PHY reception traces
-     * \param fileName the file name
-     */
-    void SetPhyRxOutputFilename(std::string fileName);
-
-    /**
-     * Sets the filename of the UL PHY tranmission traces
-     * \param fileName the file name
-     */
-    void SetUlPhyTxOutputFilename(std::string fileName);
-
-    /**
-     * Sets the filename of the DL PHY tranmission traces
-     * \param fileName the file name
-     */
-    void SetDlPhyTxOutputFilename(std::string fileName);
-
-  private:
-    // void ReportInterferenceTrace (uint64_t imsi, SpectrumValue& sinr);
-    // void ReportDLTbSize (uint64_t imsi, uint64_t tbSize);
-    static std::ofstream m_rxPacketTraceFile;   //!< Output stream for the PHY reception trace
-    static std::string m_rxPacketTraceFilename; //!< Output filename for the PHY reception trace
-
-    static std::ofstream m_ulPhyTraceFile;   //!< Output stream for the UL PHY transmission trace
-    static std::string m_ulPhyTraceFilename; //!< Output filename for the UL PHY transmission trace
-
-    static std::ofstream m_dlPhyTraceFile;   //!< Output stream for the DL PHY transmission trace
-    static std::string m_dlPhyTraceFilename; //!< Output filename for the DL PHY transmission trace
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 };
 
 } // namespace mmwave

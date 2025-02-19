@@ -32,10 +32,6 @@
  *                               Integration of Carrier Aggregation
  */
 
-<<<<<<< HEAD
-#include "ns3/mmwave-bearer-stats-calculator.h"
-=======
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 #include "mmwave-bearer-stats-connector.h"
 
 #include "mmwave-bearer-stats-calculator.h"
@@ -312,7 +308,6 @@ MmWaveBearerStatsConnector::EnablePdcpStats(Ptr<MmWaveBearerStatsCalculator> pdc
 }
 
 void
-<<<<<<< HEAD
 MmWaveBearerStatsConnector::EnableE2PdcpStats (Ptr<MmWaveBearerStatsCalculator> e2PdcpStats)
 {
   if(m_e2PdcpStatsVector.empty()) {
@@ -334,9 +329,6 @@ MmWaveBearerStatsConnector::EnableE2RlcStats (Ptr<MmWaveBearerStatsCalculator> e
 
 void
 MmWaveBearerStatsConnector::EnableMcStats (Ptr<McStatsCalculator> mcStats)
-=======
-MmWaveBearerStatsConnector::EnableMcStats(Ptr<McStatsCalculator> mcStats)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 {
     m_mcStats = mcStats;
     EnsureConnected();
@@ -777,7 +769,6 @@ MmWaveBearerStatsConnector::ConnectSrb0Traces(std::string context,
         Config::ConnectFailSafe(ueManagerPath + "/Srb1/LteRlc/RxPDU",
                                 MakeBoundCallback(&UlRxPduCallback, arg));
     }
-<<<<<<< HEAD
   if (!m_e2RlcStatsVector.empty())
     {
       for(auto rlcStats : m_e2RlcStatsVector)
@@ -815,9 +806,6 @@ MmWaveBearerStatsConnector::ConnectSrb0Traces(std::string context,
       }
     }
   if (m_pdcpStats)
-=======
-    if (m_pdcpStats)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     {
         Ptr<MmWaveBoundCallbackArgument> arg = Create<MmWaveBoundCallbackArgument>();
         arg->imsi = imsi;
@@ -945,7 +933,6 @@ MmWaveBearerStatsConnector::ConnectDrbTracesUe(std::string context,
         Config::ConnectFailSafe(basePath + "/DataRadioBearerMap/*/LteRlc/RxPDU",
                                 m_rlcDrbDlRxCb.at(imsi));
     }
-<<<<<<< HEAD
   if (!m_e2RlcStatsVector.empty())
     {
       for(auto rlcStats : m_e2RlcStatsVector)
@@ -965,9 +952,6 @@ MmWaveBearerStatsConnector::ConnectDrbTracesUe(std::string context,
       }
     }
   if (m_pdcpStats)
-=======
-    if (m_pdcpStats)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     {
         Ptr<MmWaveBoundCallbackArgument> arg = Create<MmWaveBoundCallbackArgument>();
         arg->imsi = imsi;
@@ -1022,7 +1006,6 @@ MmWaveBearerStatsConnector::ConnectSrb1TracesUe(std::string ueRrcPath,
         Config::ConnectFailSafe(basePath + "/Srb1/LteRlc/RxPDU",
                                 MakeBoundCallback(&DlRxPduCallback, arg));
     }
-<<<<<<< HEAD
   if (!m_e2RlcStatsVector.empty())
     {
       for(auto rlcStats : m_e2RlcStatsVector)
@@ -1042,9 +1025,6 @@ MmWaveBearerStatsConnector::ConnectSrb1TracesUe(std::string ueRrcPath,
       }
     }
   if (m_pdcpStats)
-=======
-    if (m_pdcpStats)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     {
         Ptr<MmWaveBoundCallbackArgument> arg = Create<MmWaveBoundCallbackArgument>();
         arg->imsi = imsi;
@@ -1055,7 +1035,6 @@ MmWaveBearerStatsConnector::ConnectSrb1TracesUe(std::string ueRrcPath,
         Config::ConnectFailSafe(basePath + "/Srb1/LtePdcp/TxPDU",
                                 MakeBoundCallback(&UlTxPduCallback, arg));
     }
-<<<<<<< HEAD
   if (!m_e2PdcpStatsVector.empty())
     {
       for (auto e2PdcpStats : m_e2PdcpStatsVector) {
@@ -1071,9 +1050,6 @@ MmWaveBearerStatsConnector::ConnectSrb1TracesUe(std::string ueRrcPath,
         }
     }
   if (m_mcStats)
-=======
-    if (m_mcStats)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     {
         Ptr<McMmWaveBoundCallbackArgument> arg = Create<McMmWaveBoundCallbackArgument>();
         arg->stats = m_mcStats;
@@ -1109,7 +1085,6 @@ MmWaveBearerStatsConnector::ConnectSrb1TracesEnb(std::string context,
         Config::ConnectFailSafe(basePath.str() + "/Srb1/LteRlc/TxPDU",
                                 MakeBoundCallback(&DlTxPduCallback, arg));
     }
-<<<<<<< HEAD
   if (!m_e2RlcStatsVector.empty())
     {
       for(auto rlcStats : m_e2RlcStatsVector)
@@ -1130,9 +1105,6 @@ MmWaveBearerStatsConnector::ConnectSrb1TracesEnb(std::string context,
       }
     }
   if (m_pdcpStats)
-=======
-    if (m_pdcpStats)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     {
         Ptr<MmWaveBoundCallbackArgument> arg = Create<MmWaveBoundCallbackArgument>();
         arg->imsi = imsi;
@@ -1180,7 +1152,6 @@ MmWaveBearerStatsConnector::ConnectDrbTracesEnb(std::string context,
         Config::ConnectFailSafe(basePath.str() + "/DataRadioBearerMap/*/LteRlc/TxPDU",
                                 MakeBoundCallback(&DlTxPduCallback, arg));
     }
-<<<<<<< HEAD
   if (!m_e2RlcStatsVector.empty())
     {
       for(auto rlcStats : m_e2RlcStatsVector)
@@ -1197,9 +1168,6 @@ MmWaveBearerStatsConnector::ConnectDrbTracesEnb(std::string context,
       }
     }
   if (m_pdcpStats)
-=======
-    if (m_pdcpStats)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
     {
         Ptr<MmWaveBoundCallbackArgument> arg = Create<MmWaveBoundCallbackArgument>();
         arg->imsi = imsi;

@@ -196,7 +196,6 @@ MmWaveBearerStatsCalculator::UlTxPdu(uint16_t cellId,
 }
 
 void
-<<<<<<< HEAD:src/lte/helper/mmwave-bearer-stats-calculator.cc
 MmWaveBearerStatsCalculator::DlTxPdu (uint16_t cellId, uint64_t imsi, uint16_t rnti, uint8_t lcid, uint32_t packetSize)
 {
   NS_LOG_FUNCTION (this << "DlTxPDU" << cellId << imsi << rnti << (uint32_t) lcid << packetSize);
@@ -276,100 +275,7 @@ MmWaveBearerStatsCalculator::DlRxPdu (uint16_t cellId, uint64_t imsi, uint16_t r
 
   if(m_aggregatedStats)
   {
-    ImsiLcidPair_t p (imsi, lcid);
-    if (Simulator::Now () >= m_startTime)
-=======
-MmWaveBearerStatsCalculator::DlTxPdu(uint16_t cellId,
-                                     uint64_t imsi,
-                                     uint16_t rnti,
-                                     uint8_t lcid,
-                                     uint32_t packetSize)
-{
-    NS_LOG_FUNCTION(this << "DlTxPDU" << cellId << imsi << rnti << (uint32_t)lcid << packetSize);
-    if (m_aggregatedStats)
-    {
-        ImsiLcidPair_t p(imsi, lcid);
-        if (Simulator::Now() >= m_startTime)
-        {
-            m_dlCellId[p] = cellId;
-            m_flowId[p] = LteFlowId_t(rnti, lcid);
-            m_dlTxPackets[p]++;
-            m_dlTxData[p] += packetSize;
-        }
-        m_pendingOutput = true;
-    }
-    else
-    {
-        if (!m_dlOutFile.is_open())
-        {
-            m_dlOutFile.open(GetDlOutputFilename().c_str());
-            m_dlOutFile << "TYPE\tTIME\tCellId\tIMSI\tRNTI\tLCID\tSIZE\tDELAY\t" << std::endl;
-        }
-        m_dlOutFile << "Tx\t" << Simulator::Now().GetNanoSeconds() / 1.0e9 << "\t" << cellId << "\t"
-                    << imsi << "\t" << rnti << "\t" << (uint32_t)lcid << "\t" << packetSize << "\t"
-                    << 0 << "\t" << std::endl;
-    }
-}
-
-void
-MmWaveBearerStatsCalculator::UlRxPdu(uint16_t cellId,
-                                     uint64_t imsi,
-                                     uint16_t rnti,
-                                     uint8_t lcid,
-                                     uint32_t packetSize,
-                                     uint64_t delay)
-{
-    NS_LOG_FUNCTION(this << "UlRxPDU" << cellId << imsi << rnti << (uint32_t)lcid << packetSize
-                         << delay);
-    if (m_aggregatedStats)
-    {
-        ImsiLcidPair_t p(imsi, lcid);
-        if (Simulator::Now() >= m_startTime)
-        {
-            m_ulCellId[p] = cellId;
-            m_ulRxPackets[p]++;
-            m_ulRxData[p] += packetSize;
-
-            Uint64StatsMap::iterator it = m_ulDelay.find(p);
-            if (it == m_ulDelay.end())
-            {
-                NS_LOG_DEBUG(this << " Creating UL stats calculators for IMSI " << p.m_imsi
-                                  << " and LCID " << (uint32_t)p.m_lcId);
-                m_ulDelay[p] = CreateObject<MinMaxAvgTotalCalculator<uint64_t>>();
-                m_ulPduSize[p] = CreateObject<MinMaxAvgTotalCalculator<uint32_t>>();
-            }
-            m_ulDelay[p]->Update(delay);
-            m_ulPduSize[p]->Update(packetSize);
-        }
-        m_pendingOutput = true;
-    }
-    else
-    {
-        if (!m_ulOutFile.is_open())
-        {
-            m_ulOutFile.open(GetUlOutputFilename().c_str());
-            m_ulOutFile << "TYPE\tTIME\tCellId\tIMSI\tRNTI\tLCID\tSIZE\tDELAY\t" << std::endl;
-        }
-        m_ulOutFile << "Rx\t" << Simulator::Now().GetNanoSeconds() / 1.0e9 << "\t" << cellId << "\t"
-                    << imsi << "\t" << rnti << "\t" << (uint32_t)lcid << "\t" << packetSize << "\t"
-                    << delay << "\t" << std::endl;
-    }
-}
-
-void
-MmWaveBearerStatsCalculator::DlRxPdu(uint16_t cellId,
-                                     uint64_t imsi,
-                                     uint16_t rnti,
-                                     uint8_t lcid,
-                                     uint32_t packetSize,
-                                     uint64_t delay)
-{
-    NS_LOG_FUNCTION(this << "DlRxPDU" << cellId << imsi << rnti << (uint32_t)lcid << packetSize
-                         << delay);
-    if (m_aggregatedStats)
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0:src/mmwave/helper/mmwave-bearer-stats-calculator.cc
-    {
-        ImsiLcidPair_t p(imsi, lcid);
+         ImsiLcidPair_t p(imsi, lcid);
         if (Simulator::Now() >= m_startTime)
         {
             m_dlCellId[p] = cellId;
@@ -400,7 +306,6 @@ MmWaveBearerStatsCalculator::DlRxPdu(uint16_t cellId,
                     << imsi << "\t" << rnti << "\t" << (uint32_t)lcid << "\t" << packetSize << "\t"
                     << delay << "\t" << std::endl;
     }
-<<<<<<< HEAD:src/lte/helper/mmwave-bearer-stats-calculator.cc
     m_dlOutFile << "Rx\t" << Simulator::Now ().GetNanoSeconds () / 1.0e9 << "\t" 
     << cellId << "\t" << imsi << "\t" << rnti << "\t" << (uint32_t) lcid << "\t" 
     << packetSize << "\t" << delay << "\t" << std::endl;
@@ -408,9 +313,6 @@ MmWaveBearerStatsCalculator::DlRxPdu(uint16_t cellId,
     << cellId << "\t" << imsi << "\t" << rnti << "\t" << (uint32_t) lcid << "\t" 
     << packetSize << "\t" << delay << "\t" << std::endl);
   }
-=======
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0:src/mmwave/helper/mmwave-bearer-stats-calculator.cc
-}
 
 void
 MmWaveBearerStatsCalculator::ShowResults(void)
