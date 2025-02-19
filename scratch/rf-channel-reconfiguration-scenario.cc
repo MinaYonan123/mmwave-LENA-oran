@@ -38,7 +38,7 @@
 #include "ns3/internet-apps-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/mobility-module.h"
-#include "ns3/nr-module.h"
+//#include "ns3/nr-module.h"
 #include "ns3/point-to-point-module.h"
 
 using namespace ns3;
@@ -156,8 +156,8 @@ static ns3::GlobalValue g_enableTraces ("enableTraces", "If true, generate ns-3 
 static ns3::GlobalValue g_e2lteEnabled ("e2lteEnabled", "If true, send LTE E2 reports",
                                         ns3::BooleanValue (true), ns3::MakeBooleanChecker ());
 
-static ns3::GlobalValue g_e2nrEnabled ("e2nrEnabled", "If true, send NR E2 reports",
-                                       ns3::BooleanValue (true), ns3::MakeBooleanChecker ());
+//static ns3::GlobalValue g_e2nrEnabled ("e2nrEnabled", "If true, send NR E2 reports",
+                                 //      ns3::BooleanValue (true), ns3::MakeBooleanChecker ());
 
 static ns3::GlobalValue g_e2du ("e2du", "If true, send DU reports", ns3::BooleanValue (true),
                                 ns3::MakeBooleanChecker ());
@@ -279,8 +279,8 @@ main (int argc, char *argv[])
 
   GlobalValue::GetValueByName ("e2lteEnabled", booleanValue);
   bool e2lteEnabled = booleanValue.Get ();
-  GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
-  bool e2nrEnabled = booleanValue.Get ();
+ // GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
+  //bool e2nrEnabled = booleanValue.Get ();
   GlobalValue::GetValueByName ("e2du", booleanValue);
   bool e2du = booleanValue.Get ();
   GlobalValue::GetValueByName ("e2cuUp", booleanValue);
@@ -296,10 +296,10 @@ main (int argc, char *argv[])
   GlobalValue::GetValueByName ("controlFileName", stringValue);
   std::string controlFilename = stringValue.Get ();
 
-  NS_LOG_UNCOND ("e2lteEnabled " << e2lteEnabled << " e2nrEnabled " << e2nrEnabled << " e2du "
-                                 << e2du << " e2cuCp " << e2cuCp << " e2cuUp " << e2cuUp
-                                 << " controlFilename " << controlFilename
-                                 << " indicationPeriodicity " << indicationPeriodicity);
+ // NS_LOG_UNCOND ("e2lteEnabled " << e2lteEnabled << " e2nrEnabled " << e2nrEnabled << " e2du "
+                                //  << e2du << " e2cuCp " << e2cuCp << " e2cuUp " << e2cuUp
+                                //  << " controlFilename " << controlFilename
+                                //  << " indicationPeriodicity " << indicationPeriodicity);
 
   Config::SetDefault ("ns3::LteEnbNetDevice::ControlFileName", StringValue (controlFilename));
   Config::SetDefault ("ns3::LteEnbNetDevice::E2Periodicity", DoubleValue (indicationPeriodicity));
@@ -307,7 +307,7 @@ main (int argc, char *argv[])
                       DoubleValue (indicationPeriodicity));
 
   Config::SetDefault ("ns3::MmWaveHelper::E2ModeLte", BooleanValue (e2lteEnabled));
-  Config::SetDefault ("ns3::MmWaveHelper::E2ModeNr", BooleanValue (e2nrEnabled));
+ // Config::SetDefault ("ns3::MmWaveHelper::E2ModeNr", BooleanValue (e2nrEnabled));
 
   // The DU PM reports should come from both NR gNB as well as LTE eNB,
   // since in the RLC/MAC/PHY entities are present in BOTH NR gNB as well as LTE eNB.
