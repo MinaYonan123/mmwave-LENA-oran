@@ -30,7 +30,9 @@ build_lib(
     model/propagation-loss-model.h
     model/three-gpp-propagation-loss-model.h
     model/three-gpp-v2v-propagation-loss-model.h
-  LIBRARIES_TO_LINK ${libmobility}
+  LIBRARIES_TO_LINK ${libnetwork}
+                    ${libmobility}
+                    ${libsionna}
   TEST_SOURCES
     test/channel-condition-model-test-suite.cc
     test/itu-r-1411-los-test-suite.cc

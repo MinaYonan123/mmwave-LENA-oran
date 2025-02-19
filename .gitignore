@@ -35,7 +35,6 @@ build-dir/
 build/
 /.cproject
 /.project
-<<<<<<< HEAD
 .vscode/*
 
 docs/
@@ -93,4 +92,5 @@ cmake-build-release/
 
 # Ignore local cache used by e.g. clangd
 .cache/
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
+src/sionna/scenarios/SionnaCircleScenario/.DS_Store
+src/sionna/sionna_log.csv
