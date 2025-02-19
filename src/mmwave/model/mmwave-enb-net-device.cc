@@ -72,6 +72,7 @@
 #include <arpa/inet.h>
 #include "encode_e2apv1.hpp"
 #include "ns3/network-module.h"
+#include <any>
 
 namespace ns3 {
 
@@ -205,6 +206,11 @@ MmWaveEnbNetDevice::~MmWaveEnbNetDevice ()
 {
   NS_LOG_FUNCTION (this);
 }
+
+// MmWaveEnbNetDevice::MmWaveEnbNetDevice(Ptr<E2Termination> e2Termination)
+// {
+//     m_e2term = e2Termination;
+// }
 
 void
 MmWaveEnbNetDevice::DoInitialize (void)
@@ -892,7 +898,8 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuUp (std::string plmId)
     }
   else
     {
-      return indicationMessageHelper->CreateIndicationMessage ();
+      const auto& subsDetails_r = m_e2term->SubscriptionMapRef();
+      return indicationMessageHelper->CreateIndicationMessage (subsDetails_r);
     }
 }
 
@@ -1109,7 +1116,8 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuCp (std::string plmId)
         }
       NS_LOG_DEBUG (" 2. Fill l3RrcMeasurementServing , l3RrcMeasurementNeigh");
 
-      return indicationMessageHelper->CreateIndicationMessage ();
+      const auto& subsDetails_r = m_e2term->SubscriptionMapRef();
+      return indicationMessageHelper->CreateIndicationMessage (subsDetails_r);
     }
 }
 
@@ -1469,7 +1477,8 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
     }
   else
     {
-      return indicationMessageHelper->CreateIndicationMessage ();
+      const auto& subsDetails_r = m_e2term->SubscriptionMapRef();
+      return indicationMessageHelper->CreateIndicationMessage (subsDetails_r);
     }
 }
 

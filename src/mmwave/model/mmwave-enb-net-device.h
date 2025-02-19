@@ -80,6 +80,7 @@ namespace ns3 {
             static TypeId GetTypeId(void);
 
             MmWaveEnbNetDevice();
+            // MmWaveEnbNetDevice(Ptr<E2Termination> e2Termination);
 
             virtual ~MmWaveEnbNetDevice(void);
 
