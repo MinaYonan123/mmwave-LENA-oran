@@ -28,6 +28,7 @@
  *           Parallel reporting for E2
  */
 
+
 #include <ns3/llc-snap-header.h>
 #include <ns3/simulator.h>
 #include <ns3/callback.h>
@@ -64,6 +65,7 @@
 #include <fstream>
 #include <sstream>
 #include <ns3/lte-indication-message-helper.h>
+#include "UEID-GNB.h"
 
 
 namespace ns3
@@ -173,39 +175,7 @@ namespace ns3
         Ptr <RicControlMessage> controlMessage = Create<RicControlMessage>(sub_req_pdu);
         NS_LOG_INFO("After RicControlMessage::RicControlMessage constructor");
         NS_LOG_INFO("Request type " << controlMessage->m_requestType);
-        switch (controlMessage->m_requestType) {
-            case RicControlMessage::ControlMessageRequestIdType::HO : {
-                NS_LOG_INFO("HO, do the handover");
-                // do handover
-                Ptr <OctetString> imsiString =
-                        Create<OctetString>((void *) controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID,
-                                            controlMessage->m_e2SmRcControlHeaderFormat1->ueID.present);  //this line need to fix 
-                char *end;
-
-                uint64_t imsi = std::strtoull(imsiString->DecodeContent().c_str(), &end, 10);
-                uint16_t targetCellId = std::stoi(controlMessage->GetSecondaryCellIdHO());
-                NS_LOG_INFO("Imsi Decoded: " << imsi);
-                NS_LOG_INFO("Target Cell id " << targetCellId);
-                m_rrc->TakeUeHoControl(imsi);
-                if (!m_forceE2FileLogging) {
-                    Simulator::ScheduleWithContext(1, Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
-                                                   m_rrc, imsi, targetCellId);
-                } else {
-                    Simulator::Schedule(Seconds(0), &LteEnbRrc::PerformHandoverToTargetCell,
-                                        m_rrc, imsi, targetCellId);
-                }
-                break;
-            }
-            case RicControlMessage::ControlMessageRequestIdType::Es: {
-                // use SetUeQoS()
-                NS_FATAL_ERROR("For QoS use file-based control.");
-                break;
-            }
-            default: {
-                NS_LOG_INFO("Unrecognized id type of Ric Control Message");
-                break;
-            }
-        }
+        
     }
 
     TypeId LteEnbNetDevice::GetTypeId(void) {
@@ -377,7 +347,7 @@ namespace ns3
         m_handoverAlgorithm->Dispose();
         m_handoverAlgorithm = 0;
 
-        if (m_anr != 0) {
+        if (m_anr) {
             m_anr->Dispose();
             m_anr = 0;
         }
@@ -558,7 +528,7 @@ namespace ns3
         m_componentCarrierManager->Initialize();
         m_handoverAlgorithm->Initialize();
 
-        if (m_anr != 0) {
+        if (m_anr) {
             m_anr->Initialize();
         }
 

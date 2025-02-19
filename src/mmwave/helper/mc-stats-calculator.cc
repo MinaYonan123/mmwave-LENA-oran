@@ -30,15 +30,8 @@
 namespace ns3
 {
 
-<<<<<<< HEAD
 NS_LOG_COMPONENT_DEFINE ("McStatsCalculator");
 namespace mmwave {
-=======
-NS_LOG_COMPONENT_DEFINE("McStatsCalculator");
-
-namespace mmwave
-{
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
 NS_OBJECT_ENSURE_REGISTERED(McStatsCalculator);
 
@@ -146,23 +139,13 @@ McStatsCalculator::SwitchToLte(uint64_t imsi, uint16_t cellId, uint16_t rnti)
         m_lteOutFile.open(GetLteOutputFilename().c_str());
     }
 
-<<<<<<< HEAD
   m_lteOutFile << "SwitchToLte " << Simulator::Now ().GetNanoSeconds () / 1.0e9 << " " <<" imsi = " << imsi << " cellId = " << cellId << " rnti =" << rnti << " " << std::endl;
-=======
-    m_lteOutFile << "SwitchToLte " << Simulator::Now().GetNanoSeconds() / 1.0e9 << " " << imsi
-                 << " " << cellId << " " << rnti << " " << std::endl;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
     if (!m_cellInTimeOutFile.is_open())
     {
         m_cellInTimeOutFile.open(GetCellIdInTimeOutputFilename().c_str());
     }
-<<<<<<< HEAD
   m_cellInTimeOutFile << Simulator::Now ().GetNanoSeconds () / 1.0e9 << " imsi = " << imsi << " cellId = " << cellId << " rnti =" << rnti << " " << std::endl;
-=======
-    m_cellInTimeOutFile << Simulator::Now().GetNanoSeconds() / 1.0e9 << " " << imsi << " " << cellId
-                        << " " << rnti << " " << std::endl;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 }
 
 void
@@ -175,14 +158,9 @@ McStatsCalculator::SwitchToMmWave(uint64_t imsi, uint16_t cellId, uint16_t rnti)
         m_mmWaveOutFile.open(GetMmWaveOutputFilename().c_str());
     }
 
-<<<<<<< HEAD
   m_mmWaveOutFile << "SwitchToMmWave " << Simulator::Now ().GetNanoSeconds () / 1.0e9 << " " << "imsi = " << imsi << " cellId = " << cellId << " rnti = " << rnti << " " << std::endl;
 
   NS_LOG_INFO ("imsi " << imsi << " cellId  "<< cellId << " rnti  " << rnti );
-=======
-    m_mmWaveOutFile << "SwitchToMmWave " << Simulator::Now().GetNanoSeconds() / 1.0e9 << " " << imsi
-                    << " " << cellId << " " << rnti << " " << std::endl;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
 
     if (!m_cellInTimeOutFile.is_open())
     {

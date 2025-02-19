@@ -1222,11 +1222,7 @@ MmWaveFlexTtiMacScheduler::DoSchedTriggerReq(
                 {
                     itUeInfo->second.m_ulMcs = mcs; // m_amc->GetMcsFromCqi (cqi);  // get MCS
                 }
-<<<<<<< HEAD
               itUeInfo->second.m_maxUlBufSize = ceBsrIt->second + m_rlcHdrSize + m_subHdrSize + 8;
-=======
-                itUeInfo->second.m_maxUlBufSize = ceBsrIt->second + m_rlcHdrSize + m_macHdrSize + 8;
->>>>>>> c01be9445db95e59c261fe28891224d4778187e0
             }
         }
     }
