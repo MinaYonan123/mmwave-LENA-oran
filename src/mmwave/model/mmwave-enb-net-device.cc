@@ -36,18 +36,14 @@
 */
 
 #include "ns3/mmwave-helper.h"
-#include <ns3/llc-snap-header.h>
 #include <ns3/simulator.h>
-#include <ns3/callback.h>
 #include <ns3/node.h>
 #include <ns3/packet.h>
 #include <ns3/lte-enb-rrc.h>
 #include "mmwave-net-device.h"
 #include <ns3/packet-burst.h>
-#include <ns3/uinteger.h>
 #include <ns3/trace-source-accessor.h>
 #include <ns3/pointer.h>
-#include <ns3/enum.h>
 #include <ns3/uinteger.h>
 #include <ns3/double.h>
 #include "mmwave-enb-net-device.h"
@@ -2270,5 +2266,8 @@ MmWaveEnbNetDevice::BuildGUICuUp (std::string plmId)
   Simulator::Schedule (MilliSeconds (100), &MmWaveEnbNetDevice::BuildGUICuUp, this, plmId);
   return nullptr;
 }
+<<<<<<< HEAD
 } // namespace mmwave
 } // namespace ns3
+=======
+>>>>>>> Solve conflict for mmwave module

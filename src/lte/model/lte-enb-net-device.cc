@@ -28,29 +28,35 @@
  *           Parallel reporting for E2
  */
 
-#include <ns3/abort.h>
+#include <ns3/llc-snap-header.h>
+#include <ns3/simulator.h>
 #include <ns3/callback.h>
+#include <ns3/node.h>
+#include <ns3/packet.h>
+#include <ns3/lte-net-device.h>
+#include <ns3/packet-burst.h>
+#include <ns3/uinteger.h>
+#include <ns3/trace-source-accessor.h>
+#include <ns3/pointer.h>
 #include <ns3/enum.h>
 #include <ns3/string.h>
-#include <ns3/mc-enb-pdcp.h>
-
-#include <ns3/ff-mac-scheduler.h>
-#include <ns3/ipv4-l3-protocol.h>
-#include <ns3/ipv6-l3-protocol.h>
-#include <ns3/llc-snap-header.h>
-#include <ns3/log.h>
 #include <ns3/lte-amc.h>
-#include <ns3/lte-anr.h>
-#include <ns3/lte-enb-component-carrier-manager.h>
 #include <ns3/lte-enb-mac.h>
 #include <ns3/lte-enb-net-device.h>
-#include <ns3/lte-enb-phy.h>
 #include <ns3/lte-enb-rrc.h>
-#include <ns3/lte-ffr-algorithm.h>
-#include <ns3/lte-handover-algorithm.h>
-#include <ns3/lte-net-device.h>
 #include <ns3/lte-ue-net-device.h>
-#include <ns3/node.h>
+#include <ns3/lte-enb-phy.h>
+#include <ns3/mc-enb-pdcp.h>
+#include <ns3/ff-mac-scheduler.h>
+#include <ns3/lte-handover-algorithm.h>
+#include <ns3/lte-anr.h>
+#include <ns3/lte-ffr-algorithm.h>
+#include <ns3/ipv4-l3-protocol.h>
+#include <ns3/ipv6-l3-protocol.h>
+#include <ns3/abort.h>
+#include <ns3/log.h>
+#include <ns3/lte-enb-component-carrier-manager.h>
+#include <ns3/object-map.h>
 #include <ns3/object-factory.h>
 #include <ns3/lte-radio-bearer-info.h>
 #include <cstdint>
@@ -59,14 +65,6 @@
 #include <sstream>
 #include <ns3/lte-indication-message-helper.h>
 // #include "UEID-GNB.h"
-#include <ns3/object-map.h>
-#include <ns3/packet-burst.h>
-#include <ns3/packet.h>
-#include <ns3/pointer.h>
-#include <ns3/simulator.h>
-#include <ns3/trace-source-accessor.h>
-#include <ns3/uinteger.h>
-
 namespace ns3
 {
 

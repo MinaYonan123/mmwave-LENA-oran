@@ -33,9 +33,12 @@
  */
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #include "ns3/mmwave-bearer-stats-calculator.h"
 =======
 >>>>>>> Update to ns-3.38 and minor memory leak fixes (#101)
+=======
+>>>>>>> Solve conflict for mmwave module
 #include "mmwave-bearer-stats-connector.h"
 
 #include "mmwave-bearer-stats-calculator.h"

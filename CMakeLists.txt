@@ -10,6 +10,8 @@ project(NS3 CXX C)
 
 file(STRINGS VERSION NS3_VER)
 
+message(STATUS "CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR}")
+
 # minimum compiler versions
 set(AppleClang_MinVersion 11.0.0)
 set(Clang_MinVersion 10.0.0)
@@ -109,6 +111,7 @@ set(NS3_FILTER_MODULE_EXAMPLES_AND_TESTS
 
 # Include macros used below
 include(build-support/macros-and-definitions.cmake)
+include_directories(/usr/local/include/e2sim)
 
 # Scan module libraries
 subdirlist(libs_to_build ${CMAKE_CURRENT_SOURCE_DIR}/src)

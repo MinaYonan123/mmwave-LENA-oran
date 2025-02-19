@@ -58,14 +58,14 @@
 #include <ns3/pointer.h>
 #include <ns3/string.h>
 #include <ns3/three-gpp-propagation-loss-model.h>
+#include <sys/time.h>
+#include <ctime>
 #include <ns3/three-gpp-spectrum-propagation-loss-model.h>
 #include <ns3/uinteger.h>
 #include <ns3/uniform-planar-array.h>
 
 #include <iostream>
 #include <sstream>
-#include <string>
-
 namespace ns3
 {
 
@@ -877,6 +877,7 @@ MmWaveHelper::InstallSingleMcUeDevice(Ptr<Node> n)
 
     NS_ABORT_MSG_IF(m_imsiCounter >= 0xFFFFFFFF, "max num UEs exceeded");
     uint64_t imsi = ++m_imsiCounter;
+    NS_LOG_INFO("imsi = " << imsi);
 
     Ptr<McUeNetDevice> device = m_mcUeNetDeviceFactory.Create<McUeNetDevice>();
     device->SetNode(n);
@@ -3155,7 +3156,7 @@ MmWaveHelper::GetPdcpStats(void)
 void
 MmWaveHelper::EnableE2PdcpTraces (void)
 {
-  if (m_e2PdcpStats == 0 && (m_e2mode_nr || m_e2mode_lte))
+  if (m_e2PdcpStats==nullptr && (m_e2mode_nr || m_e2mode_lte))
   {
     m_e2PdcpStats = CreateObject<MmWaveBearerStatsCalculator> ("E2PDCP");
     m_e2PdcpStats->SetAttribute("DlPdcpOutputFilename", StringValue("DlE2PdcpStats.txt"));
@@ -3185,7 +3186,7 @@ MmWaveHelper::GetE2PdcpStats (void)
 void
 MmWaveHelper::EnableE2RlcTraces (void)
 {
-  if (m_e2RlcStats == 0 && (m_e2mode_nr || m_e2mode_lte))
+  if (m_e2RlcStats==nullptr && (m_e2mode_nr || m_e2mode_lte))
   {
     m_e2RlcStats = CreateObject<MmWaveBearerStatsCalculator> ("E2RLC");
     m_e2RlcStats->SetAttribute("DlPdcpOutputFilename", StringValue("DlE2RlcStats.txt"));

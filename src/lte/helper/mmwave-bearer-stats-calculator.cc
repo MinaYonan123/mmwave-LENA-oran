@@ -275,10 +275,7 @@ MmWaveBearerStatsCalculator::DlRxPdu (uint16_t cellId, uint64_t imsi, uint16_t r
 
   if(m_aggregatedStats)
   {
-    ImsiLcidPair_t p (imsi, lcid);
-    if (Simulator::Now () >= m_startTime)
-    {
-        ImsiLcidPair_t p(imsi, lcid);
+         ImsiLcidPair_t p(imsi, lcid);
         if (Simulator::Now() >= m_startTime)
         {
             m_dlCellId[p] = cellId;
@@ -316,7 +313,6 @@ MmWaveBearerStatsCalculator::DlRxPdu (uint16_t cellId, uint64_t imsi, uint16_t r
     << cellId << "\t" << imsi << "\t" << rnti << "\t" << (uint32_t) lcid << "\t" 
     << packetSize << "\t" << delay << "\t" << std::endl);
   }
-}
 
 void
 MmWaveBearerStatsCalculator::ShowResults(void)

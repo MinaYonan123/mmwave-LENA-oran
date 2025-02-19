@@ -3087,7 +3087,7 @@ LteEnbRrc::GetTypeId (void)
     .AddAttribute ("EpsBearerToRlcMapping",
                    "Specify which type of RLC will be used for each type of EPS bearer. ",
                    EnumValue (RLC_SM_ALWAYS),
-                   MakeEnumAccessor (&LteEnbRrc::m_epsBearerToRlcMapping),
+                   MakeEnumAccessor<LteEpsBearerToRlcMapping_t> (&LteEnbRrc::m_epsBearerToRlcMapping),
                    MakeEnumChecker (RLC_SM_ALWAYS, "RlcSmAlways",
                                     RLC_UM_ALWAYS, "RlcUmAlways",
                                     RLC_AM_ALWAYS, "RlcAmAlways",
@@ -3226,7 +3226,7 @@ LteEnbRrc::GetTypeId (void)
    .AddAttribute ("SecondaryCellHandoverMode",
        "Select the secondary cell handover mode",
         EnumValue (DYNAMIC_TTT),
-        MakeEnumAccessor (&LteEnbRrc::m_handoverMode),
+        MakeEnumAccessor <HandoverMode>(&LteEnbRrc::m_handoverMode),
         MakeEnumChecker (FIXED_TTT, "FixedTtt",
                  DYNAMIC_TTT, "DynamicTtt",
                  THRESHOLD, "Threshold",
@@ -4662,6 +4662,11 @@ LteEnbRrc::TriggerUeAssociationUpdate()
              ++imsiIter)
         {
             uint64_t imsi = imsiIter->first;
+            if (m_e2ControlledUes.find (imsi) != m_e2ControlledUes.end ())
+                {
+                    // HO for this UE is controlled externally
+                    continue;
+                }
             long double maxSinr = 0;
             long double currentSinr = 0;
             uint16_t maxSinrCellId = 0;
@@ -4691,6 +4696,7 @@ LteEnbRrc::TriggerUeAssociationUpdate()
                  cellIter != imsiIter->second.end();
                  ++cellIter)
             {
+            if(m_allowHandoverTo.find(cellIter->first)->second) {
                 NS_LOG_INFO("Cell " << cellIter->first << " reports "
                                     << 10 * std::log10(cellIter->second));
                 if (cellIter->second > maxSinr)
@@ -4698,6 +4704,10 @@ LteEnbRrc::TriggerUeAssociationUpdate()
                     maxSinr = cellIter->second;
                     maxSinrCellId = cellIter->first;
                 }
+             }  
+                 else {
+                        NS_LOG_DEBUG("Cell " << cellIter->first << " reports " << 10*std::log10(cellIter->second) << " but HO not allowed to");
+                        }
                 if (m_lastMmWaveCell[imsi] == cellIter->first)
                 {
                     currentSinr = cellIter->second;
@@ -6052,11 +6062,11 @@ LteEnbRrc::EvictUsersFromSecondaryCell ()
     {
       uint64_t imsi = imsiIter->first;
 
-      // if (m_e2ControlledUes.find (imsi) != m_e2ControlledUes.end ())
-      // {
+       if (m_e2ControlledUes.find (imsi) != m_e2ControlledUes.end ())
+       {
       //   // HO for this UE is controlled externally
-      //   continue;
-      // }
+         continue;
+       }
       
       long double maxSinr = 0;
       uint16_t maxSinrCellId = 0;
