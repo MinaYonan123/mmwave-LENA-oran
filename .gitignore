@@ -94,3 +94,5 @@ cmake-build-release/
 .cache/
 src/sionna/scenarios/SionnaCircleScenario/.DS_Store
 src/sionna/sionna_log.csv
+buildings.txt
+example-output.txt
