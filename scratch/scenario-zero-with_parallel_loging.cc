@@ -302,7 +302,7 @@ static ns3::GlobalValue g_e2cuCp("e2cuCp", "If true, send CU-CP reports", ns3::B
                                  ns3::MakeBooleanChecker());
 
 static ns3::GlobalValue g_reducedPmValues("reducedPmValues", "If true, use a subset of the the pm containers",
-                                          ns3::BooleanValue(true), ns3::MakeBooleanChecker());
+                                          ns3::BooleanValue(false), ns3::MakeBooleanChecker());
 
 static ns3::GlobalValue
         g_hoSinrDifference("hoSinrDifference",
@@ -395,10 +395,19 @@ static ns3::GlobalValue interside_distance_value_cell ("IntersideDistanceCells",
 
 int
 main(int argc, char *argv[]) {
-    LogComponentEnableAll(LOG_PREFIX_ALL);
+    // LogComponentEnableAll(LOG_PREFIX_ALL);
     //  LogComponentEnable ("RicControlMessage", LOG_LEVEL_ALL);
     //  LogComponentEnable ("KpmIndication", LOG_LEVEL_DEBUG);
-    LogComponentEnable("KpmIndication", LOG_LEVEL_INFO);
+    // LogComponentEnable("KpmIndication", LOG_LEVEL_INFO);
+    // LogComponentEnable ("EpcX2", LOG_LEVEL_DEBUG);
+
+    LogComponentEnable ("LteEnbRrc", LOG_LEVEL_DEBUG);
+    // LogComponentEnable ("LteEnbRrc", LOG_LEVEL_INFO);
+    // LogComponentEnable ("LteEnbRrc", LOG_LEVEL_LOGIC);
+
+
+    
+    // NS_LOG_LOGIC
 
     // LogComponentEnable ("Asn1Types", LOG_LEVEL_LOGIC);
 //   LogComponentEnable ("E2Termination", LOG_LEVEL_LOGIC);
@@ -406,6 +415,8 @@ main(int argc, char *argv[]) {
 
     // LogComponentEnable ("LteEnbNetDevice", LOG_LEVEL_ALL);
     LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_DEBUG);
+
+    // NS_LOG_LOGIC
 
     // The maximum X coordinate of the scenario
 

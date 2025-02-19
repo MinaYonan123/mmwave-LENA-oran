@@ -1942,6 +1942,7 @@ UeManager::RecvSecondaryCellHandoverCompleted(EpcX2Sap::SecondaryHandoverComplet
         m_rrc->m_x2SapProvider->SetEpcX2PdcpUser(it->second->m_gtpTeid, pdcp->GetEpcX2PdcpUser());
         // Remote RLC already setup
 
+        // NOTE: Call after Handover
         m_rrc->m_lastMmWaveCell[m_imsi] = m_mmWaveCellId;
         m_rrc->m_mmWaveCellSetupCompleted[m_imsi] = true;
         NS_LOG_INFO("Imsi " << m_imsi << " m_mmWaveCellSetupCompleted set to " << m_rrc->m_mmWaveCellSetupCompleted[m_imsi] <<
@@ -4107,9 +4108,13 @@ LteEnbRrc::PerformHandoverToTargetCell (uint64_t imsi, uint16_t targetCellId)
      
       // trigger ho via X2
       EpcX2SapProvider::SecondaryHandoverParams params;
-      params.imsi = imsi;
+      params.imsi = imsi / 10;
       params.targetCellId = targetCellId;
-      params.oldCellId = 2 ; //m_lastMmWaveCell[imsi]; 
+      if (!m_lastMmWaveCell.empty()) {
+        params.oldCellId = m_lastMmWaveCell[imsi];
+      } else {
+        params.oldCellId = imsi % 10;
+      }
        // The new secondary cell HO procedure does not require to switch to LTE
       // NS_LOG_UNCOND("PerformHandover ----- handover from " << m_lastMmWaveCell[imsi] << 
       //             " to " << targetCellId << " at time " << Simulator::Now().GetSeconds());
