@@ -55,6 +55,35 @@
 #include <ns3/mmwave-phy-trace.h>
 
 
+
+#include "TestCond-Type.h"
+#include "TestCond-Expression.h"
+#include "TestCond-Value.h"
+#include "E2SM-KPM-ActionDefinition.h"
+#include <functional>
+
+// TODO:
+template<typename T>
+bool lessThan(const T& x, const T& y) {
+  return x < y;
+}
+
+template<typename T>
+bool greaterThan(const T& x, const T& y) {
+  return x > y;
+}
+
+template<typename T>
+bool equal(const T& x, const T& y) {
+  return x == y;
+}
+
+template<typename T>
+std::vector<std::function<bool(int, T)>> MATH_CALL_BACKS = {
+    eqal, greaterThan, lessThan, contains, present
+}
+
+
 namespace ns3 {
 /* Add forward declarations here */
     class Packet;

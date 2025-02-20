@@ -100,10 +100,36 @@ MmWaveEnbNetDevice::KpmSubscriptionCallback (E2AP_PDU_t *sub_req_pdu)
                                << ", ranFuncionId " << +params.ranFuncionId << ", actionId "
                                << +params.actionId);
 
-  if (!m_stopSendingMessages && !m_isReportingEnabled && !m_forceE2FileLogging)
+  const auto &sub_map = m_e2term->SubscriptionMapRef ();
+  // TODO: Internal class attribute (bool)3
+  if (!sub_map.empty ())
     {
-      BuildAndSendReportMessage (params);
-      m_isReportingEnabled = true;
+      // TODO: RIC Style Type: 4
+      // auto ric_style = sub_map["RIC Style Type: 4"];
+
+      auto action_def = sub_map["Action Definition Format"];
+      switch (action_def)
+        {
+        // TODO:
+        case E2SM_KPM_ActionDefinition__actionDefinition_formats_PR_actionDefinition_Format4:
+          m_is_reported = MATH_CALL_BACKS[sub_map["Test Condition Expression"]](
+              DL_PRBvalue, sub_map["Test Condition Value"]);
+
+          if (m_is_reported && !m_stopSendingMessages && !m_isReportingEnabled &&
+              !m_forceE2FileLogging)
+            {
+              // TODO:
+              // Action Definition Format: 4(major), else not supported.
+              // Event Trigger Definition Format: 1
+              BuildAndSendReportMessage (params);
+              m_isReportingEnabled = true;
+            }
+        }
+      break;
+
+    default:
+      NS_FATAL_ERROR ("Action Definition NOT supported, you current acction is " << action_def);
+      break;
     }
 }
 
@@ -488,19 +514,24 @@ MmWaveEnbNetDevice::UpdateConfig (void)
 
                   csv << header_csv + "," + cell_header + "," + ue_header + "\n";
                   csv.close ();
+                  // TODO: Look at RicSubscriptionRequest_rval_s
+                  if (m_is_reported)
+                    {
 
-                  if (m_e2andlog)
-                    {
-                      Simulator::Schedule (MicroSeconds (0), &E2Termination::Start, m_e2term);
-                      Simulator::Schedule (MicroSeconds (500),
-                                           &MmWaveEnbNetDevice::BuildAndSendReportMessage, this,
-                                           E2Termination::RicSubscriptionRequest_rval_s{});
-                    }
-                  else
-                    {
-                      Simulator::Schedule (MicroSeconds (500),
-                                           &MmWaveEnbNetDevice::BuildAndSendReportMessage, this,
-                                           E2Termination::RicSubscriptionRequest_rval_s{});
+                      if (m_e2andlog)
+                        {
+                          // TODO: check &E2Termination::Start
+                          Simulator::Schedule (MicroSeconds (0), &E2Termination::Start, m_e2term);
+                          Simulator::Schedule (MicroSeconds (500),
+                                               &MmWaveEnbNetDevice::BuildAndSendReportMessage, this,
+                                               E2Termination::RicSubscriptionRequest_rval_s{});
+                        }
+                      else
+                        {
+                          Simulator::Schedule (MicroSeconds (500),
+                                               &MmWaveEnbNetDevice::BuildAndSendReportMessage, this,
+                                               E2Termination::RicSubscriptionRequest_rval_s{});
+                        }
                     }
                 }
               else
@@ -636,14 +667,14 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
         //         mmWaveEnbNodes.Get (flexric_cell_id)->GetDevice (0)->GetObject<MmWaveEnbNetDevice> ()->GetPhy ();
         //     Ptr<MmWaveEnbNetDevice> mmdev =
         //         DynamicCast<MmWaveEnbNetDevice> (mmWaveEnbNodes.Get (flexric_cell_id)->GetDevice (0));
-            // uint16_t cell_id = mmdev->GetCellId ();
-            // if (cell_id == 2)
-            //   {
-                // printf ("Cell Id %u ", cell_id);
-                // Simulator::ScheduleWithContext (1, MilliSeconds (15), &SetBSTX, enbPhy, 0, flexric_cell_id,
-        //  mmWaveEnbNodes.Get             
-        
-        // Bug 
+        // uint16_t cell_id = mmdev->GetCellId ();
+        // if (cell_id == 2)
+        //   {
+        // printf ("Cell Id %u ", cell_id);
+        // Simulator::ScheduleWithContext (1, MilliSeconds (15), &SetBSTX, enbPhy, 0, flexric_cell_id,
+        //  mmWaveEnbNodes.Get
+
+        // Bug
         for (uint32_t i = 0; i < mmWaveEnbNodes.GetN (); i++)
           {
             Ptr<MmWaveEnbPhy> enbPhy =
@@ -654,11 +685,11 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
             // TODO: Fix get target cell for turn off - from old state.
             // if (cell_id == 2)
             //   {
-                printf ("Cell Id %u ", cell_id);
-                Simulator::ScheduleWithContext (1, MilliSeconds (15), &SetBSTX, enbPhy, 0, cell_id,
-                                                true);
-                //Simulator::ScheduleWithContext (1,Seconds (tim+5), &SetBSTX, enbPhy, 30, cell_id, false);
-              // }
+            printf ("Cell Id %u ", cell_id);
+            Simulator::ScheduleWithContext (1, MilliSeconds (15), &SetBSTX, enbPhy, 0, cell_id,
+                                            true);
+            //Simulator::ScheduleWithContext (1,Seconds (tim+5), &SetBSTX, enbPhy, 30, cell_id, false);
+            // }
           }
         break;
       }
@@ -898,7 +929,7 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuUp (std::string plmId)
     }
   else
     {
-      const auto& subsDetails_r = m_e2term->SubscriptionMapRef();
+      const auto &subsDetails_r = m_e2term->SubscriptionMapRef ();
       return indicationMessageHelper->CreateIndicationMessage (subsDetails_r);
     }
 }
@@ -1116,7 +1147,7 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuCp (std::string plmId)
         }
       NS_LOG_DEBUG (" 2. Fill l3RrcMeasurementServing , l3RrcMeasurementNeigh");
 
-      const auto& subsDetails_r = m_e2term->SubscriptionMapRef();
+      const auto &subsDetails_r = m_e2term->SubscriptionMapRef ();
       return indicationMessageHelper->CreateIndicationMessage (subsDetails_r);
     }
 }
@@ -1477,7 +1508,7 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
     }
   else
     {
-      const auto& subsDetails_r = m_e2term->SubscriptionMapRef();
+      const auto &subsDetails_r = m_e2term->SubscriptionMapRef ();
       return indicationMessageHelper->CreateIndicationMessage (subsDetails_r);
     }
 }
@@ -1571,8 +1602,13 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage (E2Termination::RicSubscriptionReq
       return;
     }
 
-  if (!m_stopSendingMessages)
+  if (!m_stopSendingMessages && m_is_reported)
     {
+      // TODO: replace by global system preodicity(GranularityPeriod).
+      // uint64_t perodicity = m_e2term->SubscriptionMapRef ().find ("Granularity Period") !=
+      //                               m_e2term->SubscriptionMapRef ().end ()
+      //                           ? m_e2term->SubscriptionMapRef ()["Granularity Period"]
+      //                           : m_e2Periodicity;
       Simulator::ScheduleWithContext (1, Seconds (m_e2Periodicity),
                                       &MmWaveEnbNetDevice::BuildAndSendReportMessage, this, params);
     }
