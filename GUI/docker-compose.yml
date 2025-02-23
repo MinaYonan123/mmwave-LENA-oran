@@ -16,7 +16,7 @@ services:
       - INFLUXDB_PASSWORD=admin
       - INFLUXDB_PORT=8086
       - INFLUXDB_USERNAME=admin
-      - NS3_HOST=10.254.10.227
+      - NS3_HOST=10.237.71.110
 
   influxdb:
     image: influxdb:1.8-alpine

@@ -1813,6 +1813,7 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
     NS_ASSERT_MSG(m_componentCarrierPhyParams.size() != 0,
                   "Cannot create enb ccm map. Call SetCcPhyParams first.");
     Ptr<MmWaveEnbNetDevice> device = m_enbNetDeviceFactory.Create<MmWaveEnbNetDevice>();
+    device->SetStartTime (m_startTime); 
     device->SetNode(n);
 
     // create component carrier map for this eNb device
@@ -1830,9 +1831,10 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
     NS_ABORT_MSG_IF(m_useCa && ccMap.size() < 2,
                     "You have to either specify carriers or disable carrier aggregation");
     NS_ASSERT(ccMap.size() == m_noOfCcs);
-
+    printf("iam here ");
     for (auto it = ccMap.begin(); it != ccMap.end(); ++it)
-    {
+    {   
+        printf ("iam in for ");
         NS_LOG_DEBUG(this << "component carrier map size " << (uint16_t)ccMap.size());
         Ptr<MmWaveComponentCarrierEnb> ccEnb = DynamicCast<MmWaveComponentCarrierEnb>(it->second);
 
@@ -1865,29 +1867,42 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
         ulPhy->SetMobility(mm);
         dlPhy->SetMobility(mm);
 
-        // hack to allow periodic computation of SINR at the eNB, without pilots
-        if (m_spectrumPropagationLossModelType == "ns3::ThreeGppSpectrumPropagationLossModel")
-        {
-            phy->AddPhasedArraySpectrumPropagationLossModel(
-                m_channel.at(it->first)->GetPhasedArraySpectrumPropagationLossModel());
-        }
-        else
-        {
-            phy->AddSpectrumPropagationLossModel(
-                m_channel.at(it->first)->GetSpectrumPropagationLossModel());
-        }
+        // // hack to allow periodic computation of SINR at the eNB, without pilots
+        // if (m_spectrumPropagationLossModelType == "ns3::ThreeGppSpectrumPropagationLossModel")
+        // {
+        //     phy->AddPhasedArraySpectrumPropagationLossModel(
+        //         m_channel.at(it->first)->GetPhasedArraySpectrumPropagationLossModel());
+        // }
+        // else
+        // {
+        //     phy->AddSpectrumPropagationLossModel(
+        //         m_channel.at(it->first)->GetSpectrumPropagationLossModel());
+        // }
 
-        if (!m_pathlossModelType.empty())
-        {
-            Ptr<PropagationLossModel> splm =
-                m_pathlossModel.at(it->first)->GetObject<PropagationLossModel>();
-            phy->AddPropagationLossModel(splm);
-        }
-        else
-        {
-            NS_LOG_WARN(this << " No PropagationLossModel!");
-        }
+        // if (!m_pathlossModelType.empty())
+        // {
+        //     Ptr<PropagationLossModel> splm =
+        //         m_pathlossModel.at(it->first)->GetObject<PropagationLossModel>();
+        //     phy->AddPropagationLossModel(splm);
+        // }
+        // else
+        // {
+        //     NS_LOG_WARN(this << " No PropagationLossModel!");
+        // }
+         // hack to allow periodic computation of SINR at the eNB, without pilots
+          // hack to allow periodic computation of SINR at the eNB, without pilots
+      phy->AddSpectrumPropagationLossModel (m_channel.at (it->first)->GetSpectrumPropagationLossModel ());
 
+      if (!m_pathlossModelType.empty ())
+        {
+          Ptr<PropagationLossModel> splm = m_pathlossModel.at (it->first)->GetObject<PropagationLossModel> ();
+          phy->AddPropagationLossModel (splm);
+        }
+      else
+        {
+          NS_LOG_WARN (this << " No PropagationLossModel!");
+        }
+        
         NS_LOG_DEBUG("Create antenna");
         Ptr<PhasedArrayModel> antenna = m_enbPhasedArrayModelFactory.Create<PhasedArrayModel>();
         NS_ASSERT_MSG(antenna, "error in creating the AntennaModel object");
@@ -1917,7 +1932,22 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
         bfModel->SetAttributeFailSafe("ChannelModel", PointerValue(channelModel));
 
         if (pSplm)
+        {// initialize the 3GPP channel model
+        [[maybe_unused]] Ptr<SpectrumPropagationLossModel> splm;
+        [[maybe_unused]] Ptr<PhasedArraySpectrumPropagationLossModel> pSplm;
+
+        Ptr<ThreeGppSpectrumPropagationLossModel> threeGppSplm;
+
+        if (m_spectrumPropagationLossModelType == "ns3::ThreeGppSpectrumPropagationLossModel")
         {
+            pSplm = m_channel.at(it->first)->GetPhasedArraySpectrumPropagationLossModel();
+            threeGppSplm = DynamicCast<ThreeGppSpectrumPropagationLossModel>(pSplm);
+        }
+        else
+        {
+            splm = m_channel.at(it->first)->GetSpectrumPropagationLossModel();
+            threeGppSplm = DynamicCast<ThreeGppSpectrumPropagationLossModel>(splm);
+        }
             bfModel->SetAttributeFailSafe("PhasedArraySpectrumPropagationLossModel",
                                           PointerValue(pSplm));
         }
@@ -2010,7 +2040,7 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
         bandwidthMap[it->first] = phyMacConfig->GetBandwidth();
         NS_LOG_DEBUG("bandwidth " << +it->first << " = " << bandwidthMap[it->first] / 1e6
                                   << " MHz");
-    }
+    }       
 
     ccmEnbManager->SetBandwidthMap(bandwidthMap);
 
@@ -2031,7 +2061,7 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
         rrcProtocol->SetCellId(cellId);
     }
 
-    if (m_epcHelper)
+    if (m_epcHelper!=nullptr)
     {
         EnumValue<LteEnbRrc::LteEpsBearerToRlcMapping_t> epsBearerToRlcMapping;
         rrc->GetAttribute("EpsBearerToRlcMapping", epsBearerToRlcMapping);
@@ -2114,6 +2144,7 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
     }
 
     device->SetAttribute("CellId", UintegerValue(cellId));
+    device->SetAttribute ("BasicCellId", UintegerValue(m_basicCellId));
     device->SetAttribute("LteEnbComponentCarrierManager", PointerValue(ccmEnbManager));
     device->SetCcMap(ccMap);
 
@@ -2166,7 +2197,24 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
                     NS_LOG_WARN ("Propagation model does not have a Frequency attribute");
             }
     }*/
+    if(m_e2mode_nr) {
+    const uint16_t local_port = m_e2localPort + (uint16_t) cellId;
+    const std::string gnb_id{std::to_string (cellId)};
+    
+    std::string plmnId = "111";
 
+    NS_LOG_INFO ("cell_id " << gnb_id);
+    Ptr<E2Termination> e2term =
+        CreateObject<E2Termination> (m_e2ip, m_e2port, local_port, gnb_id, plmnId);
+
+    device->SetAttribute("E2Termination", PointerValue(e2term));
+
+    EnableE2PdcpTraces();
+    EnableE2RlcTraces();
+    device->SetAttribute("E2PdcpCalculator", PointerValue(m_e2PdcpStats));
+    device->SetAttribute("E2RlcCalculator", PointerValue(m_e2RlcStats));
+    device->SetAttribute("E2DuCalculator", PointerValue(m_phyStats));
+  }
     device->Initialize();
     n->AddDevice(device);
 
@@ -2615,11 +2663,10 @@ MmWaveHelper::AttachMcToClosestEnb(Ptr<NetDevice> ueDevice,
         }
     }
     NS_ASSERT(lteClosestEnbDevice);
-    NS_ASSERT(lteClosestEnbDevice->GetObject<LteEnbNetDevice>()); // stop if it is not an LTE eNB
+    NS_ASSERT(lteClosestEnbDevice->GetObject<LteEnbNetDevice>()); // stop if it is not an LTE InstallSingleEnbDevice
 
     // Necessary operation to connect MmWave UE to eNB at lower layers
-    for (NetDeviceContainer::Iterator i = mmWaveEnbDevices.Begin(); i != mmWaveEnbDevices.End();
-         ++i)
+    for (NetDeviceContainer::Iterator i = mmWaveEnbDevices.Begin(); i != mmWaveEnbDevices.End();++i)
     {
         Ptr<MmWaveEnbNetDevice> mmWaveEnb = (*i)->GetObject<MmWaveEnbNetDevice>();
         std::map<uint8_t, Ptr<MmWaveComponentCarrier>> mmWaveEnbCcMap = mmWaveEnb->GetCcMap();

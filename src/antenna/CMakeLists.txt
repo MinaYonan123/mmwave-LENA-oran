@@ -62,7 +62,6 @@ build_lib(
     model/isotropic-antenna-model.cc
     model/parabolic-antenna-model.cc
     model/phased-array-model.cc
-    model/three-gpp-antenna-model.cc
     model/uniform-planar-array.cc
   HEADER_FILES
     ${circular_aperture_antenna_headers}
@@ -72,7 +71,6 @@ build_lib(
     model/isotropic-antenna-model.h
     model/parabolic-antenna-model.h
     model/phased-array-model.h
-    model/three-gpp-antenna-model.h
     model/uniform-planar-array.h
   LIBRARIES_TO_LINK ${libcore}
   TEST_SOURCES

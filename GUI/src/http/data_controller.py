@@ -99,7 +99,7 @@ async def start_simulation(request: Request):
             arguments += f"--{field}={value} "
         elif value is None and field == 'simTime':
             arguments += f"--simTime=100 "
-    command = f'./waf --run "scratch/scenario-zero-with_parallel_loging.cc {arguments}"'
+    command = f'./ns3 run "scratch/scenario-zero-with_parallel_loging.cc {arguments}"'
     command = f'curl -X POST -d \'{command}\' http://{remote_host}:38866'
     try:
         print(f'Sending start command: {command}')

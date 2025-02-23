@@ -53,21 +53,29 @@ NS_OBJECT_ENSURE_REGISTERED(MmWaveNetDevice);
 TypeId
 MmWaveNetDevice::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::MmWaveNetDevice")
-            .SetParent<NetDevice>()
-            .AddAttribute("Mtu",
-                          "The MAC-level Maximum Transmission Unit",
-                          UintegerValue(30000),
-                          MakeUintegerAccessor(&MmWaveNetDevice::SetMtu, &MmWaveNetDevice::GetMtu),
-                          MakeUintegerChecker<uint16_t>())
-            .AddAttribute("ComponentCarrierMap",
-                          "List of component carriers",
-                          ObjectMapValue(),
-                          MakeObjectMapAccessor(&MmWaveNetDevice::m_ccMap),
-                          MakeObjectMapChecker<MmWaveComponentCarrier>());
+  static TypeId
+    tid =
+    TypeId ("ns3::MmWaveNetDevice")
+    .SetParent<NetDevice> ()
+    .AddAttribute ("Mtu", "The MAC-level Maximum Transmission Unit",
+                   UintegerValue (30000),
+                   MakeUintegerAccessor (&MmWaveNetDevice::SetMtu,
+                                         &MmWaveNetDevice::GetMtu),
+                   MakeUintegerChecker<uint16_t> ())
+    .AddAttribute ("AntennaNum",
+                   "Number of antenna elements for the device",
+                   UintegerValue (64),
+                   MakeUintegerAccessor (&MmWaveNetDevice::SetAntennaNum,
+                                         &MmWaveNetDevice::GetAntennaNum),
+                   MakeUintegerChecker<uint16_t> ())
+    .AddAttribute ("ComponentCarrierMap",
+                   "List of component carriers",
+                   ObjectMapValue (),
+                   MakeObjectMapAccessor (&MmWaveNetDevice::m_ccMap),
+                   MakeObjectMapChecker<MmWaveComponentCarrier> ())
+  ;
 
-    return tid;
+  return tid;
 }
 
 MmWaveNetDevice::MmWaveNetDevice(void)
@@ -287,6 +295,21 @@ MmWaveNetDevice::SetEarfcn(uint16_t earfcn)
 {
     NS_LOG_FUNCTION(this << earfcn);
     m_earfcn = earfcn;
+}
+
+uint16_t
+MmWaveNetDevice::GetAntennaNum () const
+{
+  NS_LOG_FUNCTION (this);
+  return m_antennaNum;
+}
+
+void
+MmWaveNetDevice::SetAntennaNum (uint16_t antennaNum)
+{
+  NS_LOG_FUNCTION (this << antennaNum);
+  NS_ASSERT_MSG (std::floor (std::sqrt(antennaNum)) == std::sqrt(antennaNum), "Only square antenna arrays are currently supported.");
+  m_antennaNum = antennaNum;
 }
 
 std::map<uint8_t, Ptr<MmWaveComponentCarrier>>

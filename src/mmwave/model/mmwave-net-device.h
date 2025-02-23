@@ -92,7 +92,8 @@ class MmWaveNetDevice : public NetDevice
     Ipv4Address GetPacketDestination(Ptr<Packet> packet);
 
     void Receive(Ptr<Packet> p);
-
+    virtual void SetAntennaNum (uint16_t antennaNum);
+    virtual uint16_t GetAntennaNum () const;
     virtual void SetEarfcn(uint16_t earfcn);
     virtual uint16_t GetEarfcn() const;
 
@@ -108,7 +109,7 @@ class MmWaveNetDevice : public NetDevice
 
   protected:
     NetDevice::ReceiveCallback m_rxCallback;
-
+    uint16_t m_antennaNum; //!< Number of antenna elements for the device
     uint16_t m_earfcn;                                      //!< Carrier frequency
     std::map<uint8_t, Ptr<MmWaveComponentCarrier>> m_ccMap; //!< ComponentCarrier map
     bool m_isConstructed; //!< indicates if the object has been initialized
