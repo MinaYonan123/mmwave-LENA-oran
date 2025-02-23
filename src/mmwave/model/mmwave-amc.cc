@@ -96,7 +96,7 @@ MmWaveAmc::GetTypeId(void)
                 "Type of the Error Model to use when AmcModel is set to ErrorModel. "
                 "This parameter has to match the ErrorModelType in mmwave-spectrum-model,"
                 "because they need to refer to same MCS tables and indexes",
-                TypeIdValue(MmWaveEesmIrT1::GetTypeId()),
+                TypeIdValue(MmWaveLteMiErrorModel::GetTypeId()),
                 MakeTypeIdAccessor(&MmWaveAmc::SetErrorModelType, &MmWaveAmc::GetErrorModelType),
                 MakeTypeIdChecker())
             .AddConstructor<MmWaveAmc>();

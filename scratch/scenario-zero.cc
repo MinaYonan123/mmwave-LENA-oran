@@ -28,6 +28,7 @@
 #include "ns3/epc-helper.h"
 #include "ns3/mmwave-point-to-point-epc-helper.h"
 #include "ns3/lte-helper.h"
+#include "ns3/isotropic-antenna-model.h"
 
 using namespace ns3;
 using namespace mmwave;
@@ -311,10 +312,12 @@ main (int argc, char *argv[])
   //Config::SetDefault ("ns3::MmWaveBearerStatsCalculator::EpochDuration", TimeValue (MilliSeconds (10.0)));
 
   // set to false to use the 3GPP radiation pattern (proper configuration of the bearing and downtilt angles is needed)
-  Config::SetDefault ("ns3::ThreeGppAntennaArrayModel::IsotropicElements", BooleanValue (true));
+  Config::SetDefault("ns3::PhasedArrayModel::AntennaElement",
+                       PointerValue(CreateObject<IsotropicAntennaModel>()));
   Config::SetDefault ("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue (MilliSeconds (100.0)));
   Config::SetDefault ("ns3::ThreeGppChannelConditionModel::UpdatePeriod",
-                      TimeValue (MilliSeconds (100)));
+                     TimeValue (MilliSeconds (100)));
+
 
   Config::SetDefault ("ns3::LteRlcAm::ReportBufferStatusTimer", TimeValue (MilliSeconds (10.0)));
   Config::SetDefault ("ns3::LteRlcUmLowLat::ReportBufferStatusTimer",
@@ -356,7 +359,7 @@ main (int argc, char *argv[])
   Ptr<MmWavePointToPointEpcHelper> epcHelper = CreateObject<MmWavePointToPointEpcHelper> ();
   mmwaveHelper->SetEpcHelper (epcHelper);
 
-  uint8_t nMmWaveEnbNodes = 3;
+  uint8_t nMmWaveEnbNodes = 4;
   uint8_t nLteEnbNodes = 1;
   uint32_t ues = 5;
   uint8_t nUeNodes = ues; //* nMmWaveEnbNodes;
