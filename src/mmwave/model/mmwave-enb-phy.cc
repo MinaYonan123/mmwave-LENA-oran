@@ -686,7 +686,7 @@ MmWaveEnbPhy::UpdateUeSinrEstimate()
 
         NS_LOG_LOGIC("RxPsd " << *rxPsd);
 
-        m_rxPsdMap[ue->first] = txPsd->Copy();;
+        m_rxPsdMap[ue->first] = rxPsd ; //txPsd->Copy();;
         *totalReceivedPsd += *rxPsd;
 
         // set back the bf vector to the main eNB
