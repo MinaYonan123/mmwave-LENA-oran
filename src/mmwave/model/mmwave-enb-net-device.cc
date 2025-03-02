@@ -82,6 +82,23 @@ namespace mmwave {
 
 NS_OBJECT_ENSURE_REGISTERED (MmWaveEnbNetDevice);
 
+
+bool lessThan(int x, int y) {
+  return x < y;
+}
+
+bool greaterThan(int x, int y) {
+  return x > y;
+}
+
+bool equal(int x, int y) {
+  return x == y;
+}
+
+std::vector<std::function<bool(int, int)>> MATH_CALL_BACKS = {
+  equal, greaterThan, lessThan
+};
+
 /**
 * KPM Subscription Request callback.
 * This function is triggered whenever a RIC Subscription Request for
@@ -90,48 +107,59 @@ NS_OBJECT_ENSURE_REGISTERED (MmWaveEnbNetDevice);
 * \param pdu request message
 */
 void
-MmWaveEnbNetDevice::KpmSubscriptionCallback (E2AP_PDU_t *sub_req_pdu)
+MmWaveEnbNetDevice::KpmSubscriptionCallback(E2AP_PDU_t *sub_req_pdu)
 {
   NS_LOG_DEBUG ("\nReceived RIC Subscription Request, cellId= " << m_cellId << "\n");
 
-  E2Termination::RicSubscriptionRequest_rval_s params =
-      m_e2term->ProcessRicSubscriptionRequest (sub_req_pdu);
-  NS_LOG_DEBUG ("requestorId " << +params.requestorId << ", instanceId " << +params.instanceId
-                               << ", ranFuncionId " << +params.ranFuncionId << ", actionId "
-                               << +params.actionId);
-
-  const auto &sub_map = m_e2term->SubscriptionMapRef ();
-  // TODO: Internal class attribute (bool)3
-  if (!sub_map.empty ())
+    const auto &sub_map = m_e2term->SubscriptionMapRef();
+    if (!sub_map.empty())
     {
-      // TODO: RIC Style Type: 4
-      // auto ric_style = sub_map["RIC Style Type: 4"];
+        // Declare the variable `index` outside the switch statement
+        int index = -1;
 
-      auto action_def = sub_map["Action Definition Format"];
-      switch (action_def)
+        try
         {
-        // TODO:
-        case E2SM_KPM_ActionDefinition__actionDefinition_formats_PR_actionDefinition_Format4:
-          m_is_reported = MATH_CALL_BACKS[sub_map["Test Condition Expression"]](
-              DL_PRBvalue, sub_map["Test Condition Value"]);
-
-          if (m_is_reported && !m_stopSendingMessages && !m_isReportingEnabled &&
-              !m_forceE2FileLogging)
-            {
-              // TODO:
-              // Action Definition Format: 4(major), else not supported.
-              // Event Trigger Definition Format: 1
-              BuildAndSendReportMessage (params);
-              m_isReportingEnabled = true;
-            }
+            // Extract the index value from the map
+            index = std::any_cast<int>(sub_map.at("Test Condition Expression"));
         }
-      break;
+        catch (const std::bad_any_cast &e)
+        {
+            NS_FATAL_ERROR("Failed to cast 'Test Condition Expression' to int: " << e.what());
+        }
 
-    default:
-      NS_FATAL_ERROR ("Action Definition NOT supported, you current acction is " << action_def);
-      break;
+        // Extract the action definition
+        int action_def = -1;
+        try
+        {
+            action_def = std::any_cast<int>(sub_map.at("Action Definition Format"));
+        }
+        catch (const std::bad_any_cast &e)
+        {
+            NS_FATAL_ERROR("Failed to cast 'Action Definition Format' to int: " << e.what());
+        }
+
+        // Handle the action definition in the switch statement
+        switch (action_def)
+        {
+        case E2SM_KPM_ActionDefinition__actionDefinition_formats_PR_actionDefinition_Format4:
+            m_is_reported = MATH_CALL_BACKS[index](
+                DL_PRBvalue, std::any_cast<int>(sub_map.at("Test Condition Value")));
+
+            if (m_is_reported && !m_stopSendingMessages && !m_isReportingEnabled &&
+                !m_forceE2FileLogging)
+            {
+               // BuildAndSendReportMessage(params);
+                m_isReportingEnabled = true;
+            }
+            break;
+
+        default:
+            NS_FATAL_ERROR("Action Definition NOT supported, your current action is " << action_def);
+            break;
+        }
     }
 }
+
 
 void
 MmWaveEnbNetDevice::stopSendingAndCancelSchedule ()

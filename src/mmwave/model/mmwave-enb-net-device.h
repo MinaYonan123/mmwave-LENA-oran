@@ -62,27 +62,6 @@
 #include "E2SM-KPM-ActionDefinition.h"
 #include <functional>
 
-// TODO:
-template<typename T>
-bool lessThan(const T& x, const T& y) {
-  return x < y;
-}
-
-template<typename T>
-bool greaterThan(const T& x, const T& y) {
-  return x > y;
-}
-
-template<typename T>
-bool equal(const T& x, const T& y) {
-  return x == y;
-}
-
-template<typename T>
-std::vector<std::function<bool(int, T)>> MATH_CALL_BACKS = {
-    eqal, greaterThan, lessThan, contains, present
-}
-
 
 namespace ns3 {
 /* Add forward declarations here */
@@ -94,7 +73,7 @@ namespace ns3 {
 
     class LteEnbComponentCarrierManager;
 
-    namespace mmwave {
+  namespace mmwave {
 //class MmWavePhy;
         class MmWaveEnbPhy;
 
@@ -102,7 +81,16 @@ namespace ns3 {
 
         typedef std::pair <uint64_t, uint16_t> ImsiCellIdPair_t;
 
-        class MmWaveEnbNetDevice : public MmWaveNetDevice {
+
+        bool lessThan(int x, int y);
+        bool greaterThan(int x, int y);
+        bool equal(int x, int y);
+
+      // Declare the MATH_CALL_BACKS vector
+      extern std::vector<std::function<bool(int, int)>> MATH_CALL_BACKS;
+
+
+      class MmWaveEnbNetDevice : public MmWaveNetDevice {
         public:
             const static uint16_t E2SM_REPORT_MAX_NEIGH = 8;
 
@@ -183,6 +171,8 @@ namespace ns3 {
             Ptr<MmWaveBearerStatsCalculator> m_e2RlcStatsCalculator;
             Ptr<MmWavePhyTrace> m_e2DuCalculator;
 
+            bool m_is_reported; 
+            int DL_PRBvalue ; 
             double m_e2Periodicity;
 
             // TODO doxy
@@ -224,9 +214,10 @@ namespace ns3 {
             std::string m_cuCpFileName;
             std::string m_duFileName;
 
-        };
-    }
-}
+      };
+  } 
+ }
+
 
 
 #endif /* SRC_MMWAVE_MODEL_MMWAVE_ENB_NET_DEVICE_H_ */
