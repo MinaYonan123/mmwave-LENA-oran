@@ -111,53 +111,87 @@ MmWaveEnbNetDevice::KpmSubscriptionCallback(E2AP_PDU_t *sub_req_pdu)
 {
   NS_LOG_DEBUG ("\nReceived RIC Subscription Request, cellId= " << m_cellId << "\n");
 
-    const auto &sub_map = m_e2term->SubscriptionMapRef();
-    if (!sub_map.empty())
+  E2Termination::RicSubscriptionRequest_rval_s params = m_e2term->ProcessRicSubscriptionRequest(sub_req_pdu);
+  NS_LOG_DEBUG("requestorId " << +params.requestorId << 
+               ", instanceId " << +params.instanceId <<
+               ", ranFuncionId " << +params.ranFuncionId <<
+               ", actionId " << +params.actionId);
+
+  const auto &sub_map = m_e2term->SubscriptionMapRef();
+  if (!sub_map.empty())
+  {
+    // Debug print the type of stored values
+    for (const auto& pair : sub_map)
     {
-        // Declare the variable `index` outside the switch statement
-        int index = -1;
+      NS_LOG_DEBUG("Key: " << pair.first << ", Type: " << pair.second.type().name());
+    }
 
-        try
-        {
-            // Extract the index value from the map
-            index = std::any_cast<int>(sub_map.at("Test Condition Expression"));
-        }
-        catch (const std::bad_any_cast &e)
-        {
-            NS_FATAL_ERROR("Failed to cast 'Test Condition Expression' to int: " << e.what());
-        }
+    try 
+    {
+      // Check if keys exist
+      if (sub_map.find("Test Condition Expression") == sub_map.end())
+      {
+        NS_LOG_ERROR("Key 'Test Condition Expression' not found in sub_map");
+        return;
+      }
 
-        // Extract the action definition
-        int action_def = -1;
-        try
-        {
-            action_def = std::any_cast<int>(sub_map.at("Action Definition Format"));
-        }
-        catch (const std::bad_any_cast &e)
-        {
-            NS_FATAL_ERROR("Failed to cast 'Action Definition Format' to int: " << e.what());
-        }
+      if (sub_map.find("Action Definition Format") == sub_map.end())
+      {
+        NS_LOG_ERROR("Key 'Action Definition Format' not found in sub_map");
+        return;
+      }
 
-        // Handle the action definition in the switch statement
-        switch (action_def)
-        {
+      if (sub_map.find("Test Condition Value") == sub_map.end())
+      {
+        NS_LOG_ERROR("Key 'Test Condition Value' not found in sub_map");
+        return;
+      }
+
+      // Try to get the actual values
+      const auto& expr = sub_map.at("Test Condition Expression");
+      const auto& action = sub_map.at("Action Definition Format");
+      const auto& value = sub_map.at("Test Condition Value");
+
+      // Convert to the expected types
+      int index = std::any_cast<int>(expr);
+      int action_def = std::any_cast<int>(action);
+      int test_value = std::any_cast<int>(value);
+
+      // Validate index
+      if (index < 0 || index >= static_cast<int>(MATH_CALL_BACKS.size()))
+      {
+        NS_LOG_ERROR("Invalid index: " << index);
+        return;
+      }
+
+      // Handle the action definition
+      switch (action_def)
+      {
         case E2SM_KPM_ActionDefinition__actionDefinition_formats_PR_actionDefinition_Format4:
-            m_is_reported = MATH_CALL_BACKS[index](
-                DL_PRBvalue, std::any_cast<int>(sub_map.at("Test Condition Value")));
+          m_is_reported = MATH_CALL_BACKS[index](DL_PRBvalue, test_value);
 
-            if (m_is_reported && !m_stopSendingMessages && !m_isReportingEnabled &&
-                !m_forceE2FileLogging)
-            {
-               // BuildAndSendReportMessage(params);
-                m_isReportingEnabled = true;
-            }
-            break;
+          if (m_is_reported && !m_stopSendingMessages && !m_isReportingEnabled &&
+              !m_forceE2FileLogging)
+          {
+            BuildAndSendReportMessage(params);
+            m_isReportingEnabled = true;
+          }
+          break;
 
         default:
-            NS_FATAL_ERROR("Action Definition NOT supported, your current action is " << action_def);
-            break;
-        }
+          NS_LOG_ERROR("Action Definition NOT supported, your current action is " << action_def);
+          break;
+      }
     }
+    catch (const std::bad_any_cast& e)
+    {
+      NS_LOG_ERROR("Type conversion error: " << e.what());
+    }
+    catch (const std::exception& e)
+    {
+      NS_LOG_ERROR("General error: " << e.what());
+    }
+  }
 }
 
 
