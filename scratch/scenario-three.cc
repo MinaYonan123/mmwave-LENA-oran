@@ -209,9 +209,9 @@ main (int argc, char *argv[])
   // LogComponentEnableAll (LOG_PREFIX_ALL);
   //LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_LOGIC);
    LogComponentEnable ("KpmIndication", LOG_LEVEL_DEBUG);
-  // LogComponentEnable ("McStatsCalculator", LOG_LEVEL_INFO);
+   LogComponentEnable ("McStatsCalculator", LOG_LEVEL_INFO);
 
-    LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_DEBUG);
+  //  LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_DEBUG);
 
   // LogComponentEnable ("MmWaveHelper", LOG_LEVEL_LOGIC);
 //   LogComponentEnable ("E2Termination", LOG_LEVEL_LOGIC);

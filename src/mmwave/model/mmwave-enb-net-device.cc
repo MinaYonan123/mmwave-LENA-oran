@@ -773,8 +773,7 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
         // printf ("Cell Id %u ", cell_id);
         // Simulator::ScheduleWithContext (1, MilliSeconds (15), &SetBSTX, enbPhy, 0, flexric_cell_id,
         //  mmWaveEnbNodes.Get
-
-        // Bug
+        uint16_t targetCellId = controlMessage->GetTargetCell ();
         for (uint32_t i = 0; i < mmWaveEnbNodes.GetN (); i++)
           {
             Ptr<MmWaveEnbPhy> enbPhy =
@@ -782,14 +781,13 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
             Ptr<MmWaveEnbNetDevice> mmdev =
                 DynamicCast<MmWaveEnbNetDevice> (mmWaveEnbNodes.Get (i)->GetDevice (0));
             uint16_t cell_id = mmdev->GetCellId ();
-            // TODO: Fix get target cell for turn off - from old state.
-            // if (cell_id == 2)
-            //   {
+             if (cell_id == targetCellId)
+               {
             printf ("Cell Id %u ", cell_id);
             Simulator::ScheduleWithContext (1, MilliSeconds (15), &SetBSTX, enbPhy, 0, cell_id,
                                             true);
             //Simulator::ScheduleWithContext (1,Seconds (tim+5), &SetBSTX, enbPhy, 30, cell_id, false);
-            // }
+            }
           }
         break;
       }
