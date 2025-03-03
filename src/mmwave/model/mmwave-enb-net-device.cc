@@ -163,6 +163,28 @@ MmWaveEnbNetDevice::KpmSubscriptionCallback(E2AP_PDU_t *sub_req_pdu)
         NS_LOG_ERROR("Invalid index: " << index);
         return;
       }
+    auto ueMap = m_rrc->GetUeMap();
+    double totalPrbUtilization = 0;
+    
+    for (auto ue : ueMap)
+    {
+      uint16_t rnti = ue.second->GetRnti();
+      double macNumberOfSymbols = m_e2DuCalculator->GetMacNumberOfSymbolsUeSpecific(rnti, m_cellId);
+      
+      auto phyMac = GetMac()->GetConfigurationParameters();
+      Time reportingWindow = Simulator::Now() - m_e2DuCalculator->GetLastResetTime(rnti, m_cellId);
+      double denominatorPrb = std::ceil(reportingWindow.GetNanoSeconds() / 
+                                    phyMac->GetSlotPeriod().GetNanoSeconds()) * 14;
+
+      if (denominatorPrb > 0)
+      {
+        totalPrbUtilization += (macNumberOfSymbols / denominatorPrb) * 139;
+      }
+    }
+    
+    long dlAvailablePrbs = 139;
+    DL_PRBvalue = std::min((long)(totalPrbUtilization / dlAvailablePrbs * 100), (long)100);
+    NS_LOG_DEBUG("\nDL_PRBvalue = " << DL_PRBvalue << ", cellId = " << m_cellId << "\n");
 
       // Handle the action definition
       switch (action_def)
