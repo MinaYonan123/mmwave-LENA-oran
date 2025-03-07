@@ -341,10 +341,6 @@ static ns3::GlobalValue
         g_enableE2FileLogging("enableE2FileLogging",
                               "If true, generate offline file logging instead of connecting to RIC",
                               ns3::BooleanValue(false), ns3::MakeBooleanChecker());
-static ns3::GlobalValue
-        g_e2andlog("E2andLogging",
-                   "If true, generate offline file logging instead of connecting to RIC",
-                   ns3::BooleanValue(false), ns3::MakeBooleanChecker());
 static ns3::GlobalValue g_e2_func_id("KPM_E2functionID", "Function ID to subscribe",
                                      ns3::DoubleValue(2),
                                      ns3::MakeDoubleChecker<double>());
@@ -439,23 +435,18 @@ main(int argc, char *argv[]) {
     std::string e2TermIp = stringValue.Get();
     GlobalValue::GetValueByName("enableE2FileLogging", booleanValue);
     bool enableE2FileLogging = booleanValue.Get();
-    GlobalValue::GetValueByName("E2andLogging", booleanValue);
-    bool g_e2andlog = booleanValue.Get();
     GlobalValue::GetValueByName("KPM_E2functionID", doubleValue);
     double g_e2_func_id = doubleValue.Get();
     GlobalValue::GetValueByName("RC_E2functionID", doubleValue);
     double g_rc_e2_func_id = doubleValue.Get();
 
-    if (enableE2FileLogging && g_e2andlog) {
-        NS_LOG_ERROR("Only one of this variables can be set to TRUE - enableE2FileLogging && g_e2andlog");
-    }
 
     GlobalValue::GetValueByName("numberOfRaPreambles", uintegerValue);
     uint8_t numberOfRaPreambles = uintegerValue.Get();
 
     NS_LOG_UNCOND("bufferSize " << bufferSize << " OutageThreshold " << outageThreshold
                                 << " HandoverMode " << handoverMode << " e2TermIp " << e2TermIp
-                                << " enableE2FileLogging " << enableE2FileLogging << " E2andLogging " << g_e2andlog
+                                << " enableE2FileLogging " << enableE2FileLogging
                                 << " E2 Function ID " << g_e2_func_id);
 
     GlobalValue::GetValueByName("e2lteEnabled", booleanValue);
@@ -510,11 +501,6 @@ main(int argc, char *argv[]) {
                        BooleanValue(enableE2FileLogging));
     Config::SetDefault("ns3::MmWaveEnbNetDevice::EnableE2FileLogging",
                        BooleanValue(enableE2FileLogging));
-
-    Config::SetDefault("ns3::MmWaveEnbNetDevice::E2andLogging",
-                       BooleanValue(g_e2andlog));
-    Config::SetDefault("ns3::LteEnbNetDevice::e2andLogging",
-                       BooleanValue(g_e2andlog));
 
     Config::SetDefault("ns3::LteEnbNetDevice::KPM_E2functionID",
                        DoubleValue(g_e2_func_id));
