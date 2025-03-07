@@ -33,8 +33,7 @@
 *								 Integration of Carrier Aggregation
 * Modified by: Argha Sen <arghasen10@gmail.com>
 *                 MmWave Radio Energy Model
-* Modified by: Kamil Kociszewski <kamil.kociszewski@orange.com>
-               Deep sleep mode for mmwave-spectrum-phy.cc
+* Modified: Kamil Kociszewski <kamil.kociszewski@orange.com>
 */
 
 #include <ns3/object-factory.h>
@@ -65,8 +64,6 @@ NS_LOG_COMPONENT_DEFINE ("MmWaveSpectrumPhy");
 namespace mmwave {
 
 NS_OBJECT_ENSURE_REGISTERED (MmWaveSpectrumPhy);
-bool old_State_sleep = false;
-bool m_sleepEnabled_val = false;
 
 MmWaveSpectrumPhy::MmWaveSpectrumPhy () : m_cellId (0), m_state (IDLE), m_componentCarrierId (0)
 {
@@ -77,7 +74,6 @@ MmWaveSpectrumPhy::MmWaveSpectrumPhy () : m_cellId (0), m_state (IDLE), m_compon
 }
 MmWaveSpectrumPhy::~MmWaveSpectrumPhy ()
 {
-
 }
 
 TypeId
@@ -227,19 +223,47 @@ MmWaveSpectrumPhy::GetBeamformingModel () const
 void
 MmWaveSpectrumPhy::ChangeState (State newState)
 {
-  //State oldState = m_state;
-  if (m_sleepEnabled_val)
+  //
+  double es_power = 1;
+  Ptr<MmWaveEnbNetDevice> enbNetDev = DynamicCast<MmWaveEnbNetDevice> (GetDevice ());
+  if (enbNetDev) // Check for null before using
     {
-      m_state = Deep_Sleep;
-      //std::cout << "Cell sleep..." << std::endl;
+      Ptr<MmWaveEnbPhy> enbPhy = enbNetDev->GetPhy ();
+      // int cellid = enbNetDev->GetCellId();
+      es_power = enbPhy->GetTxPower ();
+    }
+  //
+  if (m_sleepEnabled)
+    {
+      m_state = IDLE;
     }
   else
     {
-      //std::cout << "ChangeState state: " << m_state << " from " << oldState << std::endl;
+      NS_LOG_LOGIC (this << " state: " << m_state << " -> " << newState);
       m_state = newState;
+      if (es_power == 0)
+        {
+          m_intState = 4;
+        }
+      else
+        {
+          switch (newState)
+            {
+            case IDLE:
+              m_intState = 0;
+              break;
+            case TX:
+              m_intState = 1;
+              break;
+            case RX_DATA:
+              m_intState = 2;
+              break;
+            case RX_CTRL:
+              m_intState = 3;
+              break;
+            }
+        }
     }
-
-  //NS_LOG_LOGIC (this << "ChangeState state: " << m_state);
 }
 
 void
@@ -262,7 +286,6 @@ MmWaveSpectrumPhy::SetPhyRxDataEndOkCallback (MmWavePhyRxDataEndOkCallback c)
 {
   m_phyRxDataEndOkCallback = c;
 }
-
 
 void
 MmWaveSpectrumPhy::SetPhyRxCtrlEndOkCallback (MmWavePhyRxCtrlEndOkCallback c)
@@ -349,8 +372,10 @@ MmWaveSpectrumPhy::StartRx (Ptr<SpectrumSignalParameters> params)
     }
 
   // check if the received signal is mmWave DATA or CTRL
-  Ptr<MmwaveSpectrumSignalParametersDataFrame> mmwaveDataRxParams = DynamicCast<MmwaveSpectrumSignalParametersDataFrame> (params);
-  Ptr<MmWaveSpectrumSignalParametersDlCtrlFrame> mmwaveDlCtrlRxParams = DynamicCast<MmWaveSpectrumSignalParametersDlCtrlFrame> (params);
+  Ptr<MmwaveSpectrumSignalParametersDataFrame> mmwaveDataRxParams =
+      DynamicCast<MmwaveSpectrumSignalParametersDataFrame> (params);
+  Ptr<MmWaveSpectrumSignalParametersDlCtrlFrame> mmwaveDlCtrlRxParams =
+      DynamicCast<MmWaveSpectrumSignalParametersDlCtrlFrame> (params);
 
   if (mmwaveDataRxParams != 0)
     {
@@ -365,7 +390,7 @@ MmWaveSpectrumPhy::StartRx (Ptr<SpectrumSignalParameters> params)
       Ptr<McUeNetDevice> rxMcUe = DynamicCast<McUeNetDevice> (GetDevice ());
 
       if ((ueRx != 0) && (ueRx->GetPhy (m_componentCarrierId)->IsReceptionEnabled () == false))
-        {               // if the first cast is 0 (the device is MC) then this if will not be executed
+        { // if the first cast is 0 (the device is MC) then this if will not be executed
           isAllocated = false;
         }
       else if ((rxMcUe != 0) &&
@@ -464,47 +489,6 @@ MmWaveSpectrumPhy::StartRxData (Ptr<MmwaveSpectrumSignalParametersDataFrame> par
         NS_LOG_LOGIC (this << " numSimultaneousRxEvents = " << m_rxPacketBurstList.size ());
       }
       break;
-    case Deep_Sleep:
-      {
-        // this is a useful signal
-        m_interferenceData->StartRx (params->psd);
-
-        if (m_rxPacketBurstList.empty ())
-          {
-            NS_ASSERT (m_state == IDLE);
-            // first transmission, i.e., we're IDLE and we start RX
-            m_firstRxStart = Simulator::Now ();
-            m_firstRxDuration = params->duration;
-            NS_LOG_LOGIC (this << " scheduling EndRx with delay " << params->duration.GetSeconds ()
-                               << "s");
-
-            m_endRxDataEvent =
-                Simulator::Schedule (params->duration, &MmWaveSpectrumPhy::EndRxData, this);
-
-            ChangeState (RX_DATA);
-          }
-        else
-          {
-            NS_ASSERT (m_state == RX_DATA);
-            // sanity check: if there are multiple RX events, they
-            // should occur at the same time and have the same
-            // duration, otherwise the interference calculation
-            // won't be correct
-            NS_ASSERT ((m_firstRxStart == Simulator::Now ()) &&
-                       (m_firstRxDuration == params->duration));
-          }
-
-        if (params->packetBurst && !params->packetBurst->GetPackets ().empty ())
-          {
-            m_rxPacketBurstList.push_back (params->packetBurst);
-          }
-
-        m_rxControlMessageList.insert (m_rxControlMessageList.end (), params->ctrlMsgList.begin (),
-                                       params->ctrlMsgList.end ());
-
-        NS_LOG_LOGIC (this << " numSimultaneousRxEvents = " << m_rxPacketBurstList.size ());
-      }
-      break;
 
     default:
       NS_FATAL_ERROR ("Programming Error: Unknown State");
@@ -563,37 +547,8 @@ MmWaveSpectrumPhy::StartRxCtrl (Ptr<MmWaveSpectrumSignalParametersDlCtrlFrame> d
           {
             NS_LOG_LOGIC (this << " synchronized with this signal (cellId=" << m_cellId << ")");
 
-            // first transmission, i.e., we're IDLE and we start RX; commented out because assertion error
-            // NS_ASSERT (m_rxControlMessageList.empty ());
-            m_firstRxStart = Simulator::Now ();
-            m_firstRxDuration = dlCtrlRxParams->duration;
-            NS_LOG_LOGIC (this << " scheduling EndRx with delay " << dlCtrlRxParams->duration);
-
-            // store the DCIs
-            m_rxControlMessageList = dlCtrlRxParams->ctrlMsgList;
-            m_endRxDlCtrlEvent =
-                Simulator::Schedule (dlCtrlRxParams->duration, &MmWaveSpectrumPhy::EndRxCtrl, this);
-            ChangeState (RX_CTRL);
-          }
-        else
-          {
-            NS_LOG_LOGIC (this << " not in sync with this signal (cellId=" << dlCtrlRxParams->cellId
-                               << ", m_cellId=" << m_cellId << ")");
-          }
-        break;
-      }
-    case Deep_Sleep:
-      {
-        // the behavior is similar when we're IDLE or RX because we can receive more signals
-        // simultaneously (e.g., at the eNB).
-
-        // To check if we're synchronized to this signal, we check for the CellId
-        if (dlCtrlRxParams->cellId == m_cellId)
-          {
-            NS_LOG_LOGIC (this << " synchronized with this signal (cellId=" << m_cellId << ")");
-
-            // first transmission, i.e., we're IDLE and we start RX; commented out because assertion error
-            // NS_ASSERT (m_rxControlMessageList.empty ());
+            // first transmission, i.e., we're IDLE and we start RX
+            NS_ASSERT (m_rxControlMessageList.empty ());
             m_firstRxStart = Simulator::Now ();
             m_firstRxDuration = dlCtrlRxParams->duration;
             NS_LOG_LOGIC (this << " scheduling EndRx with delay " << dlCtrlRxParams->duration);
@@ -941,9 +896,7 @@ MmWaveSpectrumPhy::StartTxDataFrames (Ptr<PacketBurst> pb,
         m_endTxEvent = Simulator::Schedule (duration, &MmWaveSpectrumPhy::EndTx, this);
       }
       break;
-    case Deep_Sleep:
-      //std::cout << "Deep sleep2" << "\n";
-      break;
+
     default:
       NS_LOG_FUNCTION (this << "Programming Error. Code should not reach this point");
     }
@@ -986,29 +939,6 @@ MmWaveSpectrumPhy::StartTxDlControlFrames (std::list<Ptr<MmWaveControlMessage>> 
         ChangeState (TX);
 
         m_endTxEvent = Simulator::Schedule (duration, &MmWaveSpectrumPhy::EndTx, this);
-        break;
-      }
-    case Deep_Sleep:
-      //std::cout << "Deep sleep3 " << m_state << "\n";
-      {
-        NS_ASSERT (m_txPsd);
-
-        Ptr<MmWaveSpectrumSignalParametersDlCtrlFrame> txParams =
-            Create<MmWaveSpectrumSignalParametersDlCtrlFrame> ();
-        txParams->duration = duration;
-        txParams->txPhy = GetObject<SpectrumPhy> ();
-        txParams->psd = m_txPsd;
-        txParams->cellId = m_cellId;
-        txParams->pss = true;
-        txParams->ctrlMsgList = ctrlMsgList;
-        txParams->txAntenna = GetRxAntenna (); // TODO do we need to know the antenna?
-
-        m_channel->StartTx (txParams);
-
-        ChangeState (TX);
-
-        m_endTxEvent = Simulator::Schedule (duration, &MmWaveSpectrumPhy::EndTx, this);
-        break;
       }
       //TODO is the default case needed here ??
     }
@@ -1065,19 +995,6 @@ MmWaveSpectrumPhy::SetHarqPhyModule (Ptr<MmWaveHarqPhy> harq)
 {
   m_harqPhyModule = harq;
 }
-void
-MmWaveSpectrumPhy::SetSleep_EM (bool val)
-{
-  old_State_sleep = m_sleepEnabled_val;
-  std::cout << "New sleep value: " << val << "\n";
-  if (val == true){
-      ChangeState (Deep_Sleep);
-    }
-  if (val ==false){
-      ChangeState (IDLE);
-    }
-  m_sleepEnabled_val = val;
-}
 
 double
 MmWaveSpectrumPhy::Min (const SpectrumValue &specVal)
@@ -1095,4 +1012,3 @@ MmWaveSpectrumPhy::GetErrorModelType () const
 
 } // end namespace mmwave
 } // end namespace ns3
-

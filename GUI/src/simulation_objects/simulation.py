@@ -24,6 +24,8 @@ class Simulation:
         self.cell_history = []
         self.starting_power = 0
         self.current_power = 0
+        self.maxec = 0
+        self.totalcurrec = 0
         self.simulation_status = 'on'
         if number_of_ues > 0 and number_of_cells > 0:
             self.max_x, self.max_y = self.get_charts_max_axis_value()
@@ -98,7 +100,7 @@ class Simulation:
             ues.append(ue)
         for cell_id in range(1, number_of_cells + 1):
             cell_x, cell_y, cell_type = self.get_cell_position_and_type(cell_id)
-            es_state, es_power = self.get_cell_es_state_and_power(cell_id)
+            es_state, es_power, maxec,  totalcurrec= self.get_cell_es_state_and_power(cell_id)
             cell = Cell(
                 cell_id=cell_id,
                 x_position=cell_x,
@@ -106,6 +108,8 @@ class Simulation:
                 type=cell_type,
                 es_state=es_state,
                 es_power=es_power,
+                maxec = maxec,
+                totalcurrec = totalcurrec,
                 serving_sinr=self.get_last_value_from_measurement(f'cu-cp-cell-{cell_id}_l3 serving sinr'),
                 ErrTotalNbrDl=self.get_last_value_from_measurement(f'du-cell-{cell_id}_tb.errtotalnbrdl.1.ueid'),
                 MeanActiveUEsDownlink=self.get_last_value_from_measurement(f'du-cell-{cell_id}_drb.meanactiveuedl'),
@@ -197,11 +201,15 @@ class Simulation:
 
         return x_val, y_val, cell_type
 
-    def get_cell_es_state_and_power(self, cell_id: int) -> (int, int):
+    def get_cell_es_state_and_power(self, cell_id: int) -> (int, int, int, int):
         if cell_id == 1:
             es_state = self.get_last_value_from_measurement(f'enbs_esstate_{cell_id}')
             es_power = self.get_last_value_from_measurement(f'enbs_espower_{cell_id}')
+            maxec = self.get_last_value_from_measurement(f'enbs_maxec_{cell_id}')
+            totalcurrec = self.get_last_value_from_measurement(f'enbs_totalcurrec_{cell_id}')
         else:
             es_state = self.get_last_value_from_measurement(f'gnbs_esstate_{cell_id}')
             es_power = self.get_last_value_from_measurement(f'gnbs_espower_{cell_id}')
-        return es_state, es_power
+            maxec = self.get_last_value_from_measurement(f'gnbs_maxec_{cell_id}')
+            totalcurrec = self.get_last_value_from_measurement(f'gnbs_totalcurrec_{cell_id}')
+        return es_state, es_power, maxec, totalcurrec
