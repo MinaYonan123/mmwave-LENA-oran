@@ -5,6 +5,7 @@ from src.simulation_objects.simulation import Simulation
 
 class SimulationManager:
     _simulation: Optional[Simulation] = None
+    scenario: str = ''
 
     @classmethod
     def get_simulation(cls) -> Simulation:
@@ -50,10 +51,18 @@ class SimulationManager:
                             f'gnbs_espower_{cell.cell_id}')
                     starting_power += cell_power
             simulation.starting_power = starting_power
+        maxec = 0
+        totalcurrec = 0
         for cell in simulation.cells:
             if cell.es_power:
                 power_usage += cell.es_power
+            if cell.maxec:
+                maxec = max(maxec, cell.maxec)
+            if cell.totalcurrec:
+                totalcurrec = max(totalcurrec, cell.totalcurrec)
         simulation.current_power = power_usage
+        simulation.maxec = maxec
+        simulation.totalcurrec = totalcurrec
 
         return simulation
 
@@ -79,9 +88,18 @@ class SimulationManager:
         cls._simulation = None
 
     @classmethod
-    def start_simulation(cls):
+    def start_simulation(cls, scenario):
         cls._simulation.simulation_status = 'on'
+        cls.scenario = scenario
+        if not scenario:
+            raise Exception("Empty scenario")
+
 
     @classmethod
     def stop_simulation(cls):
         cls._simulation.simulation_status = 'off'
+        cls.scenario = ''
+
+    @classmethod
+    def get_scenario(cls):
+        return cls.scenario

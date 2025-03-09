@@ -171,7 +171,7 @@ namespace ns3 {
             Ptr<MmWaveBearerStatsCalculator> m_e2RlcStatsCalculator;
             Ptr<MmWavePhyTrace> m_e2DuCalculator;
 
-            bool m_is_reported; 
+            bool m_is_reported = false;
             int DL_PRBvalue ; 
             double m_e2Periodicity;
 
@@ -183,6 +183,11 @@ namespace ns3 {
             Ptr<KpmIndicationMessage> BuildRicIndicationMessageCuCp(std::string plmId);
 
             Ptr<KpmIndicationMessage> BuildRicIndicationMessageDu(std::string plmId, uint16_t nrCellId);
+
+            //traces for gui
+            Ptr<KpmIndicationMessage> BuildGUIDu(std::string plmId, uint16_t nrCellId);
+            Ptr<KpmIndicationMessage> BuildGUICuCp(std::string plmId);
+            Ptr<KpmIndicationMessage> BuildGUICuUp(std::string plmId);
 
             std::string GetImsiString(uint64_t imsi);
 

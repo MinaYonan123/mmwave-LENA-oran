@@ -19,6 +19,7 @@
  * Author: Sashank Bonda <sashank729@gmail.com>
  * Author: Jay Jayatheerthan <jay.jayatheerthan@intel.com>
  * Author: Sandip Chakraborty <sandipchkraborty@gmail.com>
+ * Modified: Kamil Kociszewski <kamil.kociszewski@orange.com>
  */
 #ifndef MMWAVE_RADIO_ENERGY_MODEL_ENB_H
 #define MMWAVE_RADIO_ENERGY_MODEL_ENB_H
@@ -216,6 +217,7 @@ private:
     double m_microSleepCurrentA;
     int m_previousState;
     int m_currentState;
+    int m_celloff = 0;
 
     Ptr<EnergySource> m_source;
     Ptr<Node> m_node;
