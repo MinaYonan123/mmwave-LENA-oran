@@ -410,14 +410,18 @@ main(int argc, char *argv[]) {
   LogComponentEnableAll(LOG_PREFIX_ALL);
   //  LogComponentEnable ("RicControlMessage", LOG_LEVEL_ALL);
   //  LogComponentEnable ("KpmIndication", LOG_LEVEL_DEBUG);
-  LogComponentEnable("KpmIndication", LOG_LEVEL_INFO);
+  //LogComponentEnable("KpmIndication", LOG_LEVEL_INFO);
 
   // LogComponentEnable ("Asn1Types", LOG_LEVEL_LOGIC);
   //   LogComponentEnable ("E2Termination", LOG_LEVEL_LOGIC);
   //  LogComponentEnable ("E2Termination", LOG_LEVEL_DEBUG);
 
   // LogComponentEnable ("LteEnbNetDevice", LOG_LEVEL_ALL);
-  LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_DEBUG);
+  // LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_INFO);
+ //  LogComponentEnable ("LteEnbRrc", LOG_LEVEL_INFO);
+ //LogComponentEnable ("EpcX2", LOG_LEVEL_LOGIC);
+
+  
 
   // The maximum X coordinate of the scenario
 
@@ -699,6 +703,17 @@ main(int argc, char *argv[]) {
 
   // Add X2 interfaces
   mmwaveHelper->AddX2Interface(lteEnbNodes, mmWaveEnbNodes);
+
+ // for (uint16_t i = 0; i < mmWaveEnbNodes.GetN(); ++i)
+//{
+ // for (uint16_t j = i+1; j < mmWaveEnbNodes.GetN(); ++j) 
+  //{
+   // if (i != j)
+    //{
+     // mmwaveHelper->AddX2Interface(mmWaveEnbNodes.Get(i), mmWaveEnbNodes.Get(j));
+    //}
+  //}
+//}
 
   // Manual attachment
   mmwaveHelper->AttachToClosestEnb(mcUeDevs, mmWaveEnbDevs, lteEnbDevs);

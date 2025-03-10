@@ -41,6 +41,8 @@
 #include <ns3/callback.h>
 #include <ns3/node.h>
 #include <ns3/packet.h>
+////////////////////////////////
+#include <ns3/lte-enb-rrc.h>
 #include "mmwave-net-device.h"
 #include <ns3/packet-burst.h>
 #include <ns3/uinteger.h>
@@ -190,6 +192,7 @@ MmWaveEnbNetDevice::KpmSubscriptionCallback(E2AP_PDU_t *sub_req_pdu)
       {
         case E2SM_KPM_ActionDefinition__actionDefinition_formats_PR_actionDefinition_Format4:
           m_is_reported = MATH_CALL_BACKS[index](DL_PRBvalue, test_value);
+          NS_LOG_DEBUG("\nm_is_reported = " << m_is_reported << ", cellId = " << m_cellId << "\n");
 
           if (m_is_reported && !m_stopSendingMessages && !m_isReportingEnabled &&
               !m_forceE2FileLogging)
@@ -695,38 +698,42 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
               UEID_GNB_t *UEgnb = (UEID_GNB_t *) calloc (1, sizeof (UEID_GNB_t));
 
               UEgnb = controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID;
-              uint64_t imsi = {0};
-              memcpy (&imsi, UEgnb->ran_UEID->buf, UEgnb->ran_UEID->size);
-              //uint16_t targetCellId = std::stoi(controlMessage->GetSecondaryCellIdHO());
-              uint16_t targetCellId = controlMessage->GetTargetCell ();
+              uint64_t multiplexedValue = {0};
+              memcpy (&multiplexedValue, UEgnb->ran_UEID->buf, UEgnb->ran_UEID->size);
+
+              uint64_t imsi = multiplexedValue/10;
+              uint16_t targetCellId = controlMessage->GetTargetCell();
+
+
+               //uint16_t targetCellId = std::stoi(controlMessage->GetSecondaryCellIdHO());
               // controlMessage->GetSecondaryCellIdHO();
               m_rrc->TakeUeHoControl (imsi);
               if (!m_forceE2FileLogging)
                 {
                   Simulator::ScheduleWithContext (1, Seconds (0),
                                                   &LteEnbRrc::PerformHandoverToTargetCell, m_rrc,
-                                                  imsi, targetCellId);
+                                                  multiplexedValue,targetCellId);
                 }
               else
                 {
                   Simulator::Schedule (Seconds (0), &LteEnbRrc::PerformHandoverToTargetCell, m_rrc,
-                                       imsi, targetCellId);
+                                       multiplexedValue,targetCellId);
                 }
               break;
             }
 
             case RicControlMessage::Connected_Mode_Mobility_Control_Action_ID::
                 Conditional_Handover_Control: {
-              NS_LOG_UNCOND ("Unsupported Control Action ");
+              NS_LOG_UNCOND ("Unsupported Conditional_Handover_Control ");
               break;
             }
             case RicControlMessage::Connected_Mode_Mobility_Control_Action_ID::
                 DAPS_Handover_Control: {
-              NS_LOG_UNCOND ("Unsupported Control Action ");
+              NS_LOG_UNCOND ("Unsupported DAPS_Handover_Control ");
               break;
             }
             default: {
-              NS_LOG_INFO ("Unrecognized Control Action type of Ric Control Message");
+              NS_LOG_INFO ("Unrecognized Control Action type of RIC Control Message");
               break;
             }
           }
