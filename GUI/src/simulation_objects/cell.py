@@ -10,6 +10,8 @@ class Cell:
     type: str
     es_state: int
     es_power: int
+    maxec: int
+    totalcurrec: int
     serving_sinr: float
     ErrTotalNbrDl: Optional[int] = None
     MeanActiveUEsDownlink: Optional[int] = None

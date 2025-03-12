@@ -32,7 +32,7 @@ modules_enabled  = ['all_modules']
 examples_enabled = False
 tests_enabled    = False
 
-# GCC minimum version requirements for C++11 support
+# GCC minimum version requirements for C++17 support
 gcc_min_version = (13, 0, 0)
 
 # Bug 2181:  clang warnings about unused local typedefs and potentially
@@ -258,7 +258,7 @@ def options(opt):
                    dest='enable_desmetrics')
     opt.add_option('--cxx-standard',
                    help=('Compile NS-3 with the given C++ standard'),
-                   type='string', default='-std=c++11', dest='cxx_standard')
+                   type='string', default='-std=c++17', dest='cxx_standard')
     opt.add_option('--enable-asserts',
                    help=('Enable the asserts regardless of the compile mode'),
                    action="store_true", default=False,

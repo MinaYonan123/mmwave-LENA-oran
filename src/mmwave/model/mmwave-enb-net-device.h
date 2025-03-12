@@ -55,6 +55,14 @@
 #include <ns3/mmwave-phy-trace.h>
 
 
+
+#include "TestCond-Type.h"
+#include "TestCond-Expression.h"
+#include "TestCond-Value.h"
+#include "E2SM-KPM-ActionDefinition.h"
+#include <functional>
+
+
 namespace ns3 {
 /* Add forward declarations here */
     class Packet;
@@ -65,7 +73,7 @@ namespace ns3 {
 
     class LteEnbComponentCarrierManager;
 
-    namespace mmwave {
+  namespace mmwave {
 //class MmWavePhy;
         class MmWaveEnbPhy;
 
@@ -73,13 +81,23 @@ namespace ns3 {
 
         typedef std::pair <uint64_t, uint16_t> ImsiCellIdPair_t;
 
-        class MmWaveEnbNetDevice : public MmWaveNetDevice {
+
+        bool lessThan(int x, int y);
+        bool greaterThan(int x, int y);
+        bool equal(int x, int y);
+
+      // Declare the MATH_CALL_BACKS vector
+      extern std::vector<std::function<bool(int, int)>> MATH_CALL_BACKS;
+
+
+      class MmWaveEnbNetDevice : public MmWaveNetDevice {
         public:
             const static uint16_t E2SM_REPORT_MAX_NEIGH = 8;
 
             static TypeId GetTypeId(void);
 
             MmWaveEnbNetDevice();
+            // MmWaveEnbNetDevice(Ptr<E2Termination> e2Termination);
 
             virtual ~MmWaveEnbNetDevice(void);
 
@@ -153,6 +171,8 @@ namespace ns3 {
             Ptr<MmWaveBearerStatsCalculator> m_e2RlcStatsCalculator;
             Ptr<MmWavePhyTrace> m_e2DuCalculator;
 
+            bool m_is_reported = false;
+            int DL_PRBvalue ; 
             double m_e2Periodicity;
 
             // TODO doxy
@@ -163,6 +183,11 @@ namespace ns3 {
             Ptr<KpmIndicationMessage> BuildRicIndicationMessageCuCp(std::string plmId);
 
             Ptr<KpmIndicationMessage> BuildRicIndicationMessageDu(std::string plmId, uint16_t nrCellId);
+
+            //traces for gui
+            Ptr<KpmIndicationMessage> BuildGUIDu(std::string plmId, uint16_t nrCellId);
+            Ptr<KpmIndicationMessage> BuildGUICuCp(std::string plmId);
+            Ptr<KpmIndicationMessage> BuildGUICuUp(std::string plmId);
 
             std::string GetImsiString(uint64_t imsi);
 
@@ -194,9 +219,19 @@ namespace ns3 {
             std::string m_cuCpFileName;
             std::string m_duFileName;
 
-        };
-    }
-}
+            double CalculatePrbAverage (void);
+            void CheckReportingFlag (void);
+           
+           std::vector<double> m_prbHistory;     
+           static const size_t MAX_PRB_HISTORY = 10;    
+           Time m_checkPeriod;
+   
+
+
+      };
+  } 
+ }
+
 
 
 #endif /* SRC_MMWAVE_MODEL_MMWAVE_ENB_NET_DEVICE_H_ */

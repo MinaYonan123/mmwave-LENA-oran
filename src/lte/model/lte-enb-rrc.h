@@ -1598,6 +1598,13 @@ public:
   void PerformHandoverToTargetCell (uint64_t imsi, uint16_t targetCellId);
 
   /**
+   * Triggers an handover between secondary cells
+   * @params imsi UE 
+   * @params targetCellId target cell
+   */
+  void PerformE2RCHO (uint64_t imsi, uint16_t targetCellId);
+
+  /**
    * Set mmWave/NR BS handover status (allowed or not)
    * @params cellId
    * @params a boolean that is true if the cell can accept handovers, false otherwise

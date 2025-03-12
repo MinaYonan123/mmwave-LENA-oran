@@ -1942,6 +1942,7 @@ UeManager::RecvSecondaryCellHandoverCompleted(EpcX2Sap::SecondaryHandoverComplet
         m_rrc->m_x2SapProvider->SetEpcX2PdcpUser(it->second->m_gtpTeid, pdcp->GetEpcX2PdcpUser());
         // Remote RLC already setup
 
+        // NOTE: Call after Handover
         m_rrc->m_lastMmWaveCell[m_imsi] = m_mmWaveCellId;
         m_rrc->m_mmWaveCellSetupCompleted[m_imsi] = true;
         NS_LOG_INFO("Imsi " << m_imsi << " m_mmWaveCellSetupCompleted set to " << m_rrc->m_mmWaveCellSetupCompleted[m_imsi] <<
@@ -4076,22 +4077,16 @@ LteEnbRrc::TakeUeHoControl (uint64_t imsi)
 }
 
 void
-LteEnbRrc::PerformHandoverToTargetCell (uint64_t imsi, uint16_t targetCellId)
+LteEnbRrc::PerformE2RCHO (uint64_t imsi, uint16_t targetCellId)
 {
   NS_LOG_FUNCTION (this << +imsi << +targetCellId);
   
   bool alreadyAssociatedImsi = false;
-  bool onHandoverImsi = false; //TODO add new state
-   //m_mmWaveCellSetupCompleted[imsi] = true; 
-  // On RecvRrcConnectionRequest for a new RNTI, the Lte Enb RRC stores the imsi
-  // of the UE and insert a new false entry in m_mmWaveCellSetupCompleted.
-  // After the first connection to a MmWave eNB, the entry becomes true.
-  // When an handover between MmWave cells is triggered, it is set to false.
+  bool onHandoverImsi = false;
+
   if(m_mmWaveCellSetupCompleted.find(imsi) != m_mmWaveCellSetupCompleted.end())
   {
     alreadyAssociatedImsi = true;
-    //onHandoverImsi = (!m_switchEnabled) ? true : !m_mmWaveCellSetupCompleted.find(imsi)->second;   
-    //onHandoverImsi = !m_mmWaveCellSetupCompleted.find(imsi)->second;
   }
   else
   {
@@ -4104,18 +4099,66 @@ LteEnbRrc::PerformHandoverToTargetCell (uint64_t imsi, uint16_t targetCellId)
   {  
     if(!onHandoverImsi)
     { 
-     
+
+      uint16_t rnti = GetRntiFromImsi(imsi)  ; 
+
+      NS_LOG_UNCOND (Simulator::Now ().GetNanoSeconds ()/ 1.0e9
+                   << "s LteEnbRrc::PerfomeE2RCHO(): [UNCOND] Initiate handover for rnti "
+                   << rnti << " to  CellId " << targetCellId);
+
+       SendHandoverRequest(rnti,targetCellId) ;    
+      m_mmWaveCellSetupCompleted[imsi] = false;
+    }
+    else
+    {
+      //TODO Do nothing or what?
+      NS_LOG_UNCOND("## Warn: handover not triggered because the UE is already performing HO!");
+    }
+  }
+  else
+  {
+    NS_LOG_UNCOND("## Warn: handover not triggered because the UE is not associated yet!");
+  }
+}
+
+
+void
+LteEnbRrc::PerformHandoverToTargetCell (uint64_t imsi, uint16_t targetCellId)
+{
+  NS_LOG_FUNCTION (this << +imsi << +targetCellId);
+  
+  bool alreadyAssociatedImsi = false;
+  bool onHandoverImsi = true;
+  // On RecvRrcConnectionRequest for a new RNTI, the Lte Enb RRC stores the imsi
+  // of the UE and insert a new false entry in m_mmWaveCellSetupCompleted.
+  // After the first connection to a MmWave eNB, the entry becomes true.
+  // When an handover between MmWave cells is triggered, it is set to false.
+  if(m_mmWaveCellSetupCompleted.find(imsi) != m_mmWaveCellSetupCompleted.end())
+  {
+    alreadyAssociatedImsi = true;
+    //onHandoverImsi = (!m_switchEnabled) ? true : !m_mmWaveCellSetupCompleted.find(imsi)->second;
+    onHandoverImsi = !m_mmWaveCellSetupCompleted.find(imsi)->second;
+  }
+  else
+  {
+    alreadyAssociatedImsi = false;
+    onHandoverImsi = true;
+  }
+  NS_LOG_INFO("PerformHandover: alreadyAssociatedImsi " << alreadyAssociatedImsi << " onHandoverImsi " << onHandoverImsi);
+
+  if(alreadyAssociatedImsi)
+  {
+    if(!onHandoverImsi)
+    {
+      // The new secondary cell HO procedure does not require to switch to LTE
+      NS_LOG_INFO("PerformHandover ----- handover from " << m_lastMmWaveCell[imsi] << 
+                  " to " << targetCellId << " at time " << Simulator::Now().GetSeconds());
+
       // trigger ho via X2
       EpcX2SapProvider::SecondaryHandoverParams params;
       params.imsi = imsi;
       params.targetCellId = targetCellId;
-      params.oldCellId = 2 ; //m_lastMmWaveCell[imsi]; 
-       // The new secondary cell HO procedure does not require to switch to LTE
-      // NS_LOG_UNCOND("PerformHandover ----- handover from " << m_lastMmWaveCell[imsi] << 
-      //             " to " << targetCellId << " at time " << Simulator::Now().GetSeconds());
-      
-      NS_LOG_UNCOND (Simulator::Now ().GetNanoSeconds ()/ 1.0e9<<"s LteEnbRrc::PerformHandoverToTargetCell(): [UNCOND] Initiate handover for Rnti "<< imsi << " from CellId " <<  params.oldCellId<< 
-                  " to  CellId " << targetCellId);
+      params.oldCellId = m_lastMmWaveCell[imsi];
       m_x2SapProvider->SendMcHandoverRequest(params);
 
       m_mmWaveCellSetupCompleted[imsi] = false;
@@ -4128,7 +4171,7 @@ LteEnbRrc::PerformHandoverToTargetCell (uint64_t imsi, uint16_t targetCellId)
   }
   else
   {
-    //NS_LOG_UNCOND("## Warn: handover not triggered because the UE is not associated yet!");
+    NS_LOG_UNCOND("## Warn: handover not triggered because the UE is not associated yet!");
   }
 }
 
@@ -4703,13 +4746,16 @@ LteEnbRrc::SendHandoverRequest (uint16_t rnti, uint16_t cellId)
   NS_LOG_FUNCTION (this << rnti << cellId);
   NS_LOG_LOGIC ("Request to send HANDOVER REQUEST");
   NS_ASSERT (m_configured);
-  static uint16_t defaultRnti = 1;
+  //static uint16_t defaultRnti = 1;
 
   NS_LOG_INFO("LteEnbRrc on cell " << m_cellId << " for rnti " << rnti << " SendHandoverRequest at time " << Simulator::Now().GetSeconds() << " to cellId " << cellId);
-  uint16_t usedRnti = (rnti != 0) ? rnti : defaultRnti;  
-  Ptr<UeManager> ueManager = GetUeManager (usedRnti);
+  //uint16_t usedRnti = (rnti != 0) ? rnti : defaultRnti;  
+  //Ptr<UeManager> ueManager = GetUeManager (usedRnti);
+
+  Ptr<UeManager> ueManager = GetUeManager (rnti);
   ueManager->PrepareHandover (cellId);
-  defaultRnti++;
+
+  //defaultRnti++;
 }
 
 void

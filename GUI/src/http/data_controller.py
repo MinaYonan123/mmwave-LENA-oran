@@ -2,6 +2,9 @@ import os
 import subprocess
 from dataclasses import asdict
 
+import requests
+import json
+
 import paramiko
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
@@ -33,6 +36,18 @@ async def root(request: Request, simulation: Simulation = Depends(get_simulation
         },
     )
 
+@influx_data_router.get("/scenarios")
+async def scenarios(request: Request):
+    remote_host = os.getenv('NS3_HOST')
+    response = requests.get( f'http://{remote_host}:38866')
+    files = {}
+    if response.status_code == 200:
+        files = json.loads(response.text)
+    else:
+        files = {"0":"scratch/scenario-zero-with_parallel_loging.cc",
+            "1":"scratch/scenario-one.cc",
+            "2":"scratch/scenario-zero.cc"}
+    return files
 
 @influx_data_router.get("/refresh-data")
 async def refresh_data(request: Request, simulation: Simulation = Depends(get_simulation)):
@@ -60,6 +75,8 @@ async def refresh_data(request: Request, simulation: Simulation = Depends(get_si
         "prb": prb,
         "starting_power": updated_simulation.starting_power,
         "current_power": updated_simulation.current_power,
+        "maxec": updated_simulation.maxec,
+        "totalcurrec": updated_simulation.totalcurrec,
         "simulation_status": updated_simulation.simulation_status,
     }
 
@@ -89,8 +106,14 @@ async def start_simulation(request: Request):
         "IntersideDistanceUEs",
         "IntersideDistanceCells"
     ]
+    scenario = form_data.get('scenario')
+    if not scenario:
+        return
+    flags = False
+    if form_data.get('flags') == 'true':
+        flags = True
     if form_data.get('flexric') == 'true':
-        arguments = '--E2andLogging=1 '
+        arguments = ' '
     else:
         arguments = '--enableE2FileLogging=1 '
     for field in fields:
@@ -99,14 +122,18 @@ async def start_simulation(request: Request):
             arguments += f"--{field}={value} "
         elif value is None and field == 'simTime':
             arguments += f"--simTime=100 "
-    command = f'./waf --run "scratch/scenario-zero-with_parallel_loging.cc {arguments}"'
+    if flags:
+        command = f'./waf --run "{scenario} {arguments}"'
+    else:
+        command = f'./waf --run "{scenario}"'
     command = f'curl -X POST -d \'{command}\' http://{remote_host}:38866'
     try:
         print(f'Sending start command: {command}')
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
         print("Response from server:")
         print(result.stdout)
-        SimulationManager.start_simulation()
+        scenario = os.path.split(scenario)[1].split(".")[0]
+        SimulationManager.start_simulation(scenario)
     except Exception as e:
         print(f"An error occurred: {e}")
     number_of_ues = int(form_data.get('N_Ues', 2))
@@ -124,11 +151,14 @@ async def reset_simulation():
 @influx_data_router.post("/stop_simulation")
 async def stop_simulation():
     remote_host = os.getenv('NS3_HOST')
+    scenario = SimulationManager.get_scenario()
+    if not scenario:
+        return    
     if not remote_host:
         print("NS3_HOST environment variable is not set.")
         return
 
-    command = f"curl -X POST -d 'scenario-zero-with_parallel_loging' http://{remote_host}:38867"
+    command = f"curl -X POST -d '{scenario}' http://{remote_host}:38867"
 
     try:
         print(f'Sending stop command: {command}')
