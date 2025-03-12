@@ -698,26 +698,20 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
               UEID_GNB_t *UEgnb = (UEID_GNB_t *) calloc (1, sizeof (UEID_GNB_t));
 
               UEgnb = controlMessage->m_e2SmRcControlHeaderFormat1->ueID.choice.gNB_UEID;
-              uint64_t multiplexedValue = {0};
-              memcpy (&multiplexedValue, UEgnb->ran_UEID->buf, UEgnb->ran_UEID->size);
-
-              uint64_t imsi = multiplexedValue/10;
+              uint64_t imsi = {0};
+              memcpy (&imsi, UEgnb->ran_UEID->buf, UEgnb->ran_UEID->size);
               uint16_t targetCellId = controlMessage->GetTargetCell();
-
-
-               //uint16_t targetCellId = std::stoi(controlMessage->GetSecondaryCellIdHO());
-              // controlMessage->GetSecondaryCellIdHO();
               m_rrc->TakeUeHoControl (imsi);
               if (!m_forceE2FileLogging)
                 {
                   Simulator::ScheduleWithContext (1, Seconds (0),
-                                                  &LteEnbRrc::PerformHandoverToTargetCell, m_rrc,
-                                                  multiplexedValue,targetCellId);
+                                                  &LteEnbRrc::PerformE2RCHO, m_rrc,
+                                                  imsi,targetCellId);
                 }
               else
                 {
-                  Simulator::Schedule (Seconds (0), &LteEnbRrc::PerformHandoverToTargetCell, m_rrc,
-                                       multiplexedValue,targetCellId);
+                  Simulator::Schedule (Seconds (0), &LteEnbRrc::PerformE2RCHO, m_rrc,
+                                       imsi,targetCellId);
                 }
               break;
             }
