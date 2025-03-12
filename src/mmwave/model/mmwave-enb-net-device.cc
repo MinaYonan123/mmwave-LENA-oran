@@ -41,7 +41,6 @@
 #include <ns3/callback.h>
 #include <ns3/node.h>
 #include <ns3/packet.h>
-////////////////////////////////
 #include <ns3/lte-enb-rrc.h>
 #include "mmwave-net-device.h"
 #include <ns3/packet-burst.h>
@@ -107,6 +106,65 @@ std::vector<std::function<bool(int, int)>> MATH_CALL_BACKS = {
 *
 * \param pdu request message
 */
+
+
+// Function to calculate PRB average
+double
+MmWaveEnbNetDevice::CalculatePrbAverage() 
+{
+  double totalPrbUtilization = 0;
+  auto ueMap = m_rrc->GetUeMap();
+
+  for (auto ue : ueMap)
+  {
+    uint16_t rnti = ue.second->GetRnti();
+    double macNumberOfSymbols = m_e2DuCalculator->GetMacNumberOfSymbolsUeSpecific(rnti, m_cellId);
+    
+    auto phyMac = GetMac()->GetConfigurationParameters();
+    Time reportingWindow = Simulator::Now() - m_e2DuCalculator->GetLastResetTime(rnti, m_cellId);
+    double denominatorPrb = std::ceil(reportingWindow.GetNanoSeconds() / 
+                           phyMac->GetSlotPeriod().GetNanoSeconds()) * 14;
+
+    if (denominatorPrb > 0)
+    {
+      totalPrbUtilization += (macNumberOfSymbols / denominatorPrb) * 139;
+    }
+  }
+
+  long dlAvailablePrbs = 139;
+  double currentPrbValue = std::min((double)(totalPrbUtilization / dlAvailablePrbs * 100), 100.0);
+
+  // Add to history
+  m_prbHistory.push_back(currentPrbValue);
+  if (m_prbHistory.size() > MAX_PRB_HISTORY)
+  {
+    m_prbHistory.erase(m_prbHistory.begin());
+  }
+
+  // Calculate average
+  double sum = 0;
+  for (auto prb : m_prbHistory)
+  {
+    sum += prb;
+  }
+  return sum / m_prbHistory.size();
+}
+
+void
+MmWaveEnbNetDevice::CheckReportingFlag (void)
+{
+  NS_LOG_FUNCTION (this);
+  
+  m_isReportingEnabled = false;
+  
+  if (!m_stopSendingMessages)
+  {
+    Simulator::ScheduleWithContext(1, m_checkPeriod, 
+      &MmWaveEnbNetDevice::CheckReportingFlag, this);
+}
+}
+
+
 void
 MmWaveEnbNetDevice::KpmSubscriptionCallback(E2AP_PDU_t *sub_req_pdu)
 {
@@ -164,48 +222,30 @@ MmWaveEnbNetDevice::KpmSubscriptionCallback(E2AP_PDU_t *sub_req_pdu)
         NS_LOG_ERROR("Invalid index: " << index);
         return;
       }
-    auto ueMap = m_rrc->GetUeMap();
-    double totalPrbUtilization = 0;
-    
-    for (auto ue : ueMap)
-    {
-      uint16_t rnti = ue.second->GetRnti();
-      double macNumberOfSymbols = m_e2DuCalculator->GetMacNumberOfSymbolsUeSpecific(rnti, m_cellId);
-      
-      auto phyMac = GetMac()->GetConfigurationParameters();
-      Time reportingWindow = Simulator::Now() - m_e2DuCalculator->GetLastResetTime(rnti, m_cellId);
-      double denominatorPrb = std::ceil(reportingWindow.GetNanoSeconds() / 
-                                    phyMac->GetSlotPeriod().GetNanoSeconds()) * 14;
+      double prbAvg = CalculatePrbAverage ();
+      NS_LOG_DEBUG ("Initial PRB Average: " << prbAvg);
 
-      if (denominatorPrb > 0)
-      {
-        totalPrbUtilization += (macNumberOfSymbols / denominatorPrb) * 139;
-      }
-    }
-    
-    long dlAvailablePrbs = 139;
-    DL_PRBvalue = std::min((long)(totalPrbUtilization / dlAvailablePrbs * 100), (long)100);
-    NS_LOG_DEBUG("\nDL_PRBvalue = " << DL_PRBvalue << ", cellId = " << m_cellId << "\n");
-
-      // Handle the action definition
       switch (action_def)
       {
         case E2SM_KPM_ActionDefinition__actionDefinition_formats_PR_actionDefinition_Format4:
-          m_is_reported = MATH_CALL_BACKS[index](DL_PRBvalue, test_value);
-          NS_LOG_DEBUG("\nm_is_reported = " << m_is_reported << ", cellId = " << m_cellId << "\n");
-
-          if (m_is_reported && !m_stopSendingMessages && !m_isReportingEnabled &&
-              !m_forceE2FileLogging)
+          // Get initial PRB average
+          m_is_reported = MATH_CALL_BACKS[index](prbAvg, test_value);
+          
+          if (m_is_reported && !m_stopSendingMessages && !m_isReportingEnabled && !m_forceE2FileLogging)
           {
             BuildAndSendReportMessage(params);
             m_isReportingEnabled = true;
+
+            Simulator::ScheduleWithContext(1, m_checkPeriod, &MmWaveEnbNetDevice::CheckReportingFlag, this);
+
           }
           break;
-
+    
         default:
-          NS_LOG_ERROR("Action Definition NOT supported, your current action is " << action_def);
+          NS_LOG_ERROR("Action Definition NOT supported");
           break;
-      }
+      }    
+
     }
     catch (const std::bad_any_cast& e)
     {
@@ -305,7 +345,10 @@ MmWaveEnbNetDevice::MmWaveEnbNetDevice ()
       m_forceE2FileLogging (false),
       m_cuUpFileName (),
       m_cuCpFileName (),
-      m_duFileName ()
+      m_duFileName (),
+      m_prbHistory(),
+      m_checkPeriod(MilliSeconds(100))
+
 {
   NS_LOG_FUNCTION (this);
 }

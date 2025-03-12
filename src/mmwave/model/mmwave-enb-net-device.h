@@ -219,6 +219,15 @@ namespace ns3 {
             std::string m_cuCpFileName;
             std::string m_duFileName;
 
+            double CalculatePrbAverage (void);
+            void CheckReportingFlag (void);
+           
+           std::vector<double> m_prbHistory;     
+           static const size_t MAX_PRB_HISTORY = 10;    
+           Time m_checkPeriod;
+   
+
+
       };
   } 
  }
