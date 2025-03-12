@@ -19,6 +19,7 @@
  * Author: Sashank Bonda <sashank729@gmail.com>
  * Author: Jay Jayatheerthan <jay.jayatheerthan@intel.com>
  * Author: Sandip Chakraborty <sandipchkraborty@gmail.com>
+ * Modified: Kamil Kociszewski <kamil.kociszewski@orange.com>
  */
 #include "ns3/simulator.h"
 #include "ns3/trace-source-accessor.h"
@@ -45,19 +46,19 @@ MmWaveRadioEnergyModelEnb::GetTypeId (void)
         .AddTraceSource ("idle_time",
                      "Time spent in idle state",
                      MakeTraceSourceAccessor (&MmWaveRadioEnergyModelEnb::m_idle_t),
-                     "ns3::TracedValueCallback::Double")    
+                     "ns3::TracedValueCallback::Double")
         .AddTraceSource ("data_time",
                      "Time spent in data state",
                      MakeTraceSourceAccessor (&MmWaveRadioEnergyModelEnb::m_data_t),
-                     "ns3::TracedValueCallback::Double")    
+                     "ns3::TracedValueCallback::Double")
         .AddTraceSource ("rxctrl_time",
                      "Time spent in ctrl state",
                      MakeTraceSourceAccessor (&MmWaveRadioEnergyModelEnb::m_ctrl_t),
-                     "ns3::TracedValueCallback::Double") 
+                     "ns3::TracedValueCallback::Double")
         .AddTraceSource ("tx_time",
                      "Time spent in transmission state",
                      MakeTraceSourceAccessor (&MmWaveRadioEnergyModelEnb::m_tx_t),
-                     "ns3::TracedValueCallback::Double")                                             
+                     "ns3::TracedValueCallback::Double")
         .AddAttribute ("DeepSleepA",
                         "The default Deep Sleep Current in Amperes.",
                         DoubleValue (86.3),
@@ -134,11 +135,11 @@ MmWaveRadioEnergyModelEnb::GetTotalEnergyConsumption (void) const
   energyToDecrease = duration.GetSeconds () * GetStateA(m_currentState) * supplyVoltage;
 
   m_source->UpdateEnergySource ();
-  
+
   return m_totalEnergyConsumption + energyToDecrease;
 }
 
-double 
+double
 MmWaveRadioEnergyModelEnb::GetDeepSleepA (void) const
 {
   NS_LOG_FUNCTION (this);
@@ -153,28 +154,28 @@ MmWaveRadioEnergyModelEnb::SetDeepSleepA (double deepSleepA)
 }
 
 
-double 
+double
 MmWaveRadioEnergyModelEnb::GetRxCurrentA (void) const
 {
   NS_LOG_FUNCTION (this);
   return m_rxCurrentA;
 }
 
-void 
+void
 MmWaveRadioEnergyModelEnb::SetRxCurrentA (double rxCurrentA)
 {
   NS_LOG_FUNCTION (this << rxCurrentA);
   m_rxCurrentA = rxCurrentA;
-} 
+}
 
-double 
+double
 MmWaveRadioEnergyModelEnb::GetTxCurrentA (void) const
 {
   NS_LOG_FUNCTION (this);
   return m_txCurrentA;
 }
 
-void 
+void
 MmWaveRadioEnergyModelEnb::SetTxCurrentA (double txCurrentA)
 {
   NS_LOG_FUNCTION (this << txCurrentA);
@@ -207,7 +208,7 @@ MmWaveRadioEnergyModelEnb::SetEnergyRechargedCallback (
   m_energyRechargedCallback = callback;
 }
 
-void 
+void
 MmWaveRadioEnergyModelEnb::ChangeStateEvent(int32_t oldState, int32_t newState)
 {
   ChangeState (newState);
@@ -216,7 +217,7 @@ MmWaveRadioEnergyModelEnb::ChangeStateEvent(int32_t oldState, int32_t newState)
 // {
 //   return mstate_time;
 // }
-void 
+void
 MmWaveRadioEnergyModelEnb::ChangeState (int state)
 {
   NS_LOG_FUNCTION (this << state);
@@ -256,7 +257,7 @@ MmWaveRadioEnergyModelEnb::ChangeState (int state)
 
 }
 
-void 
+void
 MmWaveRadioEnergyModelEnb::HandleEnergyDepletion (void)
 {
   NS_LOG_FUNCTION (this);
@@ -281,11 +282,11 @@ MmWaveRadioEnergyModelEnb::HandleEnergyRecharged (void)
 }
 
 
-/* 
+/*
 * Private functions start here
 */
 
-void 
+void
 MmWaveRadioEnergyModelEnb::DoDispose (void)
 {
   NS_LOG_FUNCTION (this);
@@ -297,16 +298,18 @@ double
 MmWaveRadioEnergyModelEnb::GetStateA (int state) const
 {
   switch (state)
-  {
-  case 0:
-    return m_deepSleepCurrentA;
-  case 1:
-    return m_txCurrentA;
-  case 2:
-    return m_rxCurrentA;
-  case 3:
-    return m_rxCurrentA;
-  }
+    {
+    case 0:
+      return m_deepSleepCurrentA;
+    case 1:
+      return m_txCurrentA;
+    case 2:
+      return m_rxCurrentA;
+    case 3:
+      return m_rxCurrentA;
+    case 4:
+      return m_celloff; // = 0
+    }
   NS_FATAL_ERROR ("MmWaveRadioEnergyModelEnb: undefined radio state " << state);
 }
 

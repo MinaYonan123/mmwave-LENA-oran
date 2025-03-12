@@ -1,5 +1,7 @@
 import subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
+import glob
 
 # Function to run startup commands
 def run_startup_commands():
@@ -57,10 +59,16 @@ class BashRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         print("Received GET request.")
-        self.send_response(405)
+        path = "scratch/*.cc"
+        dir_list = glob.glob(path)
+        dir_list.sort()
+        dir_dict = dict(zip(range(len(dir_list)),dir_list))
+        dir_json = json.dumps(dir_dict)
+        self.send_response(200)
         self.send_header('Content-type', 'text/plain')
         self.end_headers()
-        self.wfile.write(b"Use POST to start bash commands.")
+        print(dir_json)
+        self.wfile.write(dir_json.encode('ascii'))
 
 
 def run(server_class=HTTPServer, handler_class=BashRequestHandler, port=38866):
