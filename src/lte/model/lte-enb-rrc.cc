@@ -1607,11 +1607,7 @@ UeManager::RecvRrcConnectionReconfigurationCompleted (LteRrcSap::RrcConnectionRe
             {
               bool useMmWaveConnection = true;
               Ptr<McEnbPdcp> pdcp = DynamicCast<McEnbPdcp>(it->second->m_pdcp);
-<<<<<<< HEAD
               if(pdcp)
-=======
-              if(pdcp != 0)
->>>>>>> Enhance ns3 to handle more RIC control styles and control actions
               {
                 pdcp->SwitchConnection(useMmWaveConnection);
                 m_rrc->m_lastMmWaveCell[m_imsi] = m_mmWaveCellId;
@@ -1946,6 +1942,7 @@ UeManager::RecvSecondaryCellHandoverCompleted(EpcX2Sap::SecondaryHandoverComplet
         m_rrc->m_x2SapProvider->SetEpcX2PdcpUser(it->second->m_gtpTeid, pdcp->GetEpcX2PdcpUser());
         // Remote RLC already setup
 
+        // NOTE: Call after Handover
         m_rrc->m_lastMmWaveCell[m_imsi] = m_mmWaveCellId;
         m_rrc->m_mmWaveCellSetupCompleted[m_imsi] = true;
         NS_LOG_INFO("Imsi " << m_imsi << " m_mmWaveCellSetupCompleted set to " << m_rrc->m_mmWaveCellSetupCompleted[m_imsi] <<

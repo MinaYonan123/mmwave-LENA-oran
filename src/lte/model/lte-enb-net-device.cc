@@ -64,10 +64,10 @@
 #include <sstream>
 #include <ns3/lte-indication-message-helper.h>
 // #include "UEID-GNB.h"
-namespace ns3
-{
 
-NS_LOG_COMPONENT_DEFINE("LteEnbNetDevice");
+namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("LteEnbNetDevice");
 
 NS_OBJECT_ENSURE_REGISTERED (LteEnbNetDevice);
 

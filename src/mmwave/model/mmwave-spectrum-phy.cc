@@ -55,7 +55,7 @@
 #include <ns3/double.h>
 #include <ns3/mmwave-lte-mi-error-model.h>
 #include "mmwave-mac-pdu-tag.h"
-//#include <ns3/three-gpp-antenna-array-model.h>
+#include <ns3/three-gpp-antenna-array-model.h>
 
 namespace ns3 {
 
@@ -196,13 +196,12 @@ MmWaveSpectrumPhy::SetErrorModelType (TypeId errorModelType)
   m_errorModelType = errorModelType;
 }
 
-Ptr<Object>
-MmWaveSpectrumPhy::GetAntenna() const
+Ptr<AntennaModel>
+MmWaveSpectrumPhy::GetRxAntenna ()
 {
-    // Note: the antenna gain is implicitly taken into account in the channel model classes.
-    // Still, this method is needed to overload the SpectrumPhy class
-
-    return GetBeamformingModel()->GetAntenna();
+  // NOTE the antenna gain is implicitly taken into account in the channel
+  // model classes
+  return 0;
 }
 
 void

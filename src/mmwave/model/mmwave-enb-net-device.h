@@ -38,15 +38,17 @@
 #ifndef SRC_MMWAVE_MODEL_MMWAVE_ENB_NET_DEVICE_H_
 #define SRC_MMWAVE_MODEL_MMWAVE_ENB_NET_DEVICE_H_
 
-#include "mmwave-enb-mac.h"
-#include "mmwave-enb-phy.h"
-#include "mmwave-mac-scheduler.h"
-#include "mmwave-net-device.h"
-#include "mmwave-phy.h"
 
+#include "mmwave-net-device.h"
 #include "ns3/event-id.h"
-#include "ns3/nstime.h"
 #include "ns3/traced-callback.h"
+#include "ns3/nstime.h"
+#include "mmwave-phy.h"
+#include "mmwave-enb-phy.h"
+#include "mmwave-enb-mac.h"
+#include "mmwave-mac-scheduler.h"
+#include <vector>
+#include <map>
 #include <ns3/lte-enb-rrc.h>
 #include <ns3/oran-interface.h>
 #include "ns3/mmwave-bearer-stats-calculator.h"
@@ -60,11 +62,8 @@
 #include "E2SM-KPM-ActionDefinition.h"
 #include <functional>
 
-#include <map>
-#include <vector>
 
-namespace ns3
-{
+namespace ns3 {
 /* Add forward declarations here */
     class Packet;
 
@@ -222,6 +221,7 @@ namespace ns3
 
             double CalculatePrbAverage (void);
             void CheckReportingFlag (void);
+<<<<<<< HEAD
 
             void NewFunction (bool m_is_reported);
 
@@ -231,6 +231,12 @@ namespace ns3
             E2Termination::RicSubscriptionRequest_rval_s m_lastSubscriptionParams;
             bool m_hasValidSubscription;
        
+=======
+           
+           std::vector<double> m_prbHistory;     
+           static const size_t MAX_PRB_HISTORY = 10;    
+           Time m_checkPeriod;
+>>>>>>> PR: Automated Mechanism for Target Cell Handover Selection and Deactivation of Underutilized Cell(s) (#16)
    
 
 
