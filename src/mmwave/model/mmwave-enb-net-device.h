@@ -222,6 +222,9 @@ namespace ns3 {
             double CalculatePrbAverage (void);
             void CheckReportingFlag (void);
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Add PRB calculation and utilization tracking
 
             void NewFunction (bool m_is_reported);
 
@@ -231,12 +234,15 @@ namespace ns3 {
             E2Termination::RicSubscriptionRequest_rval_s m_lastSubscriptionParams;
             bool m_hasValidSubscription;
        
+<<<<<<< HEAD
 =======
            
            std::vector<double> m_prbHistory;     
            static const size_t MAX_PRB_HISTORY = 10;    
            Time m_checkPeriod;
 >>>>>>> PR: Automated Mechanism for Target Cell Handover Selection and Deactivation of Underutilized Cell(s) (#16)
+=======
+>>>>>>> Add PRB calculation and utilization tracking
    
 
 
