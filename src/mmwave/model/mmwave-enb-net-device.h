@@ -133,7 +133,7 @@ namespace ns3 {
 
             void SetCcMap(std::map <uint8_t, Ptr<MmWaveComponentCarrier>> ccm) override;
 
-            void BuildAndSendReportMessage(E2Termination::RicSubscriptionRequest_rval_s params);
+            void BuildAndSendReportMessage(E2Termination::RicSubscriptionRequest_rval_s params = E2Termination::RicSubscriptionRequest_rval_s());
 
             void KpmSubscriptionCallback(E2AP_PDU_t *sub_req_pdu);
 
@@ -221,10 +221,15 @@ namespace ns3 {
 
             double CalculatePrbAverage (void);
             void CheckReportingFlag (void);
-           
-           std::vector<double> m_prbHistory;     
-           static const size_t MAX_PRB_HISTORY = 10;    
-           Time m_checkPeriod;
+
+            void NewFunction (bool m_is_reported);
+
+            std::vector<double> m_prbHistory;
+            static const size_t MAX_PRB_HISTORY = 5;
+            Time m_checkPeriod;
+            E2Termination::RicSubscriptionRequest_rval_s m_lastSubscriptionParams;
+            bool m_hasValidSubscription;
+       
    
 
 
