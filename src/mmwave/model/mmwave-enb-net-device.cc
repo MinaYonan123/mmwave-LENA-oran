@@ -108,7 +108,7 @@ std::vector<std::function<bool(int, int)>> MATH_CALL_BACKS = {
 */
 
 
-// Function to calculate PRB average
+// Function to Calculate the average of PRBs
 double
 MmWaveEnbNetDevice::CalculatePrbAverage() 
 {
@@ -134,130 +134,164 @@ MmWaveEnbNetDevice::CalculatePrbAverage()
   long dlAvailablePrbs = 139;
   double currentPrbValue = std::min((double)(totalPrbUtilization / dlAvailablePrbs * 100), 100.0);
 
-  // Add to history
+  // Store current value
   m_prbHistory.push_back(currentPrbValue);
-  if (m_prbHistory.size() > MAX_PRB_HISTORY)
-  {
-    m_prbHistory.erase(m_prbHistory.begin());
-  }
+  
+  NS_LOG_DEBUG("Current PRB Value: " << currentPrbValue << 
+               " History Size: " << m_prbHistory.size() << "/" << MAX_PRB_HISTORY);
 
-  // Calculate average
-  double sum = 0;
-  for (auto prb : m_prbHistory)
+  // Only return average when we have exactly MAX_PRB_HISTORY points
+  if (m_prbHistory.size() == MAX_PRB_HISTORY)
   {
-    sum += prb;
+    double sum = 0;
+    for (auto prb : m_prbHistory)
+    {
+      sum += prb;
+    }
+    double average = sum / MAX_PRB_HISTORY;
+    
+    // Remove oldest value to maintain window
+    m_prbHistory.erase(m_prbHistory.begin());
+    
+    NS_LOG_DEBUG("Returning PRB Average: " << average);
+    return average;
   }
-  return sum / m_prbHistory.size();
+  
+  // Return -1 to indicate not enough points yet
+  NS_LOG_DEBUG("Not enough points yet, returning -1");
+  return -1;
 }
 
 void
-MmWaveEnbNetDevice::CheckReportingFlag (void)
+MmWaveEnbNetDevice::CheckReportingFlag()
 {
-  NS_LOG_FUNCTION (this);
-  
-  m_isReportingEnabled = false;
-  
-  if (!m_stopSendingMessages)
+  NS_LOG_FUNCTION(this);
+  if (!m_stopSendingMessages && m_hasValidSubscription)
   {
-    Simulator::ScheduleWithContext(1, m_checkPeriod, 
-      &MmWaveEnbNetDevice::CheckReportingFlag, this);
-}
+    const auto &sub_map = m_e2term->SubscriptionMapRef();
+    if (!sub_map.empty())
+    {
+      try 
+      {
+        const auto& expr = sub_map.at("Test Condition Expression");
+        const auto& value = sub_map.at("Test Condition Value");
+        
+        int index = std::any_cast<int>(expr);
+        int threshold = std::any_cast<int>(value);
+
+        // Get current PRB average
+        double currentPrbAvg = CalculatePrbAverage();
+        
+        // Only check conditions if we have enough points
+        if (currentPrbAvg >= 0)
+        {
+          bool shouldReport = MATH_CALL_BACKS[index](currentPrbAvg, threshold);
+
+          NS_LOG_DEBUG("Current PRB Average: " << currentPrbAvg << 
+                       " Threshold: " << threshold << 
+                       " Should Report: " << m_is_reported);
+          // If we haven't started reporting yet, check if we should start
+          if (!m_isReportingEnabled)
+          {
+            if (shouldReport)
+            {
+              m_is_reported = true;
+              m_isReportingEnabled = true;
+              BuildAndSendReportMessage(m_lastSubscriptionParams);
+            }
+          }
+          else
+          {
+            // If reporting is already enabled, keep sending reports
+           // BuildAndSendReportMessage(m_lastSubscriptionParams);
+           m_is_reported = true;
+           m_isReportingEnabled = true;
+
+          }
+        }
+      }
+      catch (const std::exception& e)
+      {
+        NS_LOG_ERROR("Error checking PRB usage: " << e.what());
+      }
+    }
+    // Schedule next check
+    Simulator::ScheduleWithContext(1, m_checkPeriod,
+        &MmWaveEnbNetDevice::CheckReportingFlag, this);
+  }
 }
 
 
 void
 MmWaveEnbNetDevice::KpmSubscriptionCallback(E2AP_PDU_t *sub_req_pdu)
 {
-  NS_LOG_DEBUG ("\nReceived RIC Subscription Request, cellId= " << m_cellId << "\n");
+  NS_LOG_DEBUG("\nReceived RIC Subscription Request, cellId= " << m_cellId << "\n");
 
-  E2Termination::RicSubscriptionRequest_rval_s params = m_e2term->ProcessRicSubscriptionRequest(sub_req_pdu);
-  NS_LOG_DEBUG("requestorId " << +params.requestorId << 
-               ", instanceId " << +params.instanceId <<
-               ", ranFuncionId " << +params.ranFuncionId <<
-               ", actionId " << +params.actionId);
+  // Store subscription parameters
+  m_lastSubscriptionParams = m_e2term->ProcessRicSubscriptionRequest(sub_req_pdu);
+  m_hasValidSubscription = true;
+
+  NS_LOG_DEBUG("requestorId " << +m_lastSubscriptionParams.requestorId << 
+               ", instanceId " << +m_lastSubscriptionParams.instanceId <<
+               ", ranFuncionId " << +m_lastSubscriptionParams.ranFuncionId <<
+               ", actionId " << +m_lastSubscriptionParams.actionId);
 
   const auto &sub_map = m_e2term->SubscriptionMapRef();
   if (!sub_map.empty())
   {
-    // Debug print the type of stored values
-    for (const auto& pair : sub_map)
-    {
-      NS_LOG_DEBUG("Key: " << pair.first << ", Type: " << pair.second.type().name());
-    }
-
     try 
     {
       // Check if keys exist
-      if (sub_map.find("Test Condition Expression") == sub_map.end())
+      if (sub_map.find("Test Condition Expression") == sub_map.end() ||
+          sub_map.find("Action Definition Format") == sub_map.end() ||
+          sub_map.find("Test Condition Value") == sub_map.end())
       {
-        NS_LOG_ERROR("Key 'Test Condition Expression' not found in sub_map");
+        NS_LOG_ERROR("Required keys not found in sub_map");
         return;
       }
 
-      if (sub_map.find("Action Definition Format") == sub_map.end())
-      {
-        NS_LOG_ERROR("Key 'Action Definition Format' not found in sub_map");
-        return;
-      }
-
-      if (sub_map.find("Test Condition Value") == sub_map.end())
-      {
-        NS_LOG_ERROR("Key 'Test Condition Value' not found in sub_map");
-        return;
-      }
-
-      // Try to get the actual values
       const auto& expr = sub_map.at("Test Condition Expression");
       const auto& action = sub_map.at("Action Definition Format");
-      const auto& value = sub_map.at("Test Condition Value");
 
-      // Convert to the expected types
       int index = std::any_cast<int>(expr);
       int action_def = std::any_cast<int>(action);
-      int test_value = std::any_cast<int>(value);
 
-      // Validate index
       if (index < 0 || index >= static_cast<int>(MATH_CALL_BACKS.size()))
       {
         NS_LOG_ERROR("Invalid index: " << index);
         return;
       }
-      double prbAvg = CalculatePrbAverage ();
-      NS_LOG_DEBUG ("Initial PRB Average: " << prbAvg);
 
       switch (action_def)
       {
         case E2SM_KPM_ActionDefinition__actionDefinition_formats_PR_actionDefinition_Format4:
-          // Get initial PRB average
-          m_is_reported = MATH_CALL_BACKS[index](prbAvg, test_value);
-          
-          if (m_is_reported && !m_stopSendingMessages && !m_isReportingEnabled && !m_forceE2FileLogging)
           {
-            BuildAndSendReportMessage(params);
-            m_isReportingEnabled = true;
-
-            Simulator::ScheduleWithContext(1, m_checkPeriod, &MmWaveEnbNetDevice::CheckReportingFlag, this);
-
+            // Clear PRB history at subscription start
+            m_prbHistory.clear();
+            
+            // Start periodic PRB checking
+            if (!m_stopSendingMessages)
+            {
+              Simulator::ScheduleWithContext(1, m_checkPeriod,
+                  &MmWaveEnbNetDevice::CheckReportingFlag, this);
+              
+              NS_LOG_DEBUG("Started PRB monitoring with period " << 
+                          m_checkPeriod.GetMilliSeconds() << "ms");
+            }
           }
           break;
-    
+
         default:
           NS_LOG_ERROR("Action Definition NOT supported");
           break;
-      }    
-
-    }
-    catch (const std::bad_any_cast& e)
-    {
-      NS_LOG_ERROR("Type conversion error: " << e.what());
+      }
     }
     catch (const std::exception& e)
     {
-      NS_LOG_ERROR("General error: " << e.what());
+      NS_LOG_ERROR("Error in KpmSubscriptionCallback: " << e.what());
     }
   }
 }
-
 
 void
 MmWaveEnbNetDevice::stopSendingAndCancelSchedule ()
@@ -347,7 +381,9 @@ MmWaveEnbNetDevice::MmWaveEnbNetDevice ()
       m_cuCpFileName (),
       m_duFileName (),
       m_prbHistory(),
-      m_checkPeriod(MilliSeconds(100))
+      m_checkPeriod(MilliSeconds(100)),
+      m_hasValidSubscription(false)
+
 
 {
   NS_LOG_FUNCTION (this);
@@ -744,6 +780,27 @@ MmWaveEnbNetDevice::ControlMessageReceivedCallback (E2AP_PDU_t *sub_req_pdu)
               uint64_t imsi = {0};
               memcpy (&imsi, UEgnb->ran_UEID->buf, UEgnb->ran_UEID->size);
               uint16_t targetCellId = controlMessage->GetTargetCell();
+
+              auto ueMap = m_rrc->GetUeMap();
+              bool ueFound = false;
+              for (auto ue : ueMap)
+              {
+                if (ue.second->GetImsi() == imsi)
+                {
+                  ueFound = true;
+                  break;
+                }
+              }
+    
+              if (!ueFound)
+              {
+                NS_LOG_WARN("UE " << imsi << " not found in cell " << m_cellId);
+                return;
+              }
+    
+              NS_LOG_INFO("Processing handover for UE " << imsi << " to cell " << targetCellId);    
+
+              
               m_rrc->TakeUeHoControl (imsi);
               if (!m_forceE2FileLogging)
                 {
