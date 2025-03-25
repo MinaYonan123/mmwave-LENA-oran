@@ -20,6 +20,10 @@ class Simulation:
         self.simulation_start_time = time.time_ns()
         self.number_of_ues = number_of_ues
         self.number_of_cells = number_of_cells
+        self.temp_number_of_ues = 0
+        self.temp_number_of_cells = 0
+        self.temp_count_different = 0
+        self.temp_timestamp = ""
         self.ue_history = []
         self.cell_history = []
         self.starting_power = 0
@@ -134,6 +138,35 @@ class Simulation:
             cells.append(cell)
             sim_id = self.get_last_value_from_measurement('ue_position_simid_1')
         return ues, cells, sim_id
+    
+    def set_ue_cell_number(self):
+        n_number_of_g_cells, n_timestamp = self.get_last_count_from_measurement('gnbs_count')
+        n_number_of_e_cells, n_timestamp = self.get_last_count_from_measurement('enbs_count')
+        n_number_of_ues, n_timestamp = self.get_last_count_from_measurement('ue_position_count') 
+        if n_number_of_g_cells is not None or n_number_of_e_cells is not None:
+            if n_number_of_g_cells is None:
+                n_number_of_g_cells = 0
+            if n_number_of_e_cells is None:
+                n_number_of_e_cells = 0
+            self.temp_number_of_cells = n_number_of_g_cells + n_number_of_e_cells
+        if n_timestamp is None: n_timestamp = ""
+        if n_number_of_ues is not None:
+            if self.temp_number_of_ues == n_number_of_ues and self.temp_timestamp != n_timestamp:
+                self.temp_count_different += 1
+            self.temp_number_of_ues = n_number_of_ues
+            self.temp_timestamp = n_timestamp
+            if self.temp_count_different==1:
+                self.number_of_ues = self.temp_number_of_ues
+                self.number_of_cells = self.temp_number_of_cells
+                if self.number_of_ues > 0 and self.number_of_cells > 0:
+                    self.max_x, self.max_y = self.get_charts_max_axis_value()
+                    self.ues, self.cells, sim_id_from_ue = self.get_simulation_data(self.number_of_ues, self.number_of_cells)
+                    self.ue_history.append(self.ues)
+                    self.cell_history.append(self.cells)
+                    if self.sim_id is not None:
+                        self.sim_id = self.sim_id
+                    else:
+                        self.sim_id = sim_id_from_ue
 
     def get_last_value_from_measurement(self, measurement_name: str) -> float | str | int | None:
         try:
@@ -146,6 +179,21 @@ class Simulation:
                 return value
             else:
                 return None
+        except Exception as e:
+            raise Exception(f"Error querying InfluxDB: {e}")
+
+    def get_last_count_from_measurement(self, measurement_name: str):
+        try:
+            result = self.db_client.query(f'SELECT LAST("value") FROM "{measurement_name}" where time > {self.simulation_start_time}')
+            if result:
+                points = list(result.get_points(measurement=measurement_name))
+                value = points[0].get('last')
+                timestamp = points[0].get('time')
+                if isinstance(value, float) and value.is_integer():
+                    return (int(value), timestamp)
+                return (value, timestamp)
+            else:
+                return (None, None)
         except Exception as e:
             raise Exception(f"Error querying InfluxDB: {e}")
 

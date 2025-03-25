@@ -17,6 +17,93 @@ def read_and_clear_csv(file_path):
 
     return result
 
+def read_csv(file_path):
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+    headers = lines[0].strip()
+    data = [line.strip() for line in lines[1:]]
+
+    result = [headers] + data
+
+    return result
+
+def push_count_to_influx(
+        file_path,
+        db_name,
+        core_files,
+        influx_host='localhost',
+        influx_port=8086,
+        influx_user='root',
+        influx_password='root'):
+    data = read_csv(file_path)
+
+    client = InfluxDBClient(
+        host=influx_host,
+        port=influx_port,
+        username=influx_user,
+        password=influx_password,
+        database=db_name)
+
+    client.create_database(db_name)
+
+    headers = data[0].split(',')
+    headers = [header.strip().lower() for header in headers]
+    records = data[1:]
+    id_column = None
+    possible_id_columns = ["id"]
+
+    for possible_id in possible_id_columns:
+        if possible_id in headers:
+            id_column = possible_id
+            break
+
+    started = False
+    time = 0
+    count = 0
+    numbers = []
+    i_timestamp = headers.index("timestamp")
+    i_id = headers.index('id') 
+    for record in reversed(records):
+        fields = record.split(',')
+        if fields[i_id] == 0:
+            continue
+        if fields[i_timestamp] != time:
+            if not started:
+                started = True
+                time = fields[i_timestamp]
+                count = count + 1
+                numbers = [fields[i_id]] + numbers
+            else:
+                break
+        else:
+            if not fields[i_id] in numbers: 
+                count = count + 1
+                numbers = [fields[i_id]] + numbers
+    print(count)
+    print(numbers)
+    if count == 0 :
+        return
+    influx_points = []
+    filename = os.path.splitext(os.path.basename(file_path))[0]
+
+    measurement = f"{filename}_count"
+
+    influx_point = {
+        "measurement": measurement,
+        "fields": {
+            "value": count
+        }
+    }
+    influx_points.append(influx_point)
+
+    try:
+        if influx_points:
+            client.write_points(influx_points)
+            print(f"Successfully pushed count to InfluxDB for {len(influx_points)} points from {file_path}.")
+    except Exception as e:
+        print(f"Failed to write count from {file_path} to InfluxDB: {e}")
+
 
 def push_data_to_influx(
         file_path,
@@ -237,6 +324,16 @@ def main():
 
         for file_path in files_to_process:
             if os.path.exists(file_path):
+                if file_path in core_files:
+                    push_count_to_influx(
+                    file_path,
+                    db_name,
+                    core_files,
+                    influx_host,
+                    influx_port,
+                    influx_user,
+                    influx_password)
+
                 push_data_to_influx(
                     file_path,
                     db_name,
