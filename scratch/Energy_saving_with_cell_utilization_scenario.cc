@@ -408,7 +408,7 @@ main(int argc, char *argv[]) {
   //  LogComponentEnable ("E2Termination", LOG_LEVEL_DEBUG);
 
   // LogComponentEnable ("LteEnbNetDevice", LOG_LEVEL_ALL);
-   LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_INFO);
+  // LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_INFO);
  //  LogComponentEnable ("LteEnbRrc", LOG_LEVEL_INFO);
  //LogComponentEnable ("EpcX2", LOG_LEVEL_LOGIC);
 
