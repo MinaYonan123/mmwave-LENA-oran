@@ -215,8 +215,8 @@ ClearFile(std::string Filename, uint64_t m_startTime) {
 void
 PrintPosition(Ptr<Node> node, int iterator, std::string Filename, uint64_t m_startTime) {
 
-    //uint64_t m_startTime = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
-    uint64_t timestamp = m_startTime + (uint64_t) Simulator::Now().GetMilliSeconds();
+  //uint64_t m_startTime = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
+  uint64_t timestamp = m_startTime + (uint64_t) Simulator::Now().GetMilliSeconds();
 
   int imsi;
   Ptr <Node> node1 = NodeList::GetNode(iterator);
@@ -229,14 +229,9 @@ PrintPosition(Ptr<Node> node, int iterator, std::string Filename, uint64_t m_sta
       Ptr <MmWaveUeNetDevice> mmuedev = node->GetDevice(j)->GetObject<MmWaveUeNetDevice>();
       if (mcuedev) {
           imsi = int(mcuedev->GetImsi());
-          int serving_cell;
-          if (ue_assoc_list[imsi - 1] == 0) {
-              //NS_LOG_UNCOND ("Position of UE not stored, UE not associated to any cell!");
-              return;
-            }
-          else
-            {
-              serving_cell = ue_assoc_list[imsi - 1];
+          int serving_cell = ue_assoc_list[imsi - 1];
+          if (serving_cell==0){
+              serving_cell=1;
             }
           Ptr<MobilityModel> model = node->GetObject<MobilityModel> ();
           Vector position = model->GetPosition ();
@@ -244,11 +239,10 @@ PrintPosition(Ptr<Node> node, int iterator, std::string Filename, uint64_t m_sta
                                                      << " at time "
                                                      << Simulator::Now ().GetSeconds ()
                                                      << ", UE connected to Cell: " << serving_cell);
-
-            outFile.open(filename.c_str(), std::ios_base::out | std::ios_base::app);
-            if (!outFile.is_open()) {
-                NS_LOG_ERROR("Can't open file " << filename);
-                return;
+          outFile.open(filename.c_str(), std::ios_base::out | std::ios_base::app);
+          if (!outFile.is_open()) {
+              NS_LOG_ERROR("Can't open file " << filename);
+              return;
             }
 
           outFile << timestamp << "," << imsi << "," << position.x << "," << position.y << ",mc,"
@@ -800,7 +794,7 @@ main(int argc, char *argv[]) {
   // NS_LOG_UNCOND ("number of nodes: " << nodecount);
   int UE_iterator = nodecount - int (nUeNodes);
 
-    for (int i = 0; i < numPrints; i++) {
+    for (int i = 1; i < numPrints; i++) {
         Simulator::Schedule(Seconds(i * simTime / numPrints), &PrintGnuplottableEnbListToFile, t_startTime_simid);
         for (uint32_t j = 0; j < ueNodes.GetN(); j++) {
             Simulator::Schedule(Seconds(i * simTime / numPrints), &PrintPosition, ueNodes.Get(j),
