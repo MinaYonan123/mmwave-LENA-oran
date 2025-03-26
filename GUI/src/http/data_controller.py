@@ -53,6 +53,8 @@ async def scenarios(request: Request):
 async def refresh_data(request: Request, simulation: Simulation = Depends(get_simulation)):
     SimulationManager.refresh_simulation()
     updated_simulation = SimulationManager.get_simulation()
+    if (updated_simulation.number_of_ues == 0 or updated_simulation.number_of_cells == 0) and updated_simulation.simulation_status == 'on':
+        updated_simulation.set_ue_cell_number()
     es_state = {}
     sinr = {}
     retx = {}
@@ -138,6 +140,9 @@ async def start_simulation(request: Request):
         print(f"An error occurred: {e}")
     number_of_ues = int(form_data.get('N_Ues', 2))
     number_of_cells = int(form_data.get('N_LteEnbNodes', 1)) + int(form_data.get('N_MmWaveEnbNodes', 4))
+    if not flags:
+        number_of_ues = 0
+        number_of_cells = 0
     SimulationManager._simulation = Simulation(number_of_ues, number_of_cells)
 
 

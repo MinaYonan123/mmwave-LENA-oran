@@ -552,7 +552,7 @@
             </div>
             <div>
                 <div>
-                    <label for="scenario">Scenario: </label>
+                    <label for="scenario">Scenario: (refresh page to get scenario list)</label>
                     <select id="scenario" name="scenario" onchange="setFlags()">
                     </select>
                 </div>
@@ -1200,8 +1200,10 @@
         const flags = document.getElementById("flags");
         if (select.value == defaultScenario) {
             flags.checked = true;
+            flags.disabled = false;
         } else {
             flags.checked = false;
+            flags.disabled = true;
         }
 
     }
@@ -1258,11 +1260,15 @@
 
                     const simIdLabel = document.getElementById('simid_label');
                     const joinLabel = document.getElementById('label_between_status_and_simid')
+                    const statusLabel = document.getElementById('status_label');
                     if (data.sim_id != 'off') {
                         joinLabel.textContent = ', simulation id = '
                         simIdLabel.textContent = data.sim_id;
                     } else {
-                        joinLabel.textContent = ''
+                        if (statusLabel.textContent == 'Simulation running')
+                            joinLabel.textContent = ', waiting for the first measurement ...'
+                        else 
+                            joinLabel.textContent = ''
                         simIdLabel.textContent = '';
                     }
 
@@ -1827,6 +1833,7 @@
         const flags = document.getElementById("flags");
         scenario.disabled = false
         flags.disabled = false
+        setFlags()
         fetch(endpoint, {
             method: 'POST',
             headers: {
