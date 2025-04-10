@@ -3,7 +3,8 @@ import tensorflow as tf
 import numpy as np
 import socket
 from sionna.rt import load_scene, PlanarArray, Transmitter, Receiver, Paths
-from sionna.constants import SPEED_OF_LIGHT
+SPEED_OF_LIGHT = 3e8  # in meters per second
+#from sionna.constants import SPEED_OF_LIGHT
 import os, subprocess, signal
 import argparse
 
@@ -470,13 +471,14 @@ def main():
     sionna_structure["scene"] = load_scene(file_name)
     sionna_structure["scene"].frequency = frequency  # Frequency in Hz
     sionna_structure["scene"].synthetic_array = True  # Enable synthetic array processing
-    element_spacing = SPEED_OF_LIGHT / sionna_structure["scene"].frequency / 2
-    sionna_structure["planar_array"] = PlanarArray(1, 1, element_spacing, element_spacing, "iso", "V")
+    #element_spacing = SPEED_OF_LIGHT / sionna_structure["scene"].frequency / 2
+    element_spacing = 0.5 
+    sionna_structure["planar_array"] = PlanarArray(num_rows=1, num_cols=1, vertical_spacing= element_spacing, horizontal_spacing= element_spacing, pattern="iso", polarization="V")
 
     sionna_structure["antenna_displacement"] = [0, 0, 1.5]
     sionna_structure["position_threshold"] = 3  # Position update threshold in meters
     sionna_structure["angle_threshold"] = 90  # Angle update threshold in degrees
-    sionna_structure["max_depth"] = 5  # Maximum ray tracing depth
+    sionna_structure["max_depth"] = 2  # Maximum ray tracing depth
     sionna_structure["num_samples"] = 1e4  # Number of samples for ray tracing
 
     sionna_structure["path_loss_cache"] = {}
