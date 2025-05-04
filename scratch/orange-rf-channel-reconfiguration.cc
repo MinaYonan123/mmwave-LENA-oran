@@ -57,22 +57,36 @@ $ ./ns3 run "cttc-nr-demo --PrintHelp"
 #include "ns3/mobility-module.h"
 #include "ns3/nr-module.h"
 #include "ns3/point-to-point-module.h"
-
+#include <string>
 /*
  * Use, always, the namespace ns3. All the NR classes are inside such namespace.
  */
 using namespace ns3;
-
+using namespace nr;
 /*
  * With this line, we will be able to see the logs of the file by enabling the
  * component "CttcNrDemo".
  * Further information on how logging works can be found in the ns-3 documentation [3].
  */
 NS_LOG_COMPONENT_DEFINE("rfchannel");
+static ns3::GlobalValue g_e2TermIp ("e2TermIp", "The IP address of the RIC E2 termination",
+                                    ns3::StringValue ("127.0.0.1"), ns3::MakeStringChecker ());
+static ns3::GlobalValue g_e2_func_id("KPM_E2functionID", "Function ID to subscribe",
+                                     ns3::DoubleValue(2),
+                                     ns3::MakeDoubleChecker<double>());
+static ns3::GlobalValue g_rc_e2_func_id("RC_E2functionID", "Function ID to subscribe",
+                                        ns3::DoubleValue(3),
+                                        ns3::MakeDoubleChecker<double>());
+static ns3::GlobalValue g_e2nrEnabled ("e2nrEnabled", "If true, send NR E2 reports",
+                                       ns3::BooleanValue (true), ns3::MakeBooleanChecker ());
 
 int
-main(int argc, char* argv[])
-{
+main(int argc, char* argv[])    
+{   
+       LogComponentEnableAll (LOG_PREFIX_ALL);
+       LogComponentEnable ("E2Termination", LOG_LEVEL_ALL);
+       LogComponentEnable ("rfchannel", LOG_LEVEL_ALL);
+        //LogComponentEnable("NrGnbNetDevice", LOG_LEVEL_ALL);
     /*
      * Variables that represent the parameters we will accept as input by the
      * command line. Each of them is initialized with a default value, and
@@ -80,7 +94,7 @@ main(int argc, char* argv[])
      */
     // Scenario parameters (that we will use inside this script):
     uint16_t gNbNum = 1;
-    uint16_t ueNumPergNb = 6;
+    uint16_t ueNumPergNb = 3;
     bool logging = true;
     bool doubleOperationalBand = false;
 
@@ -110,10 +124,27 @@ main(int argc, char* argv[])
 
 
 
+  StringValue stringValue;
+  BooleanValue booleanValue;
+DoubleValue doubleValue;
 
 
+GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
+  bool e2nrEnabled = booleanValue.Get ();
+  GlobalValue::GetValueByName ("e2TermIp", stringValue);
+  std::string e2TermIp = stringValue.Get ();
+  GlobalValue::GetValueByName("KPM_E2functionID", doubleValue);
+    double g_e2_func_id = doubleValue.Get();
+    GlobalValue::GetValueByName("RC_E2functionID", doubleValue);
+    double g_rc_e2_func_id = doubleValue.Get();
 
+    Config::SetDefault("ns3::NrGnbNetDevice::KPM_E2functionID",
+                       DoubleValue(g_e2_func_id));
+    Config::SetDefault("ns3::NrGnbNetDevice::RC_E2functionID",
+                       DoubleValue(g_rc_e2_func_id));
 
+   Config::SetDefault ("ns3::NrHelper::E2TermIp", StringValue (e2TermIp));
+  Config::SetDefault ("ns3::NrHelper::E2ModeNr", BooleanValue (e2nrEnabled));
 
     // Where we will store the output files.
     std::string simTag = "default";
@@ -125,7 +156,12 @@ main(int argc, char* argv[])
      * variable.
      */
     CommandLine cmd(__FILE__);
-
+    cmd.AddValue("enableMimoFeedback", "ns3::NrHelper::EnableMimoFeedback");
+    cmd.AddValue("pmSearchMethod", "ns3::NrHelper::PmSearchMethod");
+    cmd.AddValue("fullSearchCb", "ns3::NrPmSearchFull::CodebookType");
+    cmd.AddValue("rankLimit", "ns3::NrPmSearch::RankLimit");
+    cmd.AddValue("subbandSize", "ns3::NrPmSearch::SubbandSize");
+    cmd.AddValue("downsamplingTechnique", "ns3::NrPmSearch::DownsamplingTechnique");
     cmd.AddValue("gNbNum", "The number of gNbs in multiple-ue topology", gNbNum);
     cmd.AddValue("ueNumPergNb", "The number of UE per gNb in multiple-ue topology", ueNumPergNb);
     cmd.AddValue("logging", "Enable logging", logging);
@@ -187,10 +223,11 @@ main(int argc, char* argv[])
      */
     if (logging)
     {
-      //  LogComponentEnable("UdpClient", LOG_LEVEL_INFO);
-      // LogComponentEnable("UdpServer", LOG_LEVEL_INFO);
-      //LogComponentEnable("NrPdcp", LOG_LEVEL_INFO);
-     //  LogComponentEnable("UdpServer", LOG_LEVEL_INFO);
+       //LogComponentEnable("UdpClient", LOG_LEVEL_ALL);
+    //   LogComponentEnable("UdpServer", LOG_LEVEL_INFO);
+    //   LogComponentEnable("NrPdcp", LOG_LEVEL_INFO);
+      LogComponentEnable ("E2Termination", LOG_LEVEL_ALL);
+    //  LogComponentEnable("NrGnbNetDevice", LOG_LEVEL_ALL);
     }
 
     /*
@@ -206,7 +243,7 @@ main(int argc, char* argv[])
      * the gnbs and ue following a pre-defined pattern. Please have a look at the
      * GridScenarioHelper documentation to see how the nodes will be distributed.
      */
-    int64_t randomStream = 1;
+    int64_t randomStream = 2;
     GridScenarioHelper gridScenario;
     gridScenario.SetRows(1);
     gridScenario.SetColumns(gNbNum);
@@ -219,8 +256,8 @@ main(int argc, char* argv[])
     gridScenario.SetSectorization(GridScenarioHelper::SINGLE);
     gridScenario.SetBsNumber(gNbNum);
     gridScenario.SetUtNumber(ueNumPergNb * gNbNum);
-    gridScenario.SetScenarioHeight(1000); // Create a 3x3 scenario where the UE will
-    gridScenario.SetScenarioLength(1000); // be distributed.
+    gridScenario.SetScenarioHeight(3); // Create a 3x3 scenario where the UE will
+    gridScenario.SetScenarioLength(3); // be distributed.
     randomStream += gridScenario.AssignStreams(randomStream);
     gridScenario.CreateScenario();
 
@@ -233,14 +270,13 @@ main(int argc, char* argv[])
    NodeContainer ueVoiceContainer;
     
     
-    for (uint32_t j = 0; j < gridScenario.GetUserTerminals().GetN(); ++j)
-    {
-        Ptr<Node> ue = gridScenario.GetUserTerminals().Get(j);
+    // for (uint32_t j = 0; j < gridScenario.GetUserTerminals().GetN(); ++j)
+    // {
+    //     Ptr<Node> ue = gridScenario.GetUserTerminals().Get(j);
         
-           ueLowLatContainer.Add(ue);
-    }    
+    //        ueLowLatContainer.Add(ue);
+    // }    
 
-/*
     for (uint32_t j = 0; j < gridScenario.GetUserTerminals().GetN(); ++j)
     {
         Ptr<Node> ue = gridScenario.GetUserTerminals().Get(j);
@@ -253,7 +289,7 @@ main(int argc, char* argv[])
             ueVoiceContainer.Add(ue);
         }
     }
-*/
+
     /*
      * TODO: Add a print, or a plot, that shows the scenario.
      */
@@ -378,17 +414,13 @@ main(int argc, char* argv[])
     // Core latency
     nrEpcHelper->SetAttribute("S1uLinkDelay", TimeValue(MilliSeconds(0)));
 
-
-
-
-
 //==============================================================================
 
     // Antennas for all the UEs
     // Antennas for all the gNbs
-    Config::SetDefault("ns3::NrHelper::EnableMimoFeedback", BooleanValue(true));
-    Config::SetDefault("ns3::NrPmSearch::SubbandSize", UintegerValue(16));
-   // bool useMimoPmiParams = false;
+    //Config::SetDefault("ns3::NrHelper::EnableMimoFeedback", BooleanValue(true));
+   // Config::SetDefault("ns3::NrPmSearch::SubbandSize", UintegerValue(16));
+   // bool useMimoPmiParams = false ;
 
 
    Ptr<ThreeGppAntennaModel> Ue_antennaElem = CreateObject<ThreeGppAntennaModel>();
@@ -398,10 +430,10 @@ main(int argc, char* argv[])
   uint16_t  Ue_nVertPorts = 1;
   bool  Ue_isDualPolarized = false;
   Ptr<ThreeGppAntennaModel> Gnb_antennaElem = CreateObject<ThreeGppAntennaModel>();
-  uint16_t  Gnb_nAntCols = 8;
-  uint16_t   Gnb_nAntRows = 8;
-  uint16_t   Gnb_nHorizPorts = 4;
-  uint16_t    Gnb_nVertPorts = 4;
+  uint16_t  Gnb_nAntCols = 4;
+  uint16_t   Gnb_nAntRows = 2;
+  uint16_t   Gnb_nHorizPorts = 2;
+  uint16_t    Gnb_nVertPorts = 1;
   bool    Gnb_isDualPolarized = false;
     // The polarization slant angle in degrees in case of x-polarized
      double polSlantAngleGnb = 0.0;
@@ -677,7 +709,7 @@ main(int argc, char* argv[])
     monitor->SetAttribute("JitterBinWidth", DoubleValue(0.001));
     monitor->SetAttribute("PacketSizeBinWidth", DoubleValue(20));
 //=======================================================================================
-   /*
+  /* 
       // configure REM parameters
     uint16_t sector = 0;
     double theta = 60; 
@@ -717,13 +749,6 @@ main(int argc, char* argv[])
     */
     Simulator::Stop(simTime);
     Simulator::Run();
-
-    /*
-     * To check what was installed in the memory, i.e., BWPs of gNB Device, and its configuration.
-     * Example is: Node 1 -> Device 0 -> BandwidthPartMap -> {0,1} BWPs -> NrGnbPhy -> Numerology,
-    GtkConfigStore config;
-    config.ConfigureAttributes ();
-    */
 
     // Print per-flow statistics
     monitor->CheckForLostPackets();

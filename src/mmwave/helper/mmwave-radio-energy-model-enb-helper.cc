@@ -58,12 +58,12 @@ MmWaveRadioEnergyModelEnbHelper::SetRechargedCallback (
     m_rechargedCallback = callback;
 }
 
-Ptr<DeviceEnergyModel>
+Ptr<energy::DeviceEnergyModel>
 MmWaveRadioEnergyModelEnbHelper::DoInstall(Ptr<NetDevice> device,
-                                            Ptr<EnergySource> source) const
+                                            Ptr<energy::EnergySource> source) const
 {
-    NS_ASSERT (device != NULL);
-    NS_ASSERT (source != NULL);
+    NS_ASSERT (device);
+    NS_ASSERT (source);
     std::string deviceName = device->GetInstanceTypeId ().GetName ();
     if (deviceName.compare ("ns3::MmWaveEnbNetDevice") != 0)
     {
@@ -72,7 +72,7 @@ MmWaveRadioEnergyModelEnbHelper::DoInstall(Ptr<NetDevice> device,
 
     Ptr<Node> node = device->GetNode ();
     Ptr<MmWaveRadioEnergyModelEnb> model = m_radioEnergy.Create ()->GetObject<MmWaveRadioEnergyModelEnb> ();
-    NS_ASSERT (model != NULL);
+    NS_ASSERT (model);
     model->SetNode (node);
     Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbDevice;
     Ptr<ns3::mmwave::MmWaveEnbPhy> mmwavePhy;

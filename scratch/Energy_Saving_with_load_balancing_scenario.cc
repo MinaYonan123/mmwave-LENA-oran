@@ -45,6 +45,7 @@
 #include <fstream>
 #include "ns3/basic-energy-source-helper.h"
 #include "ns3/mmwave-radio-energy-model-enb-helper.h"
+#include "ns3/isotropic-antenna-model.h"
 
 using namespace ns3;
 using namespace mmwave;
@@ -529,10 +530,11 @@ main(int argc, char *argv[]) {
   //Config::SetDefault ("ns3::MmWaveBearerStatsCalculator::EpochDuration", TimeValue (MilliSeconds (10.0)));
 
   // set to false to use the 3GPP radiation pattern (proper configuration of the bearing and downtilt angles is needed)
-  Config::SetDefault("ns3::ThreeGppAntennaArrayModel::IsotropicElements", BooleanValue(true));
-  Config::SetDefault("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue(MilliSeconds(100.0)));
-  Config::SetDefault("ns3::ThreeGppChannelConditionModel::UpdatePeriod",
-                      TimeValue(MilliSeconds(100)));
+  Config::SetDefault("ns3::PhasedArrayModel::AntennaElement",
+    PointerValue(CreateObject<IsotropicAntennaModel>()));
+Config::SetDefault ("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue (MilliSeconds (100.0)));
+Config::SetDefault ("ns3::ThreeGppChannelConditionModel::UpdatePeriod",
+  TimeValue (MilliSeconds (100)));
 
   Config::SetDefault("ns3::LteRlcAm::ReportBufferStatusTimer", TimeValue(MilliSeconds(10.0)));
   Config::SetDefault("ns3::LteRlcUmLowLat::ReportBufferStatusTimer",
@@ -545,7 +547,7 @@ main(int argc, char *argv[]) {
   Config::SetDefault("ns3::LteEnbRrc::OutageThreshold", DoubleValue(outageThreshold));
   Config::SetDefault("ns3::LteEnbRrc::SecondaryCellHandoverMode", StringValue(handoverMode));
   Config::SetDefault("ns3::LteEnbRrc::HoSinrDifference", DoubleValue(hoSinrDifference));
-  Config::SetDefault("ns3::ThreeGppPropagationLossModel::Frequency",DoubleValue(3.5e9));
+ Config::SetDefault("ns3::ThreeGppPropagationLossModel::Frequency",DoubleValue(3.5e9));
   Config::SetDefault("ns3::ThreeGppPropagationLossModel::ShadowingEnabled",BooleanValue(false));
   // Carrier bandwidth in Hz
   double bandwidth = 20e6;
@@ -696,10 +698,10 @@ main(int argc, char *argv[]) {
   BasicEnergySourceHelper basicEnergySourceHelper;
   basicEnergySourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (1000000000000));
   basicEnergySourceHelper.Set ("BasicEnergySupplyVoltageV", DoubleValue (5.0));
-  EnergySourceContainer sources = basicEnergySourceHelper.Install (mmWaveEnbNodes);
+  energy::EnergySourceContainer sources = basicEnergySourceHelper.Install (mmWaveEnbNodes);
   MmWaveRadioEnergyModelEnbHelper nrEnbHelper;
 
-  DeviceEnergyModelContainer deviceEModel = nrEnbHelper.Install (mmWaveEnbDevs, sources);
+  energy::DeviceEnergyModelContainer deviceEModel = nrEnbHelper.Install (mmWaveEnbDevs, sources);
 
   GlobalValue::GetValueByName ("simTime", doubleValue);
   double simTime = doubleValue.Get ();

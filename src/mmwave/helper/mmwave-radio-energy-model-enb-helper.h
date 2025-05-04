@@ -82,8 +82,8 @@ private:
    *
    * Implements DeviceEnergyModel::Install.
    */
-  virtual Ptr<DeviceEnergyModel> DoInstall (Ptr<NetDevice> device,
-                                            Ptr<EnergySource> source) const;
+  virtual Ptr<energy::DeviceEnergyModel> DoInstall (Ptr<NetDevice> device,
+                                            Ptr<energy::EnergySource> source) const;
 
 private:
   ObjectFactory m_radioEnergy; ///< radio energy
