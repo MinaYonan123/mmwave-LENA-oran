@@ -229,7 +229,7 @@ namespace ns3 {
             void NewFunction (bool m_is_reported);
 
             std::vector<double> m_prbHistory;
-            static const size_t MAX_PRB_HISTORY = 5;
+            static const size_t MAX_PRB_HISTORY = 10;
             Time m_checkPeriod;
             E2Termination::RicSubscriptionRequest_rval_s m_lastSubscriptionParams;
             bool m_hasValidSubscription;

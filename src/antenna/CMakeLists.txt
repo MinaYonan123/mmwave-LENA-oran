@@ -63,6 +63,7 @@ build_lib(
     model/parabolic-antenna-model.cc
     model/phased-array-model.cc
     model/uniform-planar-array.cc
+    model/three-gpp-antenna-model.cc
   HEADER_FILES
     ${circular_aperture_antenna_headers}
     model/angles.h
@@ -72,6 +73,7 @@ build_lib(
     model/parabolic-antenna-model.h
     model/phased-array-model.h
     model/uniform-planar-array.h
+    model/three-gpp-antenna-model.h
   LIBRARIES_TO_LINK ${libcore}
   TEST_SOURCES
     ${circular_aperture_antenna_test_sources}

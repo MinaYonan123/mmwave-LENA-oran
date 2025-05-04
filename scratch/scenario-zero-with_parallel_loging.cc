@@ -309,7 +309,7 @@ static ns3::GlobalValue g_e2cuCp("e2cuCp", "If true, send CU-CP reports", ns3::B
                                  ns3::MakeBooleanChecker());
 
 static ns3::GlobalValue g_reducedPmValues("reducedPmValues", "If true, use a subset of the the pm containers",
-                                          ns3::BooleanValue(false), ns3::MakeBooleanChecker());
+                                          ns3::BooleanValue(true), ns3::MakeBooleanChecker());
 
 static ns3::GlobalValue
         g_hoSinrDifference("hoSinrDifference",
@@ -348,6 +348,10 @@ static ns3::GlobalValue
         g_enableE2FileLogging("enableE2FileLogging",
                               "If true, generate offline file logging instead of connecting to RIC",
                               ns3::BooleanValue(false), ns3::MakeBooleanChecker());
+// static ns3::GlobalValue
+//         g_e2andlog("E2andLogging",
+//                    "If true, generate offline file logging instead of connecting to RIC",
+//                    ns3::BooleanValue(false), ns3::MakeBooleanChecker());
 static ns3::GlobalValue g_e2_func_id("KPM_E2functionID", "Function ID to subscribe",
                                      ns3::DoubleValue(2),
                                      ns3::MakeDoubleChecker<double>());
@@ -390,10 +394,10 @@ static ns3::GlobalValue bandwidth_value ("Bandwidth", "Bandwidth Value",
 //                                       ns3::MakeIntegerChecker<int> ());
 
 static ns3::GlobalValue interside_distance_value_ue ("IntersideDistanceUEs", "Interside Distance Value",
-                                      ns3::DoubleValue (500),
+                                      ns3::DoubleValue (1000),
                                       ns3::MakeDoubleChecker<double> ());
 static ns3::GlobalValue interside_distance_value_cell ("IntersideDistanceCells", "Interside Distance Value",
-                                                  ns3::DoubleValue (600),
+                                                  ns3::DoubleValue (1000),
                                                   ns3::MakeDoubleChecker<double> ());
 
 int
@@ -453,11 +457,16 @@ main(int argc, char *argv[]) {
     std::string e2TermIp = stringValue.Get();
     GlobalValue::GetValueByName("enableE2FileLogging", booleanValue);
     bool enableE2FileLogging = booleanValue.Get();
+    // GlobalValue::GetValueByName("E2andLogging", booleanValue);
+    // bool g_e2andlog = booleanValue.Get();
     GlobalValue::GetValueByName("KPM_E2functionID", doubleValue);
     double g_e2_func_id = doubleValue.Get();
     GlobalValue::GetValueByName("RC_E2functionID", doubleValue);
     double g_rc_e2_func_id = doubleValue.Get();
 
+    // if (enableE2FileLogging && g_e2andlog) {
+    //     NS_LOG_ERROR("Only one of this variables can be set to TRUE - enableE2FileLogging && g_e2andlog");
+    // }
 
     GlobalValue::GetValueByName("numberOfRaPreambles", uintegerValue);
     uint8_t numberOfRaPreambles = uintegerValue.Get();
@@ -520,6 +529,10 @@ main(int argc, char *argv[]) {
     Config::SetDefault("ns3::MmWaveEnbNetDevice::EnableE2FileLogging",
                        BooleanValue(enableE2FileLogging));
 
+    // Config::SetDefault("ns3::MmWaveEnbNetDevice::E2andLogging",
+    //                    BooleanValue(g_e2andlog));
+    // Config::SetDefault("ns3::LteEnbNetDevice::e2andLogging",
+    //                    BooleanValue(g_e2andlog));
 
     Config::SetDefault("ns3::LteEnbNetDevice::KPM_E2functionID",
                        DoubleValue(g_e2_func_id));
@@ -541,10 +554,11 @@ main(int argc, char *argv[]) {
     //Config::SetDefault ("ns3::MmWaveBearerStatsCalculator::EpochDuration", TimeValue (MilliSeconds (10.0)));
 
     // set to false to use the 3GPP radiation pattern (proper configuration of the bearing and downtilt angles is needed)
-    Config::SetDefault("ns3::ThreeGppAntennaArrayModel::IsotropicElements", BooleanValue(true));
-    Config::SetDefault("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue(MilliSeconds(100.0)));
-    Config::SetDefault("ns3::ThreeGppChannelConditionModel::UpdatePeriod",
-                       TimeValue(MilliSeconds(100)));
+    Config::SetDefault("ns3::PhasedArrayModel::AntennaElement",
+      PointerValue(CreateObject<IsotropicAntennaModel>()));
+    Config::SetDefault ("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue (MilliSeconds (100.0)));
+    Config::SetDefault ("ns3::ThreeGppChannelConditionModel::UpdatePeriod",
+    TimeValue (MilliSeconds (100)));
 
     Config::SetDefault("ns3::LteRlcAm::ReportBufferStatusTimer", TimeValue(MilliSeconds(10.0)));
     Config::SetDefault("ns3::LteRlcUmLowLat::ReportBufferStatusTimer",
@@ -714,10 +728,10 @@ main(int argc, char *argv[]) {
   BasicEnergySourceHelper basicEnergySourceHelper;
   basicEnergySourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (1000000000000));
   basicEnergySourceHelper.Set ("BasicEnergySupplyVoltageV", DoubleValue (5.0));
-  EnergySourceContainer sources = basicEnergySourceHelper.Install (mmWaveEnbNodes);
+  energy::EnergySourceContainer sources = basicEnergySourceHelper.Install (mmWaveEnbNodes);
   MmWaveRadioEnergyModelEnbHelper nrEnbHelper;
 
-  DeviceEnergyModelContainer deviceEModel = nrEnbHelper.Install (mmWaveEnbDevs, sources);
+  energy::DeviceEnergyModelContainer deviceEModel = nrEnbHelper.Install (mmWaveEnbDevs, sources);
 
   GlobalValue::GetValueByName ("simTime", doubleValue);
   double simTime = doubleValue.Get ();
@@ -770,13 +784,13 @@ main(int argc, char *argv[]) {
         UdpClientHelper dlClient(ueIpIface.GetAddress(u), 1234);
         dlClient.SetAttribute("Interval", TimeValue(MicroSeconds(500)));
         dlClient.SetAttribute("MaxPackets", UintegerValue(UINT32_MAX));
-        dlClient.SetAttribute("PacketSize", UintegerValue(100)); //defult 1280
+        dlClient.SetAttribute("PacketSize", UintegerValue(200)); //defult 1280
         clientApp.Add(dlClient.Install(remoteHost));
     }
 
-  // Start applications
-
-  sinkApp.Start (Seconds (0));
+    // Start applications
+    GlobalValue::GetValueByName("simTime", doubleValue);
+    sinkApp.Start(Seconds(0));
 
     clientApp.Start(MilliSeconds(100));
     clientApp.Stop(Seconds(simTime - 0.1));
@@ -791,11 +805,11 @@ main(int argc, char *argv[]) {
     // Since nodes are randomly allocated during each run we always need to print their positions
     PrintGnuplottableUeListToFile("ues.txt");
 
-  int nodecount = int(NodeList::GetNNodes());
-  // NS_LOG_UNCOND ("number of nodes: " << nodecount);
-  int UE_iterator = nodecount - int (nUeNodes);
+    int nodecount = int(NodeList::GetNNodes());
+    // NS_LOG_UNCOND ("number of nodes: " << nodecount);
+    int UE_iterator = nodecount - int(nUeNodes);
 
-    for (int i = 1; i < numPrints; i++) {
+    for (int i = 0; i < numPrints; i++) {
         Simulator::Schedule(Seconds(i * simTime / numPrints), &PrintGnuplottableEnbListToFile, t_startTime_simid);
         for (uint32_t j = 0; j < ueNodes.GetN(); j++) {
             Simulator::Schedule(Seconds(i * simTime / numPrints), &PrintPosition, ueNodes.Get(j),

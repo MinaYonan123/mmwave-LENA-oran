@@ -534,10 +534,11 @@ main(int argc, char *argv[]) {
   //Config::SetDefault ("ns3::MmWaveBearerStatsCalculator::EpochDuration", TimeValue (MilliSeconds (10.0)));
 
   // set to false to use the 3GPP radiation pattern (proper configuration of the bearing and downtilt angles is needed)
-  Config::SetDefault("ns3::ThreeGppAntennaArrayModel::IsotropicElements", BooleanValue(true));
-  Config::SetDefault("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue(MilliSeconds(100.0)));
-  Config::SetDefault("ns3::ThreeGppChannelConditionModel::UpdatePeriod",
-                      TimeValue(MilliSeconds(100)));
+  Config::SetDefault("ns3::PhasedArrayModel::AntennaElement",
+    PointerValue(CreateObject<IsotropicAntennaModel>()));
+Config::SetDefault ("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue (MilliSeconds (100.0)));
+Config::SetDefault ("ns3::ThreeGppChannelConditionModel::UpdatePeriod",
+  TimeValue (MilliSeconds (100)));
 
   Config::SetDefault("ns3::LteRlcAm::ReportBufferStatusTimer", TimeValue(MilliSeconds(10.0)));
   Config::SetDefault("ns3::LteRlcUmLowLat::ReportBufferStatusTimer",
@@ -712,10 +713,10 @@ main(int argc, char *argv[]) {
   BasicEnergySourceHelper basicEnergySourceHelper;
   basicEnergySourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (1000000000000));
   basicEnergySourceHelper.Set ("BasicEnergySupplyVoltageV", DoubleValue (5.0));
-  EnergySourceContainer sources = basicEnergySourceHelper.Install (mmWaveEnbNodes);
+  energy::EnergySourceContainer sources = basicEnergySourceHelper.Install (mmWaveEnbNodes);
   MmWaveRadioEnergyModelEnbHelper nrEnbHelper;
 
-  DeviceEnergyModelContainer deviceEModel = nrEnbHelper.Install (mmWaveEnbDevs, sources);
+  energy::DeviceEnergyModelContainer deviceEModel = nrEnbHelper.Install (mmWaveEnbDevs, sources);
 
   GlobalValue::GetValueByName ("simTime", doubleValue);
   double simTime = doubleValue.Get ();
@@ -768,7 +769,7 @@ main(int argc, char *argv[]) {
       UdpClientHelper dlClient(ueIpIface.GetAddress(u), 1234);
       dlClient.SetAttribute("Interval", TimeValue(MicroSeconds(500)));
       dlClient.SetAttribute("MaxPackets", UintegerValue(UINT32_MAX));
-      dlClient.SetAttribute("PacketSize", UintegerValue(100)); //defult 1280
+      dlClient.SetAttribute("PacketSize", UintegerValue(200)); //defult 1280
       clientApp.Add(dlClient.Install(remoteHost));
     }
 

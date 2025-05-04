@@ -389,7 +389,7 @@ MmWaveEnbNetDevice::MmWaveEnbNetDevice ()
   NS_LOG_FUNCTION (this);
 }
 
-MmWaveEnbNetDevice::~MmWaveEnbNetDevice()
+MmWaveEnbNetDevice::~MmWaveEnbNetDevice ()
 {
   NS_LOG_FUNCTION (this);
 }
@@ -505,14 +505,14 @@ MmWaveEnbNetDevice::GetUeMap ()
 bool
 MmWaveEnbNetDevice::HasCellId (uint16_t cellId) const
 {
-    for (auto &it : m_ccMap)
+  for (auto &it : m_ccMap)
     {
       if (DynamicCast<MmWaveComponentCarrierEnb> (it.second)->GetCellId () == cellId)
         {
-            return true;
+          return true;
         }
     }
-    return false;
+  return false;
 }
 
 uint8_t
@@ -698,12 +698,12 @@ MmWaveEnbNetDevice::UpdateConfig (void)
 
       //m_rrc->SetCsgId (m_csgId, m_csgIndication);
     }
-    else
+  else
     {
-        /*
-         * Lower layers are not ready yet, so do nothing now and expect
-         * ``DoInitialize`` to re-invoke this function.
-         */
+      /*
+      * Lower layers are not ready yet, so do nothing now and expect
+      * ``DoInitialize`` to re-invoke this function.
+      */
     }
 }
 
@@ -1299,9 +1299,8 @@ MmWaveEnbNetDevice::GetRlcBufferOccupancy (Ptr<LteRlc> rlc) const
 
 Ptr<KpmIndicationMessage>
 MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrCellId)
-<<<<<<< HEAD
-{ 
-    bool local_m_forceE2FileLogging;
+{  
+  bool local_m_forceE2FileLogging;
 
             if (m_forceE2FileLogging)
             {
@@ -1313,35 +1312,11 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
             }
             if (m_e2andlog)
             {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< Updated upstream
                 local_m_forceE2FileLogging = true;
-<<<<<<< HEAD
-            } 
-  Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
-      Create<MmWaveIndicationMessageHelper> (IndicationMessageHelper::IndicationMessageType::Du,
-                                             m_forceE2FileLogging, m_reducedPmValues);
-=======
-=======
-=======
->>>>>>> Add new scenarios for energy saving and  clean mmwave-enb-net-device
-                local_m_forceE2FileLogging = false;
-=======
-                local_m_forceE2FileLogging = true;
->>>>>>> Fix merge request
             }
-
-            Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
-                    Create<MmWaveIndicationMessageHelper> (IndicationMessageHelper::IndicationMessageType::Du,
-                                                           local_m_forceE2FileLogging, m_reducedPmValues);
->>>>>>> Enhance ns3 to handle more RIC control styles and control actions
-=======
-{
   Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
       Create<MmWaveIndicationMessageHelper> (IndicationMessageHelper::IndicationMessageType::Du,
                                              m_forceE2FileLogging, m_reducedPmValues);
->>>>>>> PR: Automated Mechanism for Target Cell Handover Selection and Deactivation of Underutilized Cell(s) (#16)
 
   auto ueMap = m_rrc->GetUeMap ();
 
@@ -1595,22 +1570,7 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
       indicationMessageHelper->FillDuValues (plmId + std::to_string (nrCellId));
     }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
   if (m_forceE2FileLogging)
-=======
-  if (m_forceE2FileLogging) {
-=======
-  if (m_forceE2FileLogging || m_e2andlog) {
->>>>>>> Fix merge request
-    std::ofstream csv {};
-    csv.open (m_duFileName.c_str (),  std::ios_base::app);
-    if (!csv.is_open ())
->>>>>>> Enhance ns3 to handle more RIC control styles and control actions
-=======
-  if (m_forceE2FileLogging)
->>>>>>> PR: Automated Mechanism for Target Cell Handover Selection and Deactivation of Underutilized Cell(s) (#16)
     {
       std::ofstream csv{};
       csv.open (m_duFileName.c_str (), std::ios_base::app);
@@ -1631,10 +1591,6 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
         L1M.RS-SINR.Bin70, L1M.RS-SINR.Bin82, L1M.RS-SINR.Bin94, L1M.RS-SINR.Bin127, DRB.BufferSize.Qos, DRB.MeanActiveUeDl
     */
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> PR: Automated Mechanism for Target Cell Handover Selection and Deactivation of Underutilized Cell(s) (#16)
       std::string to_print_cell =
           plmId + "," + std::to_string (nrCellId) + "," + std::to_string (dlAvailablePrbs) + "," +
           std::to_string (ulAvailablePrbs) + "," + std::to_string (qci) + "," +
@@ -1656,47 +1612,6 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
           std::to_string (macSinrBin6CellSpecific) + "," +
           std::to_string (macSinrBin7CellSpecific) + "," +
           std::to_string (rlcBufferOccupCellSpecific) + "," + std::to_string (ueMap.size ());
-<<<<<<< HEAD
-=======
-    std::string to_print_cell = plmId + ","
-        + std::to_string (nrCellId) + ","
-        + std::to_string (dlAvailablePrbs) + ","
-        + std::to_string (ulAvailablePrbs) + ","
-        + std::to_string (qci) + ","
-        + std::to_string (dlPrbUsage) + ","
-        + std::to_string (ulPrbUsage) + ","
-        + std::to_string (macPduCellSpecific) + ","
-        + std::to_string (macPduInitialCellSpecific) + ","
-        + std::to_string (macQpskCellSpecific) + ","
-        + std::to_string (mac16QamCellSpecific) + ","
-        + std::to_string (mac64QamCellSpecific) + ","
-        + std::to_string ((long) std::ceil (prbUtilizationDl)) + ","
-        + std::to_string (macRetxCellSpecific) + ","
-        + std::to_string (macVolumeCellSpecific) + ","
-        + std::to_string (macMac04CellSpecific) + ","
-        + std::to_string (macMac59CellSpecific) + ","
-        + std::to_string (macMac1014CellSpecific) + ","
-        + std::to_string (macMac1519CellSpecific) + ","
-        + std::to_string (macMac2024CellSpecific) + ","
-        + std::to_string (macMac2529CellSpecific) + ","
-        + std::to_string (macSinrBin1CellSpecific) + ","
-        + std::to_string (macSinrBin2CellSpecific) + ","
-        + std::to_string (macSinrBin3CellSpecific) + ","
-        + std::to_string (macSinrBin4CellSpecific) + ","
-        + std::to_string (macSinrBin5CellSpecific) + ","
-        + std::to_string (macSinrBin6CellSpecific) + ","
-        + std::to_string (macSinrBin7CellSpecific) + ","
-        + std::to_string (rlcBufferOccupCellSpecific) + ","
-        + std::to_string (ueMap.size ());
-
-
-    for (auto ue : ueMap)
-    {
-      uint64_t imsi = ue.second->GetImsi();
-      std::string ueImsiComplete = GetImsiString(imsi);
->>>>>>> Enhance ns3 to handle more RIC control styles and control actions
-=======
->>>>>>> PR: Automated Mechanism for Target Cell Handover Selection and Deactivation of Underutilized Cell(s) (#16)
 
       for (auto ue : ueMap)
         {
@@ -1708,20 +1623,7 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrC
           std::string to_print = std::to_string (timestamp) + "," + ueImsiComplete + "," +
                                  to_print_cell + "," + uePms + "\n";
 
-<<<<<<< HEAD
-<<<<<<< HEAD
           csv << to_print;
-=======
-    return nullptr;
-  }
-  else
-  {
-                return indicationMessageHelper->CreateIndicationMessage ();
-            }
->>>>>>> Enhance ns3 to handle more RIC control styles and control actions
-=======
-          csv << to_print;
->>>>>>> PR: Automated Mechanism for Target Cell Handover Selection and Deactivation of Underutilized Cell(s) (#16)
         }
       csv.close ();
 
@@ -1798,19 +1700,11 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage (E2Termination::RicSubscriptionReq
       // Create DU
       Ptr<KpmIndicationHeader> header = BuildRicIndicationHeader (plmId, gnbId, m_cellId);
       Ptr<KpmIndicationMessage> duMsg = BuildRicIndicationMessageDu (plmId, m_cellId);
-<<<<<<< HEAD
 
       // Send DU only if offline logging is disabled
       if (header != nullptr && duMsg != nullptr)
         {
 
-=======
-
-      // Send DU only if offline logging is disabled
-      if (header != nullptr && duMsg != nullptr)
-        {
-
->>>>>>> PR: Automated Mechanism for Target Cell Handover Selection and Deactivation of Underutilized Cell(s) (#16)
           NS_LOG_DEBUG ("Send NR DU");
           E2AP_PDU *pdu_du_ue = new E2AP_PDU;
           encoding::generate_e2apv1_indication_request_parameterized (
@@ -1849,11 +1743,6 @@ MmWaveEnbNetDevice::SetStartTime (uint64_t st)
   m_startTime = st;
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> PR: Automated Mechanism for Target Cell Handover Selection and Deactivation of Underutilized Cell(s) (#16)
 Ptr<KpmIndicationMessage>
 MmWaveEnbNetDevice::BuildGUIDu (std::string plmId, uint16_t nrCellId)
 {
@@ -2124,153 +2013,6 @@ MmWaveEnbNetDevice::BuildGUIDu (std::string plmId, uint16_t nrCellId)
   Simulator::Schedule (MilliSeconds (100), &MmWaveEnbNetDevice::BuildGUIDu, this, plmId, m_cellId);
 
   return nullptr;
-<<<<<<< HEAD
-}
-// IMP - SINR - L3
-Ptr<KpmIndicationMessage>
-MmWaveEnbNetDevice::BuildGUICuCp (std::string plmId)
-{
-
-  auto ueMap = m_rrc->GetUeMap ();
-
-  std::unordered_map<uint64_t, std::string> uePmString{};
-
-  for (auto ue : ueMap)
-    {
-      // TODO: RANTI usage in case of needing.
-      // auto rnti = ue.first;
-      // m_rrc->GetRntiFromImsi(imsi);
-      uint64_t imsi = ue.second->GetImsi ();
-      std::string ueImsiComplete = GetImsiString (imsi);
-
-      Ptr<MeasurementItemList> ueVal = Create<MeasurementItemList> (ueImsiComplete);
-
-      long numDrb = ue.second->GetDrbMap ().size ();
-
-      if (!m_reducedPmValues)
-        {
-          ueVal->AddItem<long> ("DRB.EstabSucc.5QI.UEID", numDrb);
-          ueVal->AddItem<long> ("DRB.RelActNbr.5QI.UEID", 0); // not modeled in the simulator
-        }
-
-      // IMP: create L3 RRC reports
-
-      // for the same cell
-      double sinrThisCell = 10 * std::log10 (m_l3sinrMap[imsi][m_cellId]);
-      double convertedSinr = L3RrcMeasurements::ThreeGppMapSinr (sinrThisCell);
-
-      Ptr<L3RrcMeasurements> l3RrcMeasurementServing;
-
-      NS_LOG_DEBUG (Simulator::Now ().GetSeconds ()
-                    << " enbdev " << m_cellId << " UE " << imsi << " L3 serving SINR "
-                    << sinrThisCell << " L3 serving SINR 3gpp " << convertedSinr);
-
-      std::string servingStr = std::to_string (numDrb) + "," + std::to_string (0) + "," +
-                               std::to_string (m_cellId) + "," + std::to_string (imsi) + "," +
-                               std::to_string (sinrThisCell) + "," + std::to_string (convertedSinr);
-
-      // ueVal->AddItem<long> ("enbdev", m_cellId);
-      // ueVal->AddItem<long> ("UE", imsi);
-      // ueVal->AddItem<long> ("L3-serving-SINR", sinrThisCell);
-      // ueVal->AddItem<long> ("L3-serving-SINR-3gpp", convertedSinr);
-
-      // For the neighbors
-      // TODO create double map, imsi -> cell -> sinr
-      // TODO store at most 8 reports for each UE, as per the standard
-
-      Ptr<L3RrcMeasurements> l3RrcMeasurementNeigh;
-
-      double sinr;
-      std::string neighStr;
-
-      //invert key and value in sortFlipMap, then sort by value
-      std::multimap<long double, uint16_t> sortFlipMap = flip_map (m_l3sinrMap[imsi]);
-      //new sortFlipMap structure sortFlipMap < sinr, cellId >
-      //The assumption is that the first cell in the scenario is always LTE and the rest NR
-      uint16_t nNeighbours = E2SM_REPORT_MAX_NEIGH;
-      if (m_l3sinrMap[imsi].size () < nNeighbours)
-        {
-          nNeighbours = m_l3sinrMap[imsi].size () - 1;
-        }
-      int itIndex = 0;
-      // Save only the first E2SM_REPORT_MAX_NEIGH SINR for each UE which represent the best values among all the SINRs detected by all the cells
-      for (std::map<long double, uint16_t>::iterator it = --sortFlipMap.end ();
-           it != --sortFlipMap.begin () && itIndex < nNeighbours; it--)
-        {
-          // uint16_t
-          long cellId = it->second;
-          // if (cellId != m_cellId)
-          // {
-          // For Serving cell id idnification
-          if (cellId == m_cellId)
-            {
-              cellId *= -1;
-            }
-          sinr = 10 * std::log10 (it->first); // now SINR is a key due to the sort of the map
-          convertedSinr = L3RrcMeasurements::ThreeGppMapSinr (sinr);
-
-          NS_LOG_DEBUG (Simulator::Now ().GetSeconds ()
-                        << " enbdev " << m_cellId << " UE " << imsi << " L3 neigh " << cellId
-                        << " SINR " << sinr << " sinr encoded " << convertedSinr
-                        << " first insert");
-          neighStr += "," + std::to_string (cellId) + "," + std::to_string (sinr) + "," +
-                      std::to_string (convertedSinr);
-          itIndex++;
-          // }
-        }
-      for (int i = nNeighbours; i < E2SM_REPORT_MAX_NEIGH; i++)
-        {
-          neighStr += ",,,";
-        }
-
-      uePmString.insert (std::make_pair (imsi, servingStr + neighStr));
-    }
-  std::ofstream csv{};
-  csv.open (m_cuCpFileName.c_str (), std::ios_base::app);
-  if (!csv.is_open ())
-    {
-      NS_FATAL_ERROR ("Can't open file " << m_cuCpFileName.c_str ());
-    }
-
-  NS_LOG_DEBUG ("m_cuCpFileName open " << m_cuCpFileName);
-
-  // the string is timestamp, ueImsiComplete, numActiveUes, DRB.EstabSucc.5QI.UEID (numDrb), DRB.RelActNbr.5QI.UEID (0), L3 serving Id (m_cellId), UE (imsi), L3 serving SINR, L3 serving SINR 3gpp, L3 neigh Id (cellId), L3 neigh Sinr, L3 neigh SINR 3gpp (convertedSinr)
-  // The values for L3 neighbour cells are repeated for each neighbour (7 times in this implementation)
-
-  uint64_t timestamp = m_startTime + (uint64_t) Simulator::Now ().GetMilliSeconds ();
-
-  for (auto ue : ueMap)
-    {
-      uint64_t imsi = ue.second->GetImsi ();
-      std::string ueImsiComplete = GetImsiString (imsi);
-
-      auto uePms = uePmString.find (imsi)->second;
-
-      std::string to_print = std::to_string (timestamp) + "," + ueImsiComplete + "," +
-                             std::to_string (ueMap.size ()) + "," + uePms + "\n";
-
-      NS_LOG_DEBUG (to_print);
-
-      csv << to_print;
-    }
-  csv.close ();
-  Simulator::Schedule (MilliSeconds (100), &MmWaveEnbNetDevice::BuildGUICuCp, this, plmId);
-  return nullptr;
-=======
-<<<<<<< Updated upstream
-=======
-/*bool
-MmWaveEnbNetDevice::GetESStates () const
-{
-    return  esON_cellID;
-}*/
-
->>>>>>> Stashed changes
->>>>>>> Enhance ns3 to handle more RIC control styles and control actions
-=======
->>>>>>> Add new scenarios for energy saving and  clean mmwave-enb-net-device
-}
-=======
 }
 // IMP - SINR - L3
 Ptr<KpmIndicationMessage>
@@ -2403,7 +2145,6 @@ MmWaveEnbNetDevice::BuildGUICuCp (std::string plmId)
   Simulator::Schedule (MilliSeconds (100), &MmWaveEnbNetDevice::BuildGUICuCp, this, plmId);
   return nullptr;
 }
->>>>>>> PR: Automated Mechanism for Target Cell Handover Selection and Deactivation of Underutilized Cell(s) (#16)
 Ptr<KpmIndicationMessage>
 MmWaveEnbNetDevice::BuildGUICuUp (std::string plmId)
 {
@@ -2526,13 +2267,5 @@ MmWaveEnbNetDevice::BuildGUICuUp (std::string plmId)
   Simulator::Schedule (MilliSeconds (100), &MmWaveEnbNetDevice::BuildGUICuUp, this, plmId);
   return nullptr;
 }
-<<<<<<< HEAD
-<<<<<<< HEAD
 } // namespace mmwave
 } // namespace ns3
-=======
->>>>>>> Solve conflict for mmwave module
-=======
-} // namespace mmwave
-} // namespace ns3
->>>>>>> PR: Automated Mechanism for Target Cell Handover Selection and Deactivation of Underutilized Cell(s) (#16)
