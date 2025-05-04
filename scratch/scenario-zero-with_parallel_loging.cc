@@ -554,7 +554,8 @@ main(int argc, char *argv[]) {
     Config::SetDefault("ns3::LteEnbRrc::OutageThreshold", DoubleValue(outageThreshold));
     Config::SetDefault("ns3::LteEnbRrc::SecondaryCellHandoverMode", StringValue(handoverMode));
     Config::SetDefault("ns3::LteEnbRrc::HoSinrDifference", DoubleValue(hoSinrDifference));
-
+  Config::SetDefault("ns3::ThreeGppPropagationLossModel::Frequency",DoubleValue(3.5e9));
+  Config::SetDefault("ns3::ThreeGppPropagationLossModel::ShadowingEnabled",BooleanValue(false));//defult false 
     // Carrier bandwidth in Hz
     GlobalValue::GetValueByName ("Bandwidth", doubleValue);
     double bandwidth = doubleValue.Get();
