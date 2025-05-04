@@ -7,6 +7,7 @@ set(source_files
     helper/mc-stats-calculator.cc
     helper/core-network-stats-calculator.cc
     helper/mmwave-mac-trace.cc
+    helper/mmwave-radio-energy-model-enb-helper.cc
     model/mmwave-net-device.cc
     model/mmwave-enb-net-device.cc
     model/mmwave-ue-net-device.cc
@@ -29,6 +30,7 @@ set(source_files
     model/mmwave-phy-sap.cc
     model/mmwave-enb-mac.cc
     model/mmwave-ue-mac.cc
+    model/mmwave-radio-energy-model-enb.cc
     model/mmwave-rrc-protocol-ideal.cc
     model/mmwave-lte-rrc-protocol-real.cc
     model/mmwave-mac-pdu-header.cc
@@ -87,6 +89,7 @@ set(header_files
     helper/core-network-stats-calculator.h
     helper/mmwave-bearer-stats-connector.h
     helper/mmwave-mac-trace.h
+    helper/mmwave-radio-energy-model-enb-helper.h
     model/mmwave-net-device.h
     model/mmwave-enb-net-device.h
     model/mmwave-ue-net-device.h
@@ -109,6 +112,7 @@ set(header_files
     model/mmwave-phy-sap.h
     model/mmwave-enb-mac.h
     model/mmwave-ue-mac.h
+    model/mmwave-radio-energy-model-enb.h
     model/mmwave-rrc-protocol-ideal.h
     model/mmwave-lte-rrc-protocol-real.h
     model/mmwave-mac-pdu-header.h

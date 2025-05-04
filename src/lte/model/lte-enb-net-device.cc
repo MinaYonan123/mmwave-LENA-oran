@@ -371,7 +371,7 @@ LteEnbNetDevice::DoDispose ()
   m_handoverAlgorithm->Dispose ();
   m_handoverAlgorithm = 0;
 
-  if (m_anr != 0)
+  if (m_anr)
     {
       m_anr->Dispose ();
       m_anr = 0;
@@ -580,7 +580,7 @@ LteEnbNetDevice::DoInitialize (void)
   m_componentCarrierManager->Initialize ();
   m_handoverAlgorithm->Initialize ();
 
-  if (m_anr != 0)
+  if (m_anr)
     {
       m_anr->Initialize ();
     }

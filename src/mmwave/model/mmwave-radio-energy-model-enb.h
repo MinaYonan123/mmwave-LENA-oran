@@ -31,7 +31,7 @@
 namespace ns3 {
 
 
-class MmWaveRadioEnergyModelEnb : public DeviceEnergyModel
+class MmWaveRadioEnergyModelEnb : public energy::DeviceEnergyModel
 {
 
 public:
@@ -86,7 +86,7 @@ public:
      *
      * Implements DeviceEnergyModel::SetEnergySource.
      */
-    virtual void SetEnergySource (Ptr<EnergySource> source);
+    virtual void SetEnergySource (Ptr<energy::EnergySource> source);
 
     /**
      * \returns Total energy consumption of the Device.
@@ -219,7 +219,7 @@ private:
     int m_currentState;
     int m_celloff = 0;
 
-    Ptr<EnergySource> m_source;
+    Ptr<energy::EnergySource> m_source;
     Ptr<Node> m_node;
     TracedValue<double> m_totalEnergyConsumption;
     MmWaveRadioEnergyRechargedCallback m_energyRechargedCallback;
