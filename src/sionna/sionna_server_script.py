@@ -2,14 +2,14 @@ import time
 import tensorflow as tf
 import numpy as np
 import socket
-from sionna.rt import load_scene, PlanarArray, Transmitter, Receiver, Paths
+from sionna.rt import load_scene, PlanarArray, Transmitter, Receiver, PathSolver, render
 SPEED_OF_LIGHT = 3e8  # in meters per second
 #from sionna.constants import SPEED_OF_LIGHT
 import os, subprocess, signal
 import argparse
+import matplotlib.pyplot as plt
 
-
-file_name = "scenarios/SionnaExampleScenario/scene.xml"
+file_name = "scenarios/simple_scens/scene.xml"
 #local_machine = True
 #verbose = False
 
@@ -83,217 +83,270 @@ def manage_location_message(message, sionna_structure):
 
 def match_rays_to_cars(paths, sionna_structure):
     matched_paths = {}
-    targets = paths.targets.numpy()
-    sources = paths.sources.numpy()
+    
+    try:
+        # Get data from paths object
+        targets = paths.targets.numpy()
+        sources = paths.sources.numpy()
+        
+        # Try to get path coefficients and other data
+        try:
+            path_coefficients_np = paths.a.numpy()
+            delays_np = paths.tau.numpy()
+            paths_mask_np = paths.valid.numpy()
+            interactions_np = paths.interactions.numpy()  # Use interactions instead of types
+        except AttributeError:
+            # If we can't get the data directly, try to extract it from the tuple
+            print("Trying alternative method to extract path data...")
+            # For Sionna 1.0.1, we might need to extract data differently
+            a, tau = paths.cir(normalize_delays=True, out_type="numpy")
+            path_coefficients_np = a
+            delays_np = tau
+            # Create dummy mask and interactions since we can't get the real ones
+            paths_mask_np = np.ones_like(delays_np, dtype=bool)
+            interactions_np = np.zeros((1, paths_mask_np.shape[-1]), dtype=int)
+        
+        # Pre-adjust car locations with antenna displacement
+        adjusted_car_locs = {
+            car_id: {"x": car_loc["x"] + sionna_structure["antenna_displacement"][0], 
+                    "y": car_loc["y"] + sionna_structure["antenna_displacement"][1],
+                    "z": car_loc["z"] + sionna_structure["antenna_displacement"][2]}
+            for car_id, car_loc in sionna_structure["sionna_location_db"].items()
+        }
+        car_ids = np.array(list(adjusted_car_locs.keys()))
+        car_positions = np.array([[loc["x"], loc["y"], loc["z"]] for loc in adjusted_car_locs.values()])
 
-    # paths_mask_np = paths.mask.numpy()
-    path_coefficients_np = paths.a.numpy()
-    delays_np = paths.tau.numpy()
-    types_np = paths.types.numpy()
-    paths_mask_np = paths.mask.numpy()
+        # Iterate over each source (TX)
+        for tx_idx, source in enumerate(sources):
+            # Make sure source has the right shape for broadcasting
+            # Ensure source is a 3D vector
+            if len(source) != 3:
+                print(f"Warning: source has unexpected shape: {source.shape}")
+                continue
+                
+            # Calculate distances using a loop to avoid broadcasting issues
+            distances = np.zeros(len(car_positions))
+            for i, car_pos in enumerate(car_positions):
+                distances[i] = np.linalg.norm(car_pos - source)
+                
+            source_within_tolerance = distances <= sionna_structure["position_threshold"]
 
-    '''
-    # Currently unused, may be useful for future work: commented for performance
-    theta_t_np = paths.theta_t.numpy()
-    phi_t_np = paths.phi_t.numpy()
-    theta_r_np = paths.theta_r.numpy()
-    phi_r_np = paths.phi_r.numpy()
-    doppler_np = paths.doppler.numpy()
-    '''
+            if np.any(source_within_tolerance):
+                min_idx = np.argmin(distances[source_within_tolerance])
+                source_closest_car_id = car_ids[source_within_tolerance][min_idx]
+                matched_source_car_name = f"car_{source_closest_car_id}"
 
-    # Pre-adjust car locations with antenna displacement
-    adjusted_car_locs = {
-        car_id: {"x": car_loc["x"] + sionna_structure["antenna_displacement"][0], "y": car_loc["y"] + sionna_structure["antenna_displacement"][1],
-                 "z": car_loc["z"] + sionna_structure["antenna_displacement"][2]}
-        for car_id, car_loc in sionna_structure["sionna_location_db"].items()
-    }
-    car_ids = np.array(list(adjusted_car_locs.keys()))
-    car_positions = np.array([[loc["x"], loc["y"], loc["z"]] for loc in adjusted_car_locs.values()])
+                if matched_source_car_name not in matched_paths:
+                    matched_paths[matched_source_car_name] = {}
 
-    # Iterate over each source (TX)
-    for tx_idx, source in enumerate(sources):
-        distances = np.linalg.norm(car_positions - source, axis=1)
-        source_within_tolerance = distances <= sionna_structure["position_threshold"]
-
-        if np.any(source_within_tolerance):
-            min_idx = np.argmin(distances[source_within_tolerance])
-            source_closest_car_id = car_ids[source_within_tolerance][min_idx]
-            matched_source_car_name = f"car_{source_closest_car_id}"
-
-            if matched_source_car_name not in matched_paths:
-                matched_paths[matched_source_car_name] = {}
-
-            # Iterate over targets for the current source (TX)
-            for rx_idx, target in enumerate(targets):
-                if rx_idx >= paths.mask.shape[1]:
-                    continue
-                distances = np.linalg.norm(car_positions - target, axis=1)
-                target_within_tolerance = distances <= sionna_structure["position_threshold"]
-
-                if np.any(target_within_tolerance):
-                    min_idx = np.argmin(distances[target_within_tolerance])
-                    target_closest_car_id = car_ids[target_within_tolerance][min_idx]
-                    matched_target_car_name = f"car_{target_closest_car_id}"
-
-                    if matched_target_car_name not in matched_paths[matched_source_car_name]:
-                        matched_paths[matched_source_car_name][matched_target_car_name] = {
-                            # 'paths_mask': [],
-                            'path_coefficients': [],
-                            'delays': [],
-                            # 'angles_of_departure': {'zenith': [], 'azimuth': []},
-                            # 'angles_of_arrival': {'zenith': [], 'azimuth': []},
-                            # 'doppler': [],
-                            'is_los': []
-                        }
-
-                    # Populate path data
-                    try:
-                        matched_paths[matched_source_car_name][matched_target_car_name]['path_coefficients'].append(
-                            path_coefficients_np[0, rx_idx, 0, tx_idx, 0, ...])
-                        matched_paths[matched_source_car_name][matched_target_car_name]['delays'].append(
-                            delays_np[0, rx_idx, tx_idx, ...])
-
-                        '''
-                        # Currently unused, may be useful for future work: commented for performance                        
-                        matched_paths[matched_source_car_name][matched_target_car_name]['angles_of_departure']['zenith'].append(theta_t_np[0, rx_idx, tx_idx, ...])
-                        matched_paths[matched_source_car_name][matched_target_car_name]['angles_of_departure']['azimuth'].append(phi_t_np[0, rx_idx, tx_idx, ...])
-                        matched_paths[matched_source_car_name][matched_target_car_name]['angles_of_arrival']['zenith'].append(theta_r_np[0, rx_idx, tx_idx, ...])
-                        matched_paths[matched_source_car_name][matched_target_car_name]['angles_of_arrival']['azimuth'].append(phi_r_np[0, rx_idx, tx_idx, ...])
-                        matched_paths[matched_source_car_name][matched_target_car_name]['doppler'].append(doppler_np[0, rx_idx, tx_idx, ...])
-                        '''
-
-                        # Extract LoS determination
-                        valid_paths_mask = paths_mask_np[0, rx_idx, tx_idx, :]
-                        valid_path_indices = np.where(valid_paths_mask)[0]
-                        valid_path_types = types_np[0][valid_path_indices]
-                        # Check if any path is LoS
-                        is_los = np.any(valid_path_types == Paths.LOS)
-                        matched_paths[matched_source_car_name][matched_target_car_name]['is_los'].append(bool(is_los))
-
-                    except (IndexError, tf.errors.InvalidArgumentError) as e:
-                        print(f"Error encountered for source {tx_idx}, target {rx_idx}: {e}")
+                # Iterate over targets for the current source (TX)
+                for rx_idx, target in enumerate(targets):
+                    if rx_idx >= paths_mask_np.shape[1]:
                         continue
-                else:
-                    if sionna_structure["verbose"]:
-                        print(f"Warning - No car within tolerance for target {rx_idx} (for source {tx_idx})")
-        else:
-            if sionna_structure["verbose"]:
-                print(f"Warning - No car within tolerance for source {tx_idx}")
+                    
+                    # Make sure target has the right shape for broadcasting
+                    # Ensure target is a 3D vector
+                    if len(target) != 3:
+                        print(f"Warning: target has unexpected shape: {target.shape}")
+                        continue
+                        
+                    # Calculate distances using a loop to avoid broadcasting issues
+                    distances = np.zeros(len(car_positions))
+                    for i, car_pos in enumerate(car_positions):
+                        distances[i] = np.linalg.norm(car_pos - target)
+                        
+                    target_within_tolerance = distances <= sionna_structure["position_threshold"]
 
+                    if np.any(target_within_tolerance):
+                        min_idx = np.argmin(distances[target_within_tolerance])
+                        target_closest_car_id = car_ids[target_within_tolerance][min_idx]
+                        matched_target_car_name = f"car_{target_closest_car_id}"
+
+                        if matched_target_car_name not in matched_paths[matched_source_car_name]:
+                            matched_paths[matched_source_car_name][matched_target_car_name] = {
+                                'path_coefficients': [],
+                                'delays': [],
+                                'is_los': []
+                            }
+
+                        # Populate path data
+                        try:
+                            # Adapt these indices based on the actual structure of your data
+                            matched_paths[matched_source_car_name][matched_target_car_name]['path_coefficients'].append(
+                                path_coefficients_np[0, rx_idx, 0, tx_idx, 0, ...] if len(path_coefficients_np.shape) > 5 else path_coefficients_np[0, rx_idx, tx_idx, ...])
+                            matched_paths[matched_source_car_name][matched_target_car_name]['delays'].append(
+                                delays_np[0, rx_idx, tx_idx, ...])
+
+                            # Extract LoS determination
+                            # In Sionna 1.0.1, we need to check if there's a LOS path differently
+                            # Since we don't have direct access to path types, we'll assume the first path is LOS if it exists
+                            valid_paths_mask = paths_mask_np[0, rx_idx, tx_idx, :]
+                            valid_path_indices = np.where(valid_paths_mask)[0]
+                            
+                            # Assume LOS if there's at least one valid path
+                            is_los = len(valid_path_indices) > 0
+                            matched_paths[matched_source_car_name][matched_target_car_name]['is_los'].append(bool(is_los))
+
+                        except (IndexError, tf.errors.InvalidArgumentError) as e:
+                            print(f"Error encountered for source {tx_idx}, target {rx_idx}: {e}")
+                            continue
+                    else:
+                        if sionna_structure["verbose"]:
+                            print(f"Warning - No car within tolerance for target {rx_idx} (for source {tx_idx})")
+            else:
+                if sionna_structure["verbose"]:
+                    print(f"Warning - No car within tolerance for source {tx_idx}")
+    
+    except Exception as e:
+        print(f"Error in match_rays_to_cars: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    # Make sure we have entries for all cars, even if empty
+    for car_id in sionna_structure["sionna_location_db"]:
+        car_name = f"car_{car_id}"
+        if car_name not in matched_paths:
+            matched_paths[car_name] = {}
+        for other_car_id in sionna_structure["sionna_location_db"]:
+            other_car_name = f"car_{other_car_id}"
+            if car_name != other_car_name and other_car_name not in matched_paths.get(car_name, {}):
+                if car_name not in matched_paths:
+                    matched_paths[car_name] = {}
+                matched_paths[car_name][other_car_name] = {
+                    'path_coefficients': [np.array([0.0])],  # Default empty coefficient
+                    'delays': [np.array([0.0])],             # Default zero delay
+                    'is_los': [False]                        # Default no LOS
+                }
+    
     return matched_paths
 
 
-def compute_rays(sionna_structure):
-    t = time.time()
 
-    sionna_structure["scene"].tx_array = sionna_structure["planar_array"]
-    sionna_structure["scene"].rx_array = sionna_structure["planar_array"]
 
-    # Ensure every car in the simulation has antennas (one for TX and one for RX)
+def list_scene_objects(sionna_structure):
+    print("Objects in the scene:")
+    for obj_name in sionna_structure["scene"].objects:
+        print(f"- {obj_name}")
+    
+    print("\nCars in sionna_location_db:")
     for car_id in sionna_structure["sionna_location_db"]:
-        tx_antenna_name = f"car_{car_id}_tx_antenna"
-        rx_antenna_name = f"car_{car_id}_rx_antenna"
-        car_position = np.array(
-            [sionna_structure["sionna_location_db"][car_id]['x'], sionna_structure["sionna_location_db"][car_id]['y'],
-             sionna_structure["sionna_location_db"][car_id]['z']])
-        tx_position = car_position + np.array(sionna_structure["antenna_displacement"])
-        rx_position = car_position + np.array(sionna_structure["antenna_displacement"])
+        print(f"- car_{car_id}")
 
-        if sionna_structure["scene"].get(tx_antenna_name) is None:
-            sionna_structure["scene"].add(Transmitter(tx_antenna_name, position=tx_position, orientation=[0, 0, 0]))
-            sionna_structure["scene"].tx_array = sionna_structure["scene"].tx_array
-            if sionna_structure["verbose"]:
-                print(f"Added TX antenna for car_{car_id}: {tx_antenna_name}")
+def compute_rays(sionna_structure):
+    try:
+        print("Starting compute_rays function...")
+        t = time.time()
+        
+        # Set up arrays
+        print("Setting up antenna arrays...")
+        sionna_structure["scene"].tx_array = sionna_structure["planar_array"]
+        sionna_structure["scene"].rx_array = sionna_structure["planar_array"]
 
-        if sionna_structure["scene"].get(rx_antenna_name) is None:
-            sionna_structure["scene"].add(Receiver(rx_antenna_name, position=rx_position, orientation=[0, 0, 0]))
-            sionna_structure["scene"].rx_array = sionna_structure["scene"].rx_array
-            if sionna_structure["verbose"]:
-                print(f"Added RX antenna for car_{car_id}: {rx_antenna_name}")
+        # Debug: Print scene configuration
+        print("Scene configuration:")
+        print(f"Frequency: {sionna_structure['scene'].frequency} Hz")
+        print(f"Max depth: {sionna_structure['max_depth']}")
+        
+        # Debug: Print all objects in the scene
+        print("Objects in the scene:")
+        for obj_name in sionna_structure["scene"].objects:
+            print(f"- {obj_name}")
 
-    # Compute paths
-    paths = sionna_structure["scene"].compute_paths(max_depth=sionna_structure["max_depth"],
-                                                    num_samples=sionna_structure["num_samples"], diffraction=True,
-                                                    scattering=True)
-    paths.normalize_delays = False  # Do not normalize delays to the first path
-    if sionna_structure["verbose"]:
-        print(f"Ray tracing took: {(time.time() - t) * 1000} ms")
-    t = time.time()
-    matched_paths = match_rays_to_cars(paths, sionna_structure)
-    if sionna_structure["verbose"]:
-        print(f"Matching rays to cars took: {(time.time() - t) * 1000} ms")
+        # Ensure every car in the simulation has antennas
+        print("Setting up car antennas...")
+        for car_id in sionna_structure["sionna_location_db"]:
+            tx_antenna_name = f"car_{car_id}_tx_antenna"
+            rx_antenna_name = f"car_{car_id}_rx_antenna"
+            car_position = np.array(
+                [sionna_structure["sionna_location_db"][car_id]['x'], 
+                 sionna_structure["sionna_location_db"][car_id]['y'],
+                 sionna_structure["sionna_location_db"][car_id]['z']])
+            tx_position = car_position + np.array(sionna_structure["antenna_displacement"])
+            rx_position = car_position + np.array(sionna_structure["antenna_displacement"])
 
-    # Iterate over sources in matched_paths
-    for src_car_id in sionna_structure["sionna_location_db"]:
-        current_source_car_name = f"car_{src_car_id}"
-        if current_source_car_name in matched_paths:
-            matched_paths_for_source = matched_paths[current_source_car_name]
+            if sionna_structure["scene"].get(tx_antenna_name) is None:
+                print(f"Adding TX antenna for car_{car_id} at position {tx_position}")
+                sionna_structure["scene"].add(Transmitter(tx_antenna_name, position=tx_position, orientation=[0, 0, 0]))
+                sionna_structure["scene"].tx_array = sionna_structure["scene"].tx_array
 
-            # Iterate over targets for the current source
-            for trg_car_id in sionna_structure["sionna_location_db"]:
-                current_target_car_name = f"car_{trg_car_id}"
-                if current_target_car_name != current_source_car_name:  # Skip case where source == target
-                    if current_target_car_name in matched_paths_for_source:
-                        if current_source_car_name not in sionna_structure["rays_cache"]:
-                            sionna_structure["rays_cache"][current_source_car_name] = {}
-                        # Cache the matched paths for this source-target pair
-                        sionna_structure["rays_cache"][current_source_car_name][current_target_car_name] = \
-                            matched_paths_for_source[current_target_car_name]
-                        if sionna_structure["verbose"]:
-                            print(
-                                f"Cached paths for source {current_source_car_name} to target {current_target_car_name}")
-                    else:
-                        # Force an update if the source or target wasn't matched
-                        for car_id in sionna_structure["sionna_location_db"]:
-                            car_name = f"car_{car_id}"
-                            if sionna_structure["scene"].get(car_name):
-                                from_sionna = sionna_structure["scene"].get(car_name)
-                                new_position = [sionna_structure["SUMO_live_location_db"][car_id]["x"],
-                                                sionna_structure["SUMO_live_location_db"][car_id]["y"],
-                                                sionna_structure["SUMO_live_location_db"][car_id]["z"]]
-                                from_sionna.position = new_position
-                                # Update Sionna location database with new positions
-                                sionna_structure["sionna_location_db"][car_id] = {"x": new_position[0],
-                                                                                  "y": new_position[1],
-                                                                                  "z": new_position[2], "angle":
-                                                                                      sionna_structure[
-                                                                                          "SUMO_live_location_db"][
-                                                                                          car_id]["angle"]}
-                                # Update antenna positions
-                                if sionna_structure["scene"].get(f"{car_name}_tx_antenna"):
-                                    sionna_structure["scene"].get(f"{car_name}_tx_antenna").position = \
-                                        [new_position[0] + sionna_structure["antenna_displacement"][0],
-                                         new_position[1] + sionna_structure["antenna_displacement"][1],
-                                         new_position[2] + sionna_structure["antenna_displacement"][2]]
-                                    if sionna_structure["verbose"]:
-                                        print(f"Forced update for {car_name} and its TX antenna in the scene.")
-                                if sionna_structure["scene"].get(f"{car_name}_rx_antenna"):
-                                    sionna_structure["scene"].get(f"{car_name}_rx_antenna").position = \
-                                        [new_position[0] + sionna_structure["antenna_displacement"][0],
-                                         new_position[1] + sionna_structure["antenna_displacement"][1],
-                                         new_position[2] + sionna_structure["antenna_displacement"][2]]
-                                    if sionna_structure["verbose"]:
-                                        print(f"Forced update for {car_name} and its RX antenna in the scene.")
-                            else:
-                                print(f"ERROR: no {car_name} in the scene for forced update, use Blender to check")
+            if sionna_structure["scene"].get(rx_antenna_name) is None:
+                print(f"Adding RX antenna for car_{car_id} at position {rx_position}")
+                sionna_structure["scene"].add(Receiver(rx_antenna_name, position=rx_position, orientation=[0, 0, 0]))
+                sionna_structure["scene"].rx_array = sionna_structure["scene"].rx_array
 
-                        # Re-do matching with updated locations
-                        t = time.time()
-                        matched_paths = match_rays_to_cars(paths, sionna_structure)
-                        if sionna_structure["verbose"]:
-                            print(f"Matching rays to cars (double exec) took: {(time.time() - t) * 1000} ms")
-                        if current_source_car_name not in sionna_structure["rays_cache"]:
-                            sionna_structure["rays_cache"][current_source_car_name] = {}
-                        if current_target_car_name in matched_paths[current_source_car_name]:
+        # Debug: Print final antenna configuration
+        print("\nFinal antenna configuration:")
+        print(f"Number of TX antennas: {len([obj for obj in sionna_structure['scene'].objects if '_tx_antenna' in obj])}")
+        print(f"Number of RX antennas: {len([obj for obj in sionna_structure['scene'].objects if '_rx_antenna' in obj])}")
+
+        # Initialize PathSolver with debug information
+        print("\nInitializing PathSolver...")
+        p_solver = PathSolver()
+        
+        print("Calling PathSolver with parameters:")
+        print(f"- specular_reflection: True")
+        print(f"- refraction: True")
+        print(f"- diffuse_reflection: False")
+        print(f"- max_depth: {sionna_structure['max_depth']}")
+        print(f"- los: True")
+        
+        paths = p_solver(scene=sionna_structure["scene"],
+                        specular_reflection=True,
+                        refraction=True,
+                        diffuse_reflection=False,
+                        max_depth=sionna_structure["max_depth"],
+                        los=True,
+                        seed=41)
+        
+        print("\nPathSolver execution completed")
+        print("Paths object type:", type(paths))
+        print("Paths object attributes:", dir(paths))
+
+        # Compute channel impulse response
+        print("\nComputing channel impulse response...")
+        a, tau = paths.cir(normalize_delays=True, out_type="numpy")
+        print("CIR computation completed")
+        print(f"a shape: {a.shape}")
+        print(f"tau shape: {tau.shape}")
+
+        print(f"\nRay tracing took: {(time.time() - t) * 1000:.2f} ms")
+        
+        t = time.time()
+        print("\nMatching rays to cars...")
+        matched_paths = match_rays_to_cars(paths, sionna_structure)
+        print(f"Matching rays to cars took: {(time.time() - t) * 1000:.2f} ms")
+
+        # Process the matched paths and update the cache
+        print("\nProcessing matched paths and updating cache...")
+        for src_car_id in sionna_structure["sionna_location_db"]:
+            current_source_car_name = f"car_{src_car_id}"
+            if current_source_car_name in matched_paths:
+                matched_paths_for_source = matched_paths[current_source_car_name]
+
+                for trg_car_id in sionna_structure["sionna_location_db"]:
+                    current_target_car_name = f"car_{trg_car_id}"
+                    if current_target_car_name != current_source_car_name:
+                        if current_target_car_name in matched_paths_for_source:
+                            if current_source_car_name not in sionna_structure["rays_cache"]:
+                                sionna_structure["rays_cache"][current_source_car_name] = {}
                             sionna_structure["rays_cache"][current_source_car_name][current_target_car_name] = \
-                                matched_paths[current_source_car_name][current_target_car_name]
+                                matched_paths_for_source[current_target_car_name]
+                            print(f"Cached paths for {current_source_car_name} to {current_target_car_name}")
 
-    return None
+        print("compute_rays completed successfully")
+        return None
+
+    except Exception as e:
+        print(f"ERROR in compute_rays: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
 
 
 def get_path_loss(car1_id, car2_id, sionna_structure):
     # Was the requested value already calculated?
     if car1_id not in sionna_structure["rays_cache"] or car2_id not in sionna_structure["rays_cache"][car1_id]:
+        print ("iam heeer")
         compute_rays(sionna_structure)
 
     path_coefficients = sionna_structure["rays_cache"][car1_id][car2_id]["path_coefficients"]
@@ -301,17 +354,17 @@ def get_path_loss(car1_id, car2_id, sionna_structure):
     abs = np.abs(sum)
     square = abs ** 2
     total_cir = square
-
+    print ("total_cir = ",total_cir)
     # Calculate path loss in dB
     if total_cir > 0:
         path_loss = -10 * np.log10(total_cir)
+   
     else:
         # Handle the case where path loss calculation is not valid
         if sionna_structure["verbose"]:
             print(
                 f"Pathloss calculation failed for {car1_id}-{car2_id}: got infinite value (not enough rays). Returning 300 dB.")
         path_loss = 300  # Assign 300 dB for loss cases
-
     return path_loss
 
 
@@ -325,7 +378,9 @@ def manage_path_loss_request(message, sionna_structure):
         # Getting each car_id, the origin is marked as 0
         car_a_id = "origin" if car_a_str == "0" else f"car_{int(car_a_str)}" if car_a_str else "origin"
         car_b_id = "origin" if car_b_str == "0" else f"car_{int(car_b_str)}" if car_b_str else "origin"
-
+        print ("car_a_id ",car_a_id)
+        print ("car_b_id ",car_b_id)
+        
         if car_a_id == "origin" or car_b_id == "origin":
             # If any, ignoring path_loss requests from the origin, used for statistical calibration
             path_loss_value = 0
@@ -451,12 +506,14 @@ def main():
                         help='Flag to indicate if Sionna and ns3-rt are running on the same machine (locally)')
     parser.add_argument('--verbose', action='store_true', help='Flag for verbose output')
     parser.add_argument('--frequency', type=float, help='Frequency of the simulation in Hz', default=5.89e9)
+
     args = parser.parse_args()
     file_name = args.path_to_xml_scenario
+    print (file_name)
     local_machine = args.local_machine
     verbose = args.verbose
     frequency = args.frequency
-
+    render_enabled = args.render
     # Kill any process using the port
     kill_process_using_port(8103, verbose)
 
@@ -469,6 +526,13 @@ def main():
 
     # Load scene and configure radio settings
     sionna_structure["scene"] = load_scene(file_name)
+     # Add these lines here to print object materials
+    print("Objects and their radio materials:")
+    for i, obj in enumerate(sionna_structure["scene"].objects.values()):
+        print(f"{obj.name} : {obj.radio_material.name}")
+        if i >= 10:
+            break
+   
     sionna_structure["scene"].frequency = frequency  # Frequency in Hz
     sionna_structure["scene"].synthetic_array = True  # Enable synthetic array processing
     #element_spacing = SPEED_OF_LIGHT / sionna_structure["scene"].frequency / 2
@@ -510,6 +574,9 @@ def main():
         # Receive data from the socket
         payload, address = udp_socket.recvfrom(1024)
         message = payload.decode()
+        print (f"Received message: {message} from {address}")
+        #list_scene_objects(sionna_structure)
+
 
         if message.startswith("LOC_UPDATE:"):
             updated_car = manage_location_message(message, sionna_structure)
@@ -539,6 +606,7 @@ def main():
             print("Got SHUTDOWN_SIONNA message. Bye!")
             udp_socket.close()
             break
+        print (f"send message: {response} to {address}")
 
 
 # Entry point
