@@ -119,7 +119,7 @@ PropagationLossModel::CalcRxPower(double txPowerDbm,
             if (sionna_verbose)
             {
                 std::cout << "rxPower_ns3_model: " << -(txPowerDbm - power_ns3)
-                          << ", rxPower_sionna: " << -(txPowerDbm - power_sionna)
+                          << ", rxPower_sionna: " << -(txPowerDbm - power_sionna)-30
                           << ", LOS: " << los << std::endl;
             }
             std::string log_pl =
