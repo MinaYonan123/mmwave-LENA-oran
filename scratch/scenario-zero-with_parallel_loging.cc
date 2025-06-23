@@ -309,7 +309,7 @@ static ns3::GlobalValue g_e2cuCp("e2cuCp", "If true, send CU-CP reports", ns3::B
                                  ns3::MakeBooleanChecker());
 
 static ns3::GlobalValue g_reducedPmValues("reducedPmValues", "If true, use a subset of the the pm containers",
-                                          ns3::BooleanValue(true), ns3::MakeBooleanChecker());
+                                          ns3::BooleanValue(false), ns3::MakeBooleanChecker());
 
 static ns3::GlobalValue
         g_hoSinrDifference("hoSinrDifference",
@@ -408,7 +408,7 @@ main(int argc, char *argv[]) {
     // LogComponentEnable("KpmIndication", LOG_LEVEL_INFO);
     // LogComponentEnable ("EpcX2", LOG_LEVEL_DEBUG);
 
-    LogComponentEnable ("LteEnbRrc", LOG_LEVEL_DEBUG);
+    //LogComponentEnable ("LteEnbRrc", LOG_LEVEL_DEBUG);
     // LogComponentEnable ("LteEnbRrc", LOG_LEVEL_INFO);
     // LogComponentEnable ("LteEnbRrc", LOG_LEVEL_LOGIC);
 
@@ -421,7 +421,7 @@ main(int argc, char *argv[]) {
     //  LogComponentEnable ("E2Termination", LOG_LEVEL_DEBUG);
 
     // LogComponentEnable ("LteEnbNetDevice", LOG_LEVEL_ALL);
-    LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_DEBUG);
+    //LogComponentEnable ("MmWaveEnbNetDevice", LOG_LEVEL_DEBUG);
 
     // NS_LOG_LOGIC
 
