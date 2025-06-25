@@ -4083,7 +4083,7 @@ LteEnbRrc::PerformE2RCHO (uint64_t imsi, uint16_t targetCellId)
   
   bool alreadyAssociatedImsi = false;
   bool onHandoverImsi = false;
-
+  std::cout<<"m_mmWaveCellSetupCompleted of imsi "<< imsi<<"is "  <<m_mmWaveCellSetupCompleted[imsi]<< std::endl;
   if(m_mmWaveCellSetupCompleted.find(imsi) != m_mmWaveCellSetupCompleted.end())
   {
     alreadyAssociatedImsi = true;
@@ -5318,6 +5318,11 @@ LteEnbRrc::RemoveUe (uint16_t rnti)
     {
       m_s1SapProvider->UeContextRelease (rnti);
     }
+    std::cout<<"m_mmWaveCellSetupCompleted[GetImsiFromRnti "<< m_mmWaveCellSetupCompleted[GetImsiFromRnti(rnti)] << std::endl;
+
+      m_mmWaveCellSetupCompleted[GetImsiFromRnti(rnti)] = true;
+    std::cout<<"m_mmWaveCellSetupCompleted[GetImsiFromRnti "<< m_mmWaveCellSetupCompleted[GetImsiFromRnti(rnti)] << std::endl;
+
   m_ccmRrcSapProvider-> RemoveUe (rnti);
   // need to do this after UeManager has been deleted
   RemoveSrsConfigurationIndex (srsCi);
