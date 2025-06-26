@@ -10,9 +10,7 @@
  * Notice: this entire program uses technical terms defined by the 3GPP TS 38.300 [1].
  *
  * This example describes how to setup a simulation using the 3GPP channel model from TR 38.901 [2].
- * This example consists of a simple grid topology, in which you
- * can choose the number of gNbs and UEs. Have a look at the possible parameters
- * to know what you can configure through the command line.
+
  *
  * With the default configuration, the example will create two flows that will
  * go through two different subband numerologies (or bandwidth parts). For that,
@@ -36,6 +34,11 @@ $ ./ns3 run "cttc-nr-demo --PrintHelp"
  * [1] <a href="https://portal.3gpp.org/desktopmodules/Specifications/SpecificationDetails.aspx?specificationId=3191">3GPP TS 38.300</a>
  * [2] <a href="https://portal.3gpp.org/desktopmodules/Specifications/SpecificationDetails.aspx?specificationId=3173">3GPP channel model from TR 38.901</a>
  * [3] <a href="https://www.nsnam.org/docs/release/3.38/tutorial/html/tweaking.html#using-the-logging-module">ns-3 documentation</a>
+ */
+
+/**
+ * Modified by:
+ * Kamil Kociszewski <kamil.kociszewski@orange.com> // Modified to work with RIC TaaP GUI
  */
 
 // clang-format on
@@ -77,8 +80,129 @@ static ns3::GlobalValue g_e2_func_id("KPM_E2functionID", "Function ID to subscri
 static ns3::GlobalValue g_rc_e2_func_id("RC_E2functionID", "Function ID to subscribe",
                                         ns3::DoubleValue(3),
                                         ns3::MakeDoubleChecker<double>());
-static ns3::GlobalValue g_e2nrEnabled ("e2nrEnabled", "If true, send NR E2 reports",
-                                       ns3::BooleanValue (true), ns3::MakeBooleanChecker ());
+static ns3::GlobalValue g_e2nrEnabled("e2nrEnabled", "If true, send NR E2 reports",
+                                      ns3::BooleanValue(true), ns3::MakeBooleanChecker());
+static ns3::GlobalValue
+        g_enableE2FileLogging("enableE2FileLogging",
+                              "If true, generate offline file logging instead of connecting to RIC",
+                              ns3::BooleanValue(true), ns3::MakeBooleanChecker());
+uint64_t t_startTime_simid;
+double maxXAxis;
+double maxYAxis;
+
+void
+PrintGnuplottableEnbListToFile() {
+    uint64_t timestamp = t_startTime_simid + (uint64_t) Simulator::Now().GetMilliSeconds();
+    std::string filename1 = "gnbs.txt";
+    Ptr <NrHelper> nrHelper = CreateObject<NrHelper>();
+    int cell_it = 0;
+    for (NodeList::Iterator it = NodeList::Begin(); it != NodeList::End(); ++it) {
+        Ptr <Node> node = *it;
+        int nDevs = node->GetNDevices();
+
+        for (int j = 0; j < nDevs; j++) {
+            Ptr <NrGnbNetDevice> nrdev = node->GetDevice(j)->GetObject<NrGnbNetDevice>();
+            if (!nrdev) {
+                //NS_LOG_UNCOND("Not a NR gNB device" << node->GetId() << " " << j);
+                continue;
+            }
+
+            Vector pos = node->GetObject<MobilityModel>()->GetPosition();
+            std::ofstream outFile1;
+
+            // Open the output file with the full path
+            outFile1.open(filename1, std::ios_base::out | std::ios_base::app);
+
+            if (!outFile1.is_open()) {
+                NS_LOG_ERROR("Can't open file " << filename1);
+                return;
+            }
+            outFile1 << timestamp << "," << nrdev->GetCellId() - cell_it << "," << pos.x << "," << pos.y << ","
+                     << t_startTime_simid << "," << 0 << ","
+                     << 0 << "," << 0
+                     << "," << 0 << std::endl;
+
+            outFile1.close();
+            cell_it++;
+        }
+    }
+}
+
+void
+ClearFile(std::string Filename, uint64_t m_startTime) {
+    std::string filename = Filename;
+    std::ofstream outFile;
+    outFile.open(filename.c_str(), std::ios_base::out | std::ios_base::trunc);
+    if (!outFile.is_open()) {
+        NS_LOG_ERROR("Can't open file " << filename);
+        return;
+    }
+    outFile.close();
+    //  struct timeval time_now{};
+    //  gettimeofday (&time_now, nullptr);
+    //uint64_t m_startTime = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
+    uint64_t timestamp = m_startTime + (uint64_t) Simulator::Now().GetMilliSeconds();
+    std::ofstream outFile1;
+    outFile1.open(filename.c_str(), std::ios_base::out | std::ios_base::app);
+
+    if (Filename == "ue_position.txt") {
+        outFile1 << "timestamp,id,x,y,type,cell,simid" << std::endl;
+    } else {
+        outFile1 << "timestamp,id,x,y,simid,ESstate,currEC,maxEC,totalcurrEC" << std::endl;
+        outFile1 << timestamp << "," << "0" << "," << maxXAxis << "," << maxYAxis << std::endl;
+    }
+    outFile1.close();
+}
+
+void
+PrintPosition(Ptr <Node> node, std::string Filename) {
+    uint64_t timestamp = t_startTime_simid + (uint64_t) Simulator::Now().GetMilliSeconds();
+
+    int imsi;
+    int nDevs = node->GetNDevices();
+
+    std::string filename = Filename;
+    std::ofstream outFile;
+
+    for (int j = 0; j < nDevs; j++) {
+        Ptr <NrUeNetDevice> nruedev = node->GetDevice(j)->GetObject<NrUeNetDevice>();
+        if (nruedev) {
+            imsi = int(nruedev->GetImsi());
+            int serving_cell = nruedev->GetCellId();
+
+            Ptr <MobilityModel> model = node->GetObject<MobilityModel>();
+            Vector position = model->GetPosition();
+            Vector velocity = model->GetVelocity();
+            double speed = std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y +
+                                     velocity.z * velocity.z); // speed in m/s
+            double speedKmh = speed * 3.6;
+            speedKmh = std::round(speedKmh * 10.0) / 10.0;
+
+
+
+            // Log position and SINR
+            NS_LOG_UNCOND(std::noshowpos << std::fixed << std::setprecision(2)
+                                         << "Position of UE with IMSI " << std::dec << static_cast<uint32_t>(imsi)
+                                         << " is " << position.x << ":" << position.y << ":" << position.z
+                                         << ", Speed: " << speedKmh << " km/h"
+                                         << " at time " << Simulator::Now().GetSeconds()
+                                         << ", UE connected to Cell: " << std::dec << static_cast<uint32_t>(serving_cell));
+
+
+            outFile.open(filename.c_str(), std::ios_base::out | std::ios_base::app);
+            if (!outFile.is_open()) {
+                NS_LOG_ERROR("Can't open file " << filename);
+                return;
+            }
+
+            outFile << timestamp << "," << static_cast<uint32_t>(imsi) << "," << position.x << "," << position.y
+                    << ",nr,"
+                    << static_cast<uint32_t>((serving_cell - 1) / 2 + 1) << "," << t_startTime_simid << std::endl;
+
+            outFile.close();
+        }
+    }
+}
 
 int
 main(int argc, char* argv[])    
@@ -94,7 +218,7 @@ main(int argc, char* argv[])
      */
     // Scenario parameters (that we will use inside this script):
     uint16_t gNbNum = 1;
-    uint16_t ueNumPergNb = 3;
+    uint16_t N_Ues = 3;
     bool logging = true;
     bool doubleOperationalBand = false;
 
@@ -103,6 +227,10 @@ main(int argc, char* argv[])
     uint32_t udpPacketSizeBe = 1252;
     uint32_t lambdaULL = 10000;
     uint32_t lambdaBe = 10000;
+
+    maxXAxis = 4000;
+    // The maximum Y coordinate of the scenario
+    maxYAxis = 4000;
 
     // Simulation parameters. Please don't use double to indicate seconds; use
     // ns-3 Time values which use integers to avoid portability issues.
@@ -122,29 +250,14 @@ main(int argc, char* argv[])
     double bandwidthBand2 = 50e6;
     double totalTxPower = 35;
 
-
-
-  StringValue stringValue;
-  BooleanValue booleanValue;
-DoubleValue doubleValue;
-
-
-GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
-  bool e2nrEnabled = booleanValue.Get ();
-  GlobalValue::GetValueByName ("e2TermIp", stringValue);
-  std::string e2TermIp = stringValue.Get ();
-  GlobalValue::GetValueByName("KPM_E2functionID", doubleValue);
-    double g_e2_func_id = doubleValue.Get();
-    GlobalValue::GetValueByName("RC_E2functionID", doubleValue);
-    double g_rc_e2_func_id = doubleValue.Get();
-
-    Config::SetDefault("ns3::NrGnbNetDevice::KPM_E2functionID",
-                       DoubleValue(g_e2_func_id));
-    Config::SetDefault("ns3::NrGnbNetDevice::RC_E2functionID",
-                       DoubleValue(g_rc_e2_func_id));
-
-   Config::SetDefault ("ns3::NrHelper::E2TermIp", StringValue (e2TermIp));
-  Config::SetDefault ("ns3::NrHelper::E2ModeNr", BooleanValue (e2nrEnabled));
+    //GUI related flags
+    bool enableE2FileLogging;
+    double hoSinrDifference = 1000;
+    double indicationPeriodicity = 0.1;
+    double g_e2_func_id = 2;
+    double g_rc_e2_func_id = 3;
+    double isd_ue = 500;
+    double isd_cell = 500;
 
     // Where we will store the output files.
     std::string simTag = "default";
@@ -162,8 +275,10 @@ GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
     cmd.AddValue("rankLimit", "ns3::NrPmSearch::RankLimit");
     cmd.AddValue("subbandSize", "ns3::NrPmSearch::SubbandSize");
     cmd.AddValue("downsamplingTechnique", "ns3::NrPmSearch::DownsamplingTechnique");
-    cmd.AddValue("gNbNum", "The number of gNbs in multiple-ue topology", gNbNum);
-    cmd.AddValue("ueNumPergNb", "The number of UE per gNb in multiple-ue topology", ueNumPergNb);
+    //cmd.AddValue("gNbNum", "The number of gNbs in multiple-ue topology", gNbNum);
+    cmd.AddValue("N_MmWaveEnbNodes", "The number of gNbs in multiple-ue topology", gNbNum);
+    // cmd.AddValue("ueNumPergNb", "The number of UE per gNb in multiple-ue topology", ueNumPergNb);
+    cmd.AddValue("N_Ues", "The number of UE per gNb in multiple-ue topology", N_Ues);
     cmd.AddValue("logging", "Enable logging", logging);
     cmd.AddValue("doubleOperationalBand",
                  "If true, simulate two operational bands with one CC for each band,"
@@ -183,10 +298,11 @@ GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
                  lambdaBe);
     cmd.AddValue("simTime", "Simulation time", simTime);
     cmd.AddValue("numerologyBwp1", "The numerology to be used in bandwidth part 1", numerologyBwp1);
-    cmd.AddValue("centralFrequencyBand1",
+    cmd.AddValue("CenterFrequency",
                  "The system frequency to be used in band 1",
                  centralFrequencyBand1);
-    cmd.AddValue("bandwidthBand1", "The system bandwidth to be used in band 1", bandwidthBand1);
+    // cmd.AddValue("bandwidthBand1", "The system bandwidth to be used in band 1", bandwidthBand1);
+    cmd.AddValue("Bandwidth", "The system bandwidth to be used in band 1", bandwidthBand1);
     cmd.AddValue("numerologyBwp2", "The numerology to be used in bandwidth part 2", numerologyBwp2);
     cmd.AddValue("centralFrequencyBand2",
                  "The system frequency to be used in band 2",
@@ -200,9 +316,42 @@ GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
                  "tag to be appended to output filenames to distinguish simulation campaigns",
                  simTag);
     cmd.AddValue("outputDir", "directory where to store simulation results", outputDir);
-
+    // GUI related flags
+    cmd.AddValue("enableE2FileLogging", "Do not use E2 interface, instead, produce file trace for KPIs",
+                 enableE2FileLogging);
+    cmd.AddValue("hoSinrDifference", "hoSinrDifference", hoSinrDifference); // not implemented in Lena
+    cmd.AddValue("indicationPeriodicity", "E2 Indication Periodicity reports (value in seconds)",
+                 indicationPeriodicity); // not implemented in Lena
+    cmd.AddValue("KPM_E2functionID", "Function ID to subscribe)", g_e2_func_id);
+    cmd.AddValue("RC_E2functionID", "Function ID to subscribe)", g_rc_e2_func_id);
+    cmd.AddValue("IntersideDistanceUEs", "Interside Distance Value",
+                 isd_ue); //not supported due to GRID allocation
+    cmd.AddValue("IntersideDistanceCells", "Interside Distance Value",
+                 isd_cell); //not supported due to GRID allocation
     // Parse the command line
     cmd.Parse(argc, argv);
+
+
+    StringValue stringValue;
+    BooleanValue booleanValue;
+    DoubleValue doubleValue;
+
+
+    GlobalValue::GetValueByName("e2nrEnabled", booleanValue);
+    bool e2nrEnabled = booleanValue.Get();
+    GlobalValue::GetValueByName("e2TermIp", stringValue);
+    std::string e2TermIp = stringValue.Get();
+
+
+    e2nrEnabled = enableE2FileLogging;
+
+    Config::SetDefault("ns3::NrGnbNetDevice::KPM_E2functionID",
+                       DoubleValue(g_e2_func_id));
+    Config::SetDefault("ns3::NrGnbNetDevice::RC_E2functionID",
+                       DoubleValue(g_rc_e2_func_id));
+
+    Config::SetDefault("ns3::NrHelper::E2TermIp", StringValue(e2TermIp));
+    Config::SetDefault("ns3::NrHelper::E2ModeNr", BooleanValue(e2nrEnabled));
 
     /*
      * Check if the frequency is in the allowed range.
@@ -238,28 +387,55 @@ GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
      */
     Config::SetDefault("ns3::NrRlcUm::MaxTxBufferSize", UintegerValue(999999999));
 
-    /*
-     * Create the scenario. In our examples, we heavily use helpers that setup
-     * the gnbs and ue following a pre-defined pattern. Please have a look at the
-     * GridScenarioHelper documentation to see how the nodes will be distributed.
-     */
     int64_t randomStream = 2;
-    GridScenarioHelper gridScenario;
-    gridScenario.SetRows(1);
-    gridScenario.SetColumns(gNbNum);
-    // All units below are in meters
-    gridScenario.SetHorizontalBsDistance(10.0);
-    gridScenario.SetVerticalBsDistance(10.0);
-    gridScenario.SetBsHeight(10);
-    gridScenario.SetUtHeight(1.5);
-    // must be set before BS number
-    gridScenario.SetSectorization(GridScenarioHelper::SINGLE);
-    gridScenario.SetBsNumber(gNbNum);
-    gridScenario.SetUtNumber(ueNumPergNb * gNbNum);
-    gridScenario.SetScenarioHeight(3); // Create a 3x3 scenario where the UE will
-    gridScenario.SetScenarioLength(3); // be distributed.
-    randomStream += gridScenario.AssignStreams(randomStream);
-    gridScenario.CreateScenario();
+
+    NodeContainer gnbContainer;
+    gnbContainer.Create(gNbNum);
+    NodeContainer ueContainer;
+    ueContainer.Create(N_Ues);
+    // Position
+    Vector centerPosition = Vector(maxXAxis / 2, maxYAxis / 2, 3);
+
+    // Install Mobility Model
+    Ptr <ListPositionAllocator> gnbPositionAlloc = CreateObject<ListPositionAllocator>();
+
+    // We want a center with one LTE enb and one mmWave co-located in the same place
+    gnbPositionAlloc->Add(centerPosition);
+    if (gNbNum != 1) {
+        double nConstellation = gNbNum - 1;
+        for (int8_t i = 0; i < nConstellation; ++i) {
+            double x_pos, y_pos;
+            x_pos = isd_cell * cos((2 * M_PI * i) / (nConstellation));
+            y_pos = isd_cell * sin((2 * M_PI * i) / (nConstellation));
+            gnbPositionAlloc->Add(Vector(centerPosition.x + x_pos, centerPosition.y + y_pos, 3));
+        }
+    }
+    // This guarantee that each of the rest BSs is placed at the same distance from the two co-located in the center
+
+
+    MobilityHelper gnbmobility;
+    gnbmobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+    gnbmobility.SetPositionAllocator(gnbPositionAlloc);
+    gnbmobility.Install(gnbContainer);
+
+
+    MobilityHelper uemobility;
+    Ptr <UniformDiscPositionAllocator> uePositionAlloc = CreateObject<UniformDiscPositionAllocator>();
+    uePositionAlloc->SetX(centerPosition.x);
+    uePositionAlloc->SetY(centerPosition.y);
+    uePositionAlloc->SetRho(isd_ue);
+    // Configure mobility model: leave it as random walk model
+    Ptr <UniformRandomVariable> speed = CreateObject<UniformRandomVariable>();
+    speed->SetAttribute("Min", DoubleValue(2.0));
+    speed->SetAttribute("Max", DoubleValue(4.0));
+    uemobility.SetMobilityModel("ns3::RandomWalk2dOutdoorMobilityModel", "Speed",
+                                PointerValue(speed), "Bounds",
+                                RectangleValue(Rectangle(0, maxXAxis, 0, maxYAxis)));
+    // Set initial positions using the position allocator
+    uemobility.SetPositionAllocator(uePositionAlloc);
+    // Install the mobility model on UEs
+    uemobility.Install(ueContainer);
+
 
     /*
      * Create two different NodeContainer for the different traffic type.
@@ -267,34 +443,21 @@ GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
      * while in ueVoice we will put the UEs that will receive the voice traffic.
      */
     NodeContainer ueLowLatContainer;
-   NodeContainer ueVoiceContainer;
-    
-    
-    // for (uint32_t j = 0; j < gridScenario.GetUserTerminals().GetN(); ++j)
-    // {
-    //     Ptr<Node> ue = gridScenario.GetUserTerminals().Get(j);
-        
-    //        ueLowLatContainer.Add(ue);
-    // }    
+    NodeContainer ueVoiceContainer;
 
-    for (uint32_t j = 0; j < gridScenario.GetUserTerminals().GetN(); ++j)
-    {
-        Ptr<Node> ue = gridScenario.GetUserTerminals().Get(j);
-        if (j % 2 == 0)
-        {
-            ueLowLatContainer.Add(ue);
-        }
-        else
-        {
-            ueVoiceContainer.Add(ue);
+
+    for (uint32_t j = 0; j < ueContainer.GetN(); ++j) {
+        Ptr <Node> ueNode = ueContainer.Get(j);
+        if (j % 2 == 0) {
+            ueLowLatContainer.Add(ueNode);
+        } else {
+            ueVoiceContainer.Add(ueNode);
         }
     }
 
-    /*
-     * TODO: Add a print, or a plot, that shows the scenario.
-     */
-    NS_LOG_INFO("Creating " << gridScenario.GetUserTerminals().GetN() << " user terminals and "
-                            << gridScenario.GetBaseStations().GetN() << " gNBs");
+/*
+ * TODO: Add a print, or a plot, that shows the scenario.
+ */
 
     /*
      * Setup the NR module. We create the various helpers needed for the
@@ -518,7 +681,7 @@ GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
      */
 
     NetDeviceContainer gnbNetDev =
-        nrHelper->InstallGnbDevice(gridScenario.GetBaseStations(), allBwps);
+            nrHelper->InstallGnbDevice(gnbContainer, allBwps);
     NetDeviceContainer ueLowLatNetDev = nrHelper->InstallUeDevice(ueLowLatContainer, allBwps);
     NetDeviceContainer ueVoiceNetDev = nrHelper->InstallUeDevice(ueVoiceContainer, allBwps);
 
@@ -577,27 +740,32 @@ GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
     Ipv4StaticRoutingHelper ipv4RoutingHelper;
     ipv4h.SetBase("1.0.0.0", "255.0.0.0");
     Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
-    Ptr<Ipv4StaticRouting> remoteHostStaticRouting =
-        ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
-    remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"), Ipv4Mask("255.0.0.0"), 1);
-    internet.Install(gridScenario.GetUserTerminals());
+    Ptr <Ipv4StaticRouting> remoteHostStaticRouting =
+            ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
+    remoteHostStaticRouting->
+            AddNetworkRouteTo(Ipv4Address("7.0.0.0"), Ipv4Mask("255.0.0.0"),
+                              1);
+    internet.Install(ueContainer);
 
     Ipv4InterfaceContainer ueLowLatIpIface =
         nrEpcHelper->AssignUeIpv4Address(NetDeviceContainer(ueLowLatNetDev));
     Ipv4InterfaceContainer ueVoiceIpIface =
         nrEpcHelper->AssignUeIpv4Address(NetDeviceContainer(ueVoiceNetDev));
 
-    // Set the default gateway for the UEs
-    for (uint32_t j = 0; j < gridScenario.GetUserTerminals().GetN(); ++j)
-    {
-        Ptr<Ipv4StaticRouting> ueStaticRouting = ipv4RoutingHelper.GetStaticRouting(
-            gridScenario.GetUserTerminals().Get(j)->GetObject<Ipv4>());
+// Set the default gateway for the UEs
+    for (uint32_t u = 0; u < ueContainer.GetN(); ++u) {
+        Ptr <Node> ueNode = ueContainer.Get(u);
+        // Set the default gateway for the UE
+        Ptr <Ipv4StaticRouting> ueStaticRouting =
+                ipv4RoutingHelper.GetStaticRouting(ueNode->GetObject<Ipv4>());
         ueStaticRouting->SetDefaultRoute(nrEpcHelper->GetUeDefaultGatewayAddress(), 1);
     }
 
-    // attach UEs to the closest gNB
-    nrHelper->AttachToClosestGnb(ueLowLatNetDev, gnbNetDev);
-   // nrHelper->AttachToClosestGnb(ueVoiceNetDev, gnbNetDev);
+// attach UEs to the closest gNB
+    nrHelper->
+            AttachToClosestGnb(ueLowLatNetDev, gnbNetDev
+    );
+    nrHelper->AttachToClosestGnb(ueVoiceNetDev, gnbNetDev);
 
     /*
      * Traffic part. Install two kind of traffic: low-latency and voice, each
@@ -702,7 +870,34 @@ GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
     FlowMonitorHelper flowmonHelper;
     NodeContainer endpointNodes;
     endpointNodes.Add(remoteHost);
-    endpointNodes.Add(gridScenario.GetUserTerminals());
+    endpointNodes.Add(ueContainer);
+
+    struct timeval time_now{};
+    gettimeofday(&time_now, nullptr
+    );
+    std::string ue_poss_out = "ue_position.txt";
+    std::string gnbs_out = "gnbs.txt";
+
+    NS_LOG_UNCOND("----------");
+    NS_LOG_UNCOND("SIM ID: " << t_startTime_simid);
+    NS_LOG_UNCOND("----------");
+
+    t_startTime_simid = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
+    ClearFile(gnbs_out, t_startTime_simid);
+    ClearFile(ue_poss_out, t_startTime_simid);
+
+    double simTime_dbl = double(simTime.GetSeconds());
+    int numPrints = simTime_dbl / 0.1;
+
+    Simulator::Schedule(Seconds(0.1), &PrintGnuplottableEnbListToFile);
+    for (int i = 1; i < numPrints; i++) {
+        for (uint32_t j = 0; j < ueContainer.GetN(); j++) {
+            Simulator::Schedule(Seconds(i * simTime.GetSeconds() / numPrints),
+                                &PrintPosition,
+                                ueContainer.Get(j),
+                                ue_poss_out);
+        }
+    }
 
     Ptr<ns3::FlowMonitor> monitor = flowmonHelper.Install(endpointNodes);
     monitor->SetAttribute("DelayBinWidth", DoubleValue(0.001));
@@ -851,8 +1046,7 @@ GlobalValue::GetValueByName ("e2nrEnabled", booleanValue);
         {
             return EXIT_FAILURE;
         }
-    }
-    else if (argc == 1 and ueNumPergNb == 9) // called from examples-to-run.py with these parameters
+    } else if (argc == 1 and N_Ues == 9) // called from examples-to-run.py with these parameters
     {
         double toleranceMeanFlowThroughput = 0.0001 * 47.858536;
         double toleranceMeanFlowDelay = 0.0001 * 10.504189;
