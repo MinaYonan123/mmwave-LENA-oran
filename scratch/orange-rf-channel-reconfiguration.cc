@@ -89,13 +89,14 @@ static ns3::GlobalValue
 uint64_t t_startTime_simid;
 double maxXAxis;
 double maxYAxis;
+int cell_it = 0;
 
 void
 PrintGnuplottableEnbListToFile() {
     uint64_t timestamp = t_startTime_simid + (uint64_t) Simulator::Now().GetMilliSeconds();
     std::string filename1 = "gnbs.txt";
     Ptr <NrHelper> nrHelper = CreateObject<NrHelper>();
-    int cell_it = 0;
+    //int cell_it = 0;
     for (NodeList::Iterator it = NodeList::Begin(); it != NodeList::End(); ++it) {
         Ptr <Node> node = *it;
         int nDevs = node->GetNDevices();
@@ -177,13 +178,12 @@ PrintPosition(Ptr <Node> node, std::string Filename) {
                                      velocity.z * velocity.z); // speed in m/s
             double speedKmh = speed * 3.6;
             speedKmh = std::round(speedKmh * 10.0) / 10.0;
-
-
+            int gui_ue_id = imsi - cell_it + 1;
 
             // Log position and SINR
             NS_LOG_UNCOND(std::noshowpos << std::fixed << std::setprecision(2)
-                                         << "Position of UE with IMSI " << std::dec << static_cast<uint32_t>(imsi)
-                                         << " is " << position.x << ":" << position.y << ":" << position.z
+                                         << "Position of UE with IMSI " << std::dec << static_cast<uint32_t>(imsi) << " (UE_ID in GUI: " <<
+                              static_cast<uint32_t>(gui_ue_id) << ") is " << position.x << ":" << position.y << ":" << position.z
                                          << ", Speed: " << speedKmh << " km/h"
                                          << " at time " << Simulator::Now().GetSeconds()
                                          << ", UE connected to Cell: " << std::dec << static_cast<uint32_t>(serving_cell));
@@ -195,7 +195,7 @@ PrintPosition(Ptr <Node> node, std::string Filename) {
                 return;
             }
 
-            outFile << timestamp << "," << static_cast<uint32_t>(imsi) << "," << position.x << "," << position.y
+            outFile << timestamp << "," << static_cast<uint32_t>(gui_ue_id) << "," << position.x << "," << position.y
                     << ",nr,"
                     << static_cast<uint32_t>((serving_cell - 1) / 2 + 1) << "," << t_startTime_simid << std::endl;
 
@@ -205,8 +205,8 @@ PrintPosition(Ptr <Node> node, std::string Filename) {
 }
 
 int
-main(int argc, char* argv[])    
-{   
+main(int argc, char* argv[])
+{
        LogComponentEnableAll (LOG_PREFIX_ALL);
        LogComponentEnable ("E2Termination", LOG_LEVEL_ALL);
        LogComponentEnable ("rfchannel", LOG_LEVEL_ALL);
@@ -625,20 +625,20 @@ main(int argc, char* argv[])
     nrHelper->SetGnbAntennaAttribute("PolSlantAngle", DoubleValue(polSlantAngleGnb* (M_PI / 180)));
 //==============================================================================
 
-  
-/*  
-  
+
+/*
+
     // Antennas for all the UEs
     nrHelper->SetUeAntennaAttribute("NumRows", UintegerValue(2));
    nrHelper->SetUeAntennaAttribute("NumColumns", UintegerValue(4));
     nrHelper->SetUeAntennaAttribute("AntennaElement",
                                     PointerValue(CreateObject<IsotropicAntennaModel>()));
 
-  
-  
-  
-  
-  
+
+
+
+
+
     // Antennas for all the gNbs
     nrHelper->SetGnbAntennaAttribute("NumRows", UintegerValue(4));
     nrHelper->SetGnbAntennaAttribute("NumColumns", UintegerValue(8));
@@ -647,7 +647,7 @@ main(int argc, char* argv[])
 */
     uint32_t bwpIdForLowLat = 0;
     uint32_t bwpIdForVoice = 0;
-    
+
     if (doubleOperationalBand)
     {
         bwpIdForVoice = 1;
@@ -878,13 +878,15 @@ main(int argc, char* argv[])
     std::string ue_poss_out = "ue_position.txt";
     std::string gnbs_out = "gnbs.txt";
 
-    NS_LOG_UNCOND("----------");
-    NS_LOG_UNCOND("SIM ID: " << t_startTime_simid);
-    NS_LOG_UNCOND("----------");
+
 
     t_startTime_simid = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
     ClearFile(gnbs_out, t_startTime_simid);
     ClearFile(ue_poss_out, t_startTime_simid);
+
+    NS_LOG_UNCOND("----------");
+    NS_LOG_UNCOND("SIM ID: " << t_startTime_simid);
+    NS_LOG_UNCOND("----------");
 
     double simTime_dbl = double(simTime.GetSeconds());
     int numPrints = simTime_dbl / 0.1;
@@ -904,10 +906,10 @@ main(int argc, char* argv[])
     monitor->SetAttribute("JitterBinWidth", DoubleValue(0.001));
     monitor->SetAttribute("PacketSizeBinWidth", DoubleValue(20));
 //=======================================================================================
-  /* 
+  /*
       // configure REM parameters
     uint16_t sector = 0;
-    double theta = 60; 
+    double theta = 60;
     double xMin = -1000.0;
     double xMax = 1000.0;
     uint16_t xRes = 100;
@@ -915,8 +917,8 @@ main(int argc, char* argv[])
     double yMax = 1000.0;
     uint16_t yRes = 100;
 
-    
-    
+
+
     Ptr<NrRadioEnvironmentMapHelper> remHelper = CreateObject<NrRadioEnvironmentMapHelper>();
     remHelper->SetMinX(xMin);
     remHelper->SetMaxX(xMax);
@@ -926,7 +928,7 @@ main(int argc, char* argv[])
     remHelper->SetResY(yRes);
     remHelper->SetSimTag(simTag);
     remHelper->SetRemMode(NrRadioEnvironmentMapHelper::BEAM_SHAPE);
-    
+
     // configure beam that will be shown in REM map
     DynamicCast<NrGnbNetDevice>(gnbNetDev.Get(0))
         ->GetPhy(0)
