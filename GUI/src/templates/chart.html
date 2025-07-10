@@ -742,6 +742,8 @@
 
 <script>
     var defaultScenario = "scratch/scenario-zero-with_parallel_loging.cc";
+    var defaultScenario_nr = "scratch/orange-rf-channel-reconfiguration.cc";
+
     const host_ns3 = "{{ host_ns3 }}";
     document.getElementById('flexric').addEventListener('change', function () {
         var e2TermIpField = document.getElementById('e2TermIp');
@@ -1198,14 +1200,14 @@
     function setFlags() {
         const select = document.getElementById("scenario");
         const flags = document.getElementById("flags");
-        if (select.value == defaultScenario) {
+
+        if (select.value === defaultScenario || select.value === defaultScenario_nr) {
             flags.checked = true;
             flags.disabled = false;
         } else {
             flags.checked = false;
             flags.disabled = true;
         }
-
     }
 
     !function buildScenarioOptions() {

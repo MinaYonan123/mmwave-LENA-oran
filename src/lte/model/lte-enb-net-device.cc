@@ -352,29 +352,29 @@ LteEnbNetDevice::LteEnbNetDevice ()
       m_cuUpFileName (),
       m_cuCpFileName ()
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 }
 
-LteEnbNetDevice::~LteEnbNetDevice (void)
+LteEnbNetDevice::~LteEnbNetDevice(void)
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 }
 
 void
-LteEnbNetDevice::DoDispose ()
+LteEnbNetDevice::DoDispose()
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 
-  m_rrc->Dispose ();
-  m_rrc = 0;
+    m_rrc->Dispose();
+    m_rrc = 0;
 
-  m_handoverAlgorithm->Dispose ();
-  m_handoverAlgorithm = 0;
+    m_handoverAlgorithm->Dispose();
+    m_handoverAlgorithm = 0;
 
-  if (m_anr != 0)
+    if (m_anr)
     {
-      m_anr->Dispose ();
-      m_anr = 0;
+        m_anr->Dispose();
+        m_anr = 0;
     }
   m_componentCarrierManager->Dispose ();
   m_componentCarrierManager = 0;
@@ -382,79 +382,79 @@ LteEnbNetDevice::DoDispose ()
   // of its PHY, MAC, FFR and scheduler instance
   for (uint32_t i = 0; i < m_ccMap.size (); i++)
     {
-      m_ccMap.at (i)->Dispose ();
-      m_ccMap.at (i) = 0;
+        m_ccMap.at(i)->Dispose();
+        m_ccMap.at(i) = 0;
     }
 
-  LteNetDevice::DoDispose ();
+    LteNetDevice::DoDispose();
 }
 
 Ptr<LteEnbMac>
-LteEnbNetDevice::GetMac () const
+LteEnbNetDevice::GetMac() const
 {
-  return m_ccMap.at (0)->GetMac ();
+    return m_ccMap.at(0)->GetMac();
 }
 
 Ptr<LteEnbPhy>
-LteEnbNetDevice::GetPhy () const
+LteEnbNetDevice::GetPhy() const
 {
-  return m_ccMap.at (0)->GetPhy ();
+    return m_ccMap.at(0)->GetPhy();
 }
 
 Ptr<LteEnbMac>
-LteEnbNetDevice::GetMac (uint8_t index)
+LteEnbNetDevice::GetMac(uint8_t index)
 {
-  return m_ccMap.at (index)->GetMac ();
+    return m_ccMap.at(index)->GetMac();
 }
 
 Ptr<LteEnbPhy>
 LteEnbNetDevice::GetPhy (uint8_t index)
 {
-  return m_ccMap.at (index)->GetPhy ();
+    return m_ccMap.at(index)->GetPhy();
 }
 
 Ptr<LteEnbRrc>
-LteEnbNetDevice::GetRrc () const
+LteEnbNetDevice::GetRrc() const
 {
-  return m_rrc;
+    return m_rrc;
 }
 
 Ptr<LteEnbComponentCarrierManager>
-LteEnbNetDevice::GetComponentCarrierManager () const
+LteEnbNetDevice::GetComponentCarrierManager() const
 {
   return m_componentCarrierManager;
 }
 
 uint16_t
-LteEnbNetDevice::GetCellId () const
+LteEnbNetDevice::GetCellId() const
 {
-  return m_cellId;
+    return m_cellId;
 }
 
 bool
-LteEnbNetDevice::HasCellId (uint16_t cellId) const
+LteEnbNetDevice::HasCellId(uint16_t cellId) const
 {
   for (auto &it : m_ccMap)
     {
-      if (it.second->GetCellId () == cellId)
+        if (it.second->GetCellId() == cellId)
         {
-          return true;
+            return true;
         }
     }
-  return false;
+    return false;
 }
 
 uint8_t
-LteEnbNetDevice::GetUlBandwidth () const
+LteEnbNetDevice::GetUlBandwidth() const
 {
-  return m_ulBandwidth;
+    return m_ulBandwidth;
 }
 
 void
-LteEnbNetDevice::SetUlBandwidth (uint8_t bw)
+LteEnbNetDevice::SetUlBandwidth(uint8_t bw)
 {
-  NS_LOG_FUNCTION (this << uint16_t (bw));
-  switch (bw)
+    NS_LOG_FUNCTION(this << uint16_t(bw));
+    switch (bw)
     {
     case 6:
     case 15:
@@ -462,26 +462,26 @@ LteEnbNetDevice::SetUlBandwidth (uint8_t bw)
     case 50:
     case 75:
     case 100:
-      m_ulBandwidth = bw;
-      break;
+        m_ulBandwidth = bw;
+        break;
 
     default:
-      NS_FATAL_ERROR ("invalid bandwidth value " << (uint16_t) bw);
-      break;
+        NS_FATAL_ERROR("invalid bandwidth value " << (uint16_t)bw);
+        break;
     }
 }
 
 uint8_t
-LteEnbNetDevice::GetDlBandwidth () const
+LteEnbNetDevice::GetDlBandwidth() const
 {
-  return m_dlBandwidth;
+    return m_dlBandwidth;
 }
 
 void
-LteEnbNetDevice::SetDlBandwidth (uint8_t bw)
+LteEnbNetDevice::SetDlBandwidth(uint8_t bw)
 {
-  NS_LOG_FUNCTION (this << uint16_t (bw));
-  switch (bw)
+    NS_LOG_FUNCTION(this << uint16_t(bw));
+    switch (bw)
     {
     case 6:
     case 15:
@@ -489,84 +489,84 @@ LteEnbNetDevice::SetDlBandwidth (uint8_t bw)
     case 50:
     case 75:
     case 100:
-      m_dlBandwidth = bw;
-      break;
+        m_dlBandwidth = bw;
+        break;
 
     default:
-      NS_FATAL_ERROR ("invalid bandwidth value " << (uint16_t) bw);
-      break;
+        NS_FATAL_ERROR("invalid bandwidth value " << (uint16_t)bw);
+        break;
     }
 }
 
 uint32_t
-LteEnbNetDevice::GetDlEarfcn () const
+LteEnbNetDevice::GetDlEarfcn() const
 {
-  return m_dlEarfcn;
+    return m_dlEarfcn;
 }
 
 void
-LteEnbNetDevice::SetDlEarfcn (uint32_t earfcn)
+LteEnbNetDevice::SetDlEarfcn(uint32_t earfcn)
 {
-  NS_LOG_FUNCTION (this << earfcn);
-  m_dlEarfcn = earfcn;
+    NS_LOG_FUNCTION(this << earfcn);
+    m_dlEarfcn = earfcn;
 }
 
 uint32_t
-LteEnbNetDevice::GetUlEarfcn () const
+LteEnbNetDevice::GetUlEarfcn() const
 {
-  return m_ulEarfcn;
+    return m_ulEarfcn;
 }
 
 void
-LteEnbNetDevice::SetUlEarfcn (uint32_t earfcn)
+LteEnbNetDevice::SetUlEarfcn(uint32_t earfcn)
 {
-  NS_LOG_FUNCTION (this << earfcn);
-  m_ulEarfcn = earfcn;
+    NS_LOG_FUNCTION(this << earfcn);
+    m_ulEarfcn = earfcn;
 }
 
 uint32_t
-LteEnbNetDevice::GetCsgId () const
+LteEnbNetDevice::GetCsgId() const
 {
-  return m_csgId;
+    return m_csgId;
 }
 
 void
-LteEnbNetDevice::SetCsgId (uint32_t csgId)
+LteEnbNetDevice::SetCsgId(uint32_t csgId)
 {
-  NS_LOG_FUNCTION (this << csgId);
-  m_csgId = csgId;
-  UpdateConfig (); // propagate the change to RRC level
+    NS_LOG_FUNCTION(this << csgId);
+    m_csgId = csgId;
+    UpdateConfig(); // propagate the change to RRC level
 }
 
 bool
-LteEnbNetDevice::GetCsgIndication () const
+LteEnbNetDevice::GetCsgIndication() const
 {
-  return m_csgIndication;
+    return m_csgIndication;
 }
 
 void
-LteEnbNetDevice::SetCsgIndication (bool csgIndication)
+LteEnbNetDevice::SetCsgIndication(bool csgIndication)
 {
-  NS_LOG_FUNCTION (this << csgIndication);
-  m_csgIndication = csgIndication;
-  UpdateConfig (); // propagate the change to RRC level
+    NS_LOG_FUNCTION(this << csgIndication);
+    m_csgIndication = csgIndication;
+    UpdateConfig(); // propagate the change to RRC level
 }
 
 std::map<uint8_t, Ptr<ComponentCarrierEnb>>
 LteEnbNetDevice::GetCcMap ()
 {
-  return m_ccMap;
+    return m_ccMap;
 }
 
 void
 LteEnbNetDevice::SetCcMap (std::map<uint8_t, Ptr<ComponentCarrierEnb>> ccm)
 {
-  NS_ASSERT_MSG (!m_isConfigured, "attempt to set CC map after configuration");
-  m_ccMap = ccm;
+    NS_ASSERT_MSG(!m_isConfigured, "attempt to set CC map after configuration");
+    m_ccMap = ccm;
 }
 
 void
-LteEnbNetDevice::DoInitialize (void)
+LteEnbNetDevice::DoInitialize(void)
 {
   NS_LOG_FUNCTION (this);
   m_isConstructed = true;
@@ -580,12 +580,12 @@ LteEnbNetDevice::DoInitialize (void)
   m_componentCarrierManager->Initialize ();
   m_handoverAlgorithm->Initialize ();
 
-  if (m_anr != 0)
+    if (m_anr)
     {
-      m_anr->Initialize ();
+        m_anr->Initialize();
     }
 
-  m_ffrAlgorithm->Initialize ();
+    m_ffrAlgorithm->Initialize();
 }
 
 bool
@@ -600,19 +600,19 @@ LteEnbNetDevice::Send (Ptr<Packet> packet, const Address &dest, uint16_t protoco
 }
 
 void
-LteEnbNetDevice::UpdateConfig (void)
+LteEnbNetDevice::UpdateConfig(void)
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 
-  if (m_isConstructed)
+    if (m_isConstructed)
     {
-      if (!m_isConfigured)
+        if (!m_isConfigured)
         {
-          NS_LOG_LOGIC (this << " Configure cell " << m_cellId);
-          // we have to make sure that this function is called only once
-          NS_ASSERT (!m_ccMap.empty ());
-          m_rrc->ConfigureCell (m_ccMap);
-          m_isConfigured = true;
+            NS_LOG_LOGIC(this << " Configure cell " << m_cellId);
+            // we have to make sure that this function is called only once
+            NS_ASSERT(!m_ccMap.empty());
+            m_rrc->ConfigureCell(m_ccMap);
+            m_isConfigured = true;
         }
 
       NS_LOG_LOGIC (this << " Updating SIB1 of cell " << m_cellId << " with CSG ID " << m_csgId
@@ -693,7 +693,7 @@ LteEnbNetDevice::UpdateConfig (void)
             }
         }
     }
-  else
+    else
     {
       /*
              * Lower layers are not ready yet, so do nothing now and expect

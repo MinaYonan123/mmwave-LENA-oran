@@ -595,7 +595,7 @@ MmWaveEnbNetDevice::UpdateConfig (void)
 
           // trigger E2Termination activation for when the simulation starts
           // schedule at start time
-          if (m_e2term != 0)
+          if (m_e2term)
             {
               NS_LOG_DEBUG ("E2sim start in cell " << m_cellId << " force CSV logging "
                                                    << m_forceE2FileLogging);
@@ -1279,15 +1279,15 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuCp (std::string plmId)
 uint32_t
 MmWaveEnbNetDevice::GetRlcBufferOccupancy (Ptr<LteRlc> rlc) const
 {
-  if (DynamicCast<LteRlcAm> (rlc) != 0)
+  if (DynamicCast<LteRlcAm> (rlc))
     {
       return DynamicCast<LteRlcAm> (rlc)->GetTxBufferSize ();
     }
-  else if (DynamicCast<LteRlcUm> (rlc) != 0)
+  else if (DynamicCast<LteRlcUm> (rlc))
     {
       return DynamicCast<LteRlcUm> (rlc)->GetTxBufferSize ();
     }
-  else if (DynamicCast<LteRlcUmLowLat> (rlc) != 0)
+  else if (DynamicCast<LteRlcUmLowLat> (rlc))
     {
       return DynamicCast<LteRlcUmLowLat> (rlc)->GetTxBufferSize ();
     }
@@ -1299,7 +1299,21 @@ MmWaveEnbNetDevice::GetRlcBufferOccupancy (Ptr<LteRlc> rlc) const
 
 Ptr<KpmIndicationMessage>
 MmWaveEnbNetDevice::BuildRicIndicationMessageDu (std::string plmId, uint16_t nrCellId)
-{
+{  
+  bool local_m_forceE2FileLogging;
+
+            if (m_forceE2FileLogging)
+            {
+                local_m_forceE2FileLogging = true;
+            }
+            else
+            {
+                local_m_forceE2FileLogging = false;
+            }
+            if (m_e2andlog)
+            {
+                local_m_forceE2FileLogging = true;
+            }
   Ptr<MmWaveIndicationMessageHelper> indicationMessageHelper =
       Create<MmWaveIndicationMessageHelper> (IndicationMessageHelper::IndicationMessageType::Du,
                                              m_forceE2FileLogging, m_reducedPmValues);

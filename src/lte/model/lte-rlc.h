@@ -25,21 +25,19 @@
 #ifndef LTE_RLC_H
 #define LTE_RLC_H
 
-#include <ns3/simple-ref-count.h>
-#include <ns3/packet.h>
-#include "ns3/uinteger.h"
-#include "ns3/traced-value.h"
-#include "ns3/trace-source-accessor.h"
-#include "ns3/nstime.h"
-#include <ns3/epc-x2-sap.h>
-
-#include "ns3/object.h"
-
-#include "ns3/lte-rlc-sap.h"
 #include "ns3/lte-mac-sap.h"
+#include "ns3/lte-rlc-sap.h"
+#include "ns3/nstime.h"
+#include "ns3/object.h"
+#include "ns3/trace-source-accessor.h"
+#include "ns3/traced-value.h"
+#include "ns3/uinteger.h"
+#include <ns3/epc-x2-sap.h>
+#include <ns3/packet.h>
+#include <ns3/simple-ref-count.h>
 
-namespace ns3 {
-
+namespace ns3
+{
 
 // class LteRlcSapProvider;
 // class LteRlcSapUser;
@@ -47,26 +45,23 @@ namespace ns3 {
 // class LteMacSapProvider;
 // class LteMacSapUser;
 
-
 class LteRlc;
 
 class LteRlcSpecificLteMacSapUser : public LteMacSapUser
 {
+  public:
+    LteRlcSpecificLteMacSapUser(LteRlc* rlc);
 
-public:
-  LteRlcSpecificLteMacSapUser (LteRlc* rlc);
+    // Interface implemented from LteMacSapUser
+    virtual void NotifyTxOpportunity(LteMacSapUser::TxOpportunityParameters params);
+    virtual void NotifyHarqDeliveryFailure();
+    virtual void NotifyHarqDeliveryFailure(uint8_t harqId);
+    virtual void ReceivePdu(LteMacSapUser::ReceivePduParameters params);
 
-  // Interface implemented from LteMacSapUser
-  virtual void NotifyTxOpportunity (LteMacSapUser::TxOpportunityParameters params);
-  virtual void NotifyHarqDeliveryFailure ();
-  virtual void NotifyHarqDeliveryFailure (uint8_t harqId);
-  virtual void ReceivePdu (LteMacSapUser::ReceivePduParameters params);
-
-private:
-  LteRlcSpecificLteMacSapUser ();
-  LteRlc* m_rlc;
+  private:
+    LteRlcSpecificLteMacSapUser();
+    LteRlc* m_rlc;
 };
-
 
 /**
  * This abstract base class defines the API to interact with the Radio Link Control
@@ -268,8 +263,6 @@ protected:
   uint32_t m_txBytesInReportingPeriod;
 };
 
-
-
 /**
  * LTE_RLC Saturation Mode (SM): simulation-specific mode used for
  * experiments that do not need to consider the layers above the LTE_RLC.
@@ -280,33 +273,27 @@ protected:
  */
 class LteRlcSm : public LteRlc
 {
-public:
-  LteRlcSm ();
-  virtual ~LteRlcSm ();
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
-  static TypeId GetTypeId (void);
-  virtual void DoInitialize ();
-  virtual void DoDispose ();
+  public:
+    LteRlcSm();
+    virtual ~LteRlcSm();
+    /**
+     * \brief Get the type ID.
+     * \return the object TypeId
+     */
+    static TypeId GetTypeId(void);
+    virtual void DoInitialize();
+    virtual void DoDispose();
 
-  virtual void DoTransmitPdcpPdu (Ptr<Packet> p);
-  virtual void DoNotifyTxOpportunity (LteMacSapUser::TxOpportunityParameters txOpParams);
-  virtual void DoNotifyHarqDeliveryFailure ();
-  virtual void DoSendMcPdcpSdu (EpcX2Sap::UeDataParams params);
-  virtual void DoReceivePdu (LteMacSapUser::ReceivePduParameters rxPduParams);
+    virtual void DoTransmitPdcpPdu(Ptr<Packet> p);
+    virtual void DoNotifyTxOpportunity(LteMacSapUser::TxOpportunityParameters txOpParams);
+    virtual void DoNotifyHarqDeliveryFailure();
+    virtual void DoSendMcPdcpSdu(EpcX2Sap::UeDataParams params);
+    virtual void DoReceivePdu(LteMacSapUser::ReceivePduParameters rxPduParams);
 
-
-
-private:
-  /// Report buffer status
-  void ReportBufferStatus ();
-
+  private:
+    /// Report buffer status
+    void ReportBufferStatus();
 };
-
-
-
 
 // /**
 //  * Implements LTE_RLC Transparent Mode (TM), see  3GPP TS 36.322
@@ -318,7 +305,6 @@ private:
 //   virtual ~LteRlcTm ();
 
 // };
-
 
 // /**
 //  * Implements LTE_RLC Unacknowledged Mode (UM), see  3GPP TS 36.322
@@ -341,10 +327,6 @@ private:
 // public:
 //   virtual ~LteRlcAm ();
 // };
-
-
-
-
 
 } // namespace ns3
 

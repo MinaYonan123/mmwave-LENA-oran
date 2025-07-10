@@ -62,8 +62,8 @@ Ptr<DeviceEnergyModel>
 MmWaveRadioEnergyModelHelper::DoInstall(Ptr<NetDevice> device,
                                             Ptr<EnergySource> source) const
 {
-    NS_ASSERT (device != NULL);
-    NS_ASSERT (source != NULL);
+    NS_ASSERT (device);
+    NS_ASSERT (source);
     std::string deviceName = device->GetInstanceTypeId ().GetName ();
     if (deviceName.compare ("ns3::MmWaveUeNetDevice") != 0)
     {
@@ -72,7 +72,7 @@ MmWaveRadioEnergyModelHelper::DoInstall(Ptr<NetDevice> device,
 
     Ptr<Node> node = device->GetNode ();
     Ptr<MmWaveRadioEnergyModel> model = m_radioEnergy.Create ()->GetObject<MmWaveRadioEnergyModel> ();
-    NS_ASSERT (model != NULL);
+    NS_ASSERT (model);
     model->SetNode (node);
     Ptr<mmwave::MmWaveUeNetDevice> mmwaveDevice;
     Ptr<mmwave::McUeNetDevice> mcDevice;

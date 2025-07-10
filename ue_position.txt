@@ -1,0 +1,1 @@
+timestamp,id,x,y,type,cell,simid

@@ -1,7 +1,7 @@
 /* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 /*
  * Copyright (c) 2011-2012 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- * Copyright (c) 2016, University of Padova, Dep. of Information Engineering, SIGNET lab. 
+ * Copyright (c) 2016, University of Padova, Dep. of Information Engineering, SIGNET lab.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -23,29 +23,28 @@
 #ifndef MC_ENB_PDCP_H
 #define MC_ENB_PDCP_H
 
-#include "ns3/traced-value.h"
+#include "ns3/object.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/random-variable-stream.h"
-
-#include "ns3/object.h"
-
+#include "ns3/traced-value.h"
 #include <ns3/epc-x2-sap.h>
 #include <ns3/epc-x2.h>
 #include <ns3/lte-pdcp-sap.h>
-#include <ns3/lte-rlc-sap.h>
 #include <ns3/lte-pdcp.h>
+#include <ns3/lte-rlc-sap.h>
 
-namespace ns3 {
+namespace ns3
+{
 
 /**
  * MC eNB PDCP entity. It has 2 interfaces to the 2 RLC layers,
  * the local and the remote one. The interface to the local is a
- * Rlc Sap, while the interface to the remote is offered by the 
+ * Rlc Sap, while the interface to the remote is offered by the
  * EpcX2Sap.
  * Note: there is a single IMSI and lcid (no problem in having the same
  * in the 2 eNBs), but 2 rnti.
  */
-class McEnbPdcp : public LtePdcp 
+class McEnbPdcp : public LtePdcp
 {
   friend class McPdcpSpecificLteRlcSapUser;
   friend class LtePdcpSpecificLtePdcpSapProvider<McEnbPdcp>;
@@ -265,7 +264,6 @@ private:
    */
   void DoTransmitPdcpSduMmWave (Ptr<Packet> p);
 };
-
 
 } // namespace ns3
 
