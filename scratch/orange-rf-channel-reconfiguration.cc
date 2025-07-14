@@ -81,11 +81,11 @@ static ns3::GlobalValue g_rc_e2_func_id("RC_E2functionID", "Function ID to subsc
                                         ns3::DoubleValue(3),
                                         ns3::MakeDoubleChecker<double>());
 static ns3::GlobalValue g_e2nrEnabled("e2nrEnabled", "If true, send NR E2 reports",
-                                      ns3::BooleanValue(true), ns3::MakeBooleanChecker());
+                                      ns3::BooleanValue(false), ns3::MakeBooleanChecker());
 static ns3::GlobalValue
         g_enableE2FileLogging("enableE2FileLogging",
                               "If true, generate offline file logging instead of connecting to RIC",
-                              ns3::BooleanValue(true), ns3::MakeBooleanChecker());
+                              ns3::BooleanValue(false), ns3::MakeBooleanChecker());
 uint64_t t_startTime_simid;
 double maxXAxis;
 double maxYAxis;
@@ -217,14 +217,14 @@ main(int argc, char* argv[])
      * possibly overridden below when command-line arguments are parsed.
      */
     // Scenario parameters (that we will use inside this script):
-    uint16_t gNbNum = 1;
-    uint16_t N_Ues = 3;
+    uint16_t gNbNum = 3;
+    uint16_t N_Ues = 6;
     bool logging = true;
     bool doubleOperationalBand = false;
 
     // Traffic parameters (that we will use inside this script):
     uint32_t udpPacketSizeULL = 1500;
-    uint32_t udpPacketSizeBe = 1252;
+    uint32_t udpPacketSizeBe = 1252 ;
     uint32_t lambdaULL = 10000;
     uint32_t lambdaBe = 10000;
 
@@ -242,9 +242,10 @@ main(int argc, char* argv[])
     // In this example the BW has been split into two BWPs
     // We will take the input from the command line, and then we
     // will pass them inside the NR module.
-    uint16_t numerologyBwp1 = 4;
-    double centralFrequencyBand1 = 28e9;
-    double bandwidthBand1 = 50e6;
+    uint16_t numerologyBwp1 = 1;
+    double centralFrequencyBand1 = 3.5e9;
+    double bandwidthBand1 = 100e6;
+
     uint16_t numerologyBwp2 = 2;
     double centralFrequencyBand2 = 28.2e9;
     double bandwidthBand2 = 50e6;
@@ -343,7 +344,7 @@ main(int argc, char* argv[])
     std::string e2TermIp = stringValue.Get();
 
 
-    e2nrEnabled = enableE2FileLogging;
+    //e2nrEnabled = enableE2FileLogging;
 
     Config::SetDefault("ns3::NrGnbNetDevice::KPM_E2functionID",
                        DoubleValue(g_e2_func_id));
@@ -695,10 +696,12 @@ main(int argc, char* argv[])
 
     // Get the first netdevice (gnbNetDev.Get (0)) and the first bandwidth part (0)
     // and set the attribute.
-    nrHelper->GetGnbPhy(gnbNetDev.Get(0), 0)
-        ->SetAttribute("Numerology", UintegerValue(numerologyBwp1));
-    nrHelper->GetGnbPhy(gnbNetDev.Get(0), 0)
-        ->SetAttribute("TxPower", DoubleValue(10 * log10((bandwidthBand1 / totalBandwidth) * x)));
+    for (uint32_t numCell = 0; numCell < gnbNetDev.GetN(); ++numCell) {
+        nrHelper->GetGnbPhy(gnbNetDev.Get(numCell), 0)
+                ->SetAttribute("Numerology", UintegerValue(numerologyBwp1));
+        nrHelper->GetGnbPhy(gnbNetDev.Get(numCell), 0)
+                ->SetAttribute("TxPower", DoubleValue(35));
+    }
 
     if (doubleOperationalBand)
     {
