@@ -99,6 +99,53 @@ double maxXAxis;
 double maxYAxis;
 int cell_it = 0;
 
+void SetFlowMonitorOnAllGnbDevices(Ptr<FlowMonitor> monitor,
+                              Ptr<Ipv4FlowClassifier> classifier) {
+    for (NodeList::Iterator it = NodeList::Begin(); it != NodeList::End(); ++it) {
+        Ptr<Node> node = *it;
+        int nDevs = node->GetNDevices();
+        for (int j = 0; j < nDevs; ++j) {
+            Ptr<NetDevice> dev = node->GetDevice(j);
+            Ptr<NrGnbNetDevice> nrdev = dev->GetObject<NrGnbNetDevice>();
+            if (!nrdev)
+                continue;
+            nrdev->SetFlowMonitor(monitor);
+            nrdev->SetIpv4FlowClassifier(classifier);
+            // Optionally print/log:
+            NS_LOG_UNCOND("Attached FlowMonitor to gNB device on node "
+                          << node->GetId());
+        }
+    }
+}
+
+struct CqiFeedbackTraceStats {
+    Ptr<MinMaxAvgTotalCalculator<uint8_t>> m_ri;
+    Ptr<MinMaxAvgTotalCalculator<uint8_t>> m_mcs;
+
+    CqiFeedbackTraceStats() {
+        m_ri = CreateObject<MinMaxAvgTotalCalculator<uint8_t>>();
+        m_mcs = CreateObject<MinMaxAvgTotalCalculator<uint8_t>>();
+    }
+
+    CqiFeedbackTraceStats(uint8_t rank, uint8_t mcs) {
+        m_ri = CreateObject<MinMaxAvgTotalCalculator<uint8_t>>();
+        m_ri->Update(rank);
+        m_mcs = CreateObject<MinMaxAvgTotalCalculator<uint8_t>>();
+        m_mcs->Update(mcs);
+    }
+};
+
+void CqiFeedbackTracedCallback(std::map<uint16_t, CqiFeedbackTraceStats> *stats,
+                          uint16_t rnti, [[maybe_unused]] uint8_t cqi,
+                          uint8_t mcs, uint8_t rank) {
+    auto it = stats->find(rnti);
+    if (it != stats->end()) {
+        it->second.m_ri->Update(rank);
+        it->second.m_mcs->Update(mcs);
+    } else {
+        (*stats)[rnti] = CqiFeedbackTraceStats(rank, mcs);
+    }
+}
 
 void
 PrintGnuplottableEnbListToFile()
@@ -236,6 +283,8 @@ main(int argc, char* argv[])
     LogComponentEnable("rfchannel", LOG_LEVEL_ALL);
     // LogComponentEnable("NrGnbNetDevice", LOG_LEVEL_ALL);
 
+    struct timeval time_now{};
+    gettimeofday(&time_now, nullptr);
     t_startTime_simid = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
 
     /*
@@ -911,8 +960,6 @@ main(int argc, char* argv[])
     endpointNodes.Add(remoteHost);
     endpointNodes.Add(ueContainer);
 
-    struct timeval time_now{};
-    gettimeofday(&time_now, nullptr);
     std::string ue_poss_out = "ue_position.txt";
     std::string gnbs_out = "gnbs.txt";
 
@@ -953,20 +1000,21 @@ main(int argc, char* argv[])
       uint16_t xRes = 100;
       double yMin = -1000.0;
       double yMax = 1000.0;
-      uint16_t yRes = 100;
+      uint16_t yRes = 100; */
 
 
+  // Install FlowMonitor, get classifier
+  Ptr<FlowMonitor> monitor_ms = flowmonHelper.InstallAll();
+  Ptr<Ipv4FlowClassifier> classifier_ms =
+      DynamicCast<Ipv4FlowClassifier>(flowmonHelper.GetClassifier());
 
-      Ptr<NrRadioEnvironmentMapHelper> remHelper = CreateObject<NrRadioEnvironmentMapHelper>();
-      remHelper->SetMinX(xMin);
-      remHelper->SetMaxX(xMax);
-      remHelper->SetResX(xRes);
-      remHelper->SetMinY(yMin);
-      remHelper->SetMaxY(yMax);
-      remHelper->SetResY(yRes);
-      remHelper->SetSimTag(simTag);
-      remHelper->SetRemMode(NrRadioEnvironmentMapHelper::BEAM_SHAPE);
-
+  // Schedule sampling before simulation starts
+  // Simulator::Schedule(MilliSeconds(udpAppStartTime_int), &SampleThroughput,
+  // monitor, classifier, 0.1);
+  Simulator::Schedule(MilliSeconds(0), &SetFlowMonitorOnAllGnbDevices,
+                      monitor_ms, classifier_ms);
+  // SetFlowMonitorOnAllGnbDevices(monitor, classifier);
+/*
       // configure beam that will be shown in REM map
       DynamicCast<NrGnbNetDevice>(gnbNetDev.Get(0))
           ->GetPhy(0)

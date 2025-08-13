@@ -161,6 +161,8 @@ add_compile_options(-Wno-deprecated-enum-enum-conversion)
 # Build NS3 library core
 add_subdirectory(src)
 
+find_package(CURL REQUIRED)
+
 # Build NS library examples
 add_subdirectory(examples)
 

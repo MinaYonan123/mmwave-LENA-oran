@@ -51,10 +51,20 @@ function(create_scratch source_files)
       ${lib-ns3-static}
     )
   else()
+	  #    target_link_libraries(
+	  #      ${target_prefix}${scratch_name} ${LIB_AS_NEEDED_PRE} "${ns3-libs}" "${ns3-contrib-libs}"
+	  #      "${ns3-external-libs}" ${LIB_AS_NEEDED_POST}
+	  #    )
     target_link_libraries(
-      ${target_prefix}${scratch_name} ${LIB_AS_NEEDED_PRE} "${ns3-libs}" "${ns3-contrib-libs}"
-      "${ns3-external-libs}" ${LIB_AS_NEEDED_POST}
-    )
+      ${target_prefix}${scratch_name}
+      ${LIB_AS_NEEDED_PRE}
+      "${ns3-libs}"
+      "${ns3-contrib-libs}"
+      "${ns3-external-libs}"
+      CURL::libcurl
+      ${LIB_AS_NEEDED_POST}
+)
+
   endif()
   set_runtime_outputdirectory(
     ${scratch_name} ${scratch_directory}/ ${target_prefix}
