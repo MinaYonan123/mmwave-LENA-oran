@@ -44,6 +44,25 @@ $  ./ns3 run cttc-nr-mimo-demo -- --enableMimoFeedback=0
 using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("CttcNrMimoDemo");
 
+void SetFlowMonitorOnAllGnbDevices(Ptr<FlowMonitor> monitor,
+                              Ptr<Ipv4FlowClassifier> classifier) {
+    for (NodeList::Iterator it = NodeList::Begin(); it != NodeList::End(); ++it) {
+        Ptr<Node> node = *it;
+        int nDevs = node->GetNDevices();
+        for (int j = 0; j < nDevs; ++j) {
+            Ptr<NetDevice> dev = node->GetDevice(j);
+            Ptr<NrGnbNetDevice> nrdev = dev->GetObject<NrGnbNetDevice>();
+            if (!nrdev)
+                continue;
+            nrdev->SetFlowMonitor(monitor);
+            nrdev->SetIpv4FlowClassifier(classifier);
+            // Optionally print/log:
+            NS_LOG_UNCOND("Attached FlowMonitor to gNB device on node "
+                          << node->GetId());
+        }
+    }
+}
+
 int
 main(int argc, char* argv[])
 {
@@ -514,6 +533,17 @@ main(int argc, char* argv[])
     monitor->SetAttribute("DelayBinWidth", DoubleValue(0.001));
     monitor->SetAttribute("JitterBinWidth", DoubleValue(0.001));
     monitor->SetAttribute("PacketSizeBinWidth", DoubleValue(20));
+
+    // Install FlowMonitor, get classifier
+    Ptr<FlowMonitor> monitor_ms = flowmonHelper.InstallAll();
+    Ptr<Ipv4FlowClassifier> classifier_ms =
+        DynamicCast<Ipv4FlowClassifier>(flowmonHelper.GetClassifier());
+
+    // Schedule sampling before simulation starts
+    // Simulator::Schedule(MilliSeconds(udpAppStartTime_int), &SampleThroughput,
+    // monitor, classifier, 0.1);
+    Simulator::Schedule(MilliSeconds(0), &SetFlowMonitorOnAllGnbDevices,
+                        monitor_ms, classifier_ms);
 
     Simulator::Stop(simTime);
     Simulator::Run();
