@@ -175,7 +175,7 @@ and run the following code in `python3` to check if Sionna was installed properl
 
 
 =======
-## Running the example
+## Running the example.
 
 To run the `simple-sionna-example` example, you first need to start Sionna (this example expects Sionna to run locally, see the next section to know how to run Sionna remotely).
 
