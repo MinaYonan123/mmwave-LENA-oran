@@ -1,0 +1,50 @@
+192.168.138.129
+
+ping =============
+└─$ ping -c 4 google.com                             
+PING google.com (172.217.171.206) 56(84) bytes of data.
+64 bytes from mrs09s06-in-f14.1e100.net (172.217.171.206): icmp_seq=1 ttl=128 time=49.2 ms
+64 bytes from mrs09s06-in-f14.1e100.net (172.217.171.206): icmp_seq=2 ttl=128 time=41.4 ms
+64 bytes from mrs09s06-in-f14.1e100.net (172.217.171.206): icmp_seq=4 ttl=128 time=86.5 ms
+
+--- google.com ping statistics ---
+4 packets transmitted, 3 received, 25% packet loss, time 3028ms
+rtt min/avg/max/mdev = 41.442/59.049/86.475/19.652 ms
+
+====================================trace route
+
+└─$ traceroute github.com
+traceroute to github.com (140.82.121.4), 30 hops max, 60 byte packets
+ 1  192.168.138.2 (192.168.138.2)  0.162 ms  0.108 ms  0.056 ms
+ 2  * * *
+ 3  * * *
+ 4  * * *
+ 5  * * *
+ 6  * * *
+ 7  * * *
+ 8  * * *
+ 9  * * *
+10  * * *
+11  * * *
+12  * * *
+13  * * *
+14  * * *
+15  * * *
+16  * * *
+17  * * *
+18  * * *
+19  * * *
+20  * * *
+21  * * *
+22  * * *
+23  * * *
+24  * * *
+25  * * *
+26  * * *
+27  * * *
+28  * * *
+29  * * *
+30  * * *
+
+
+===========================================
