@@ -38,4 +38,44 @@ RUN ./ns3 configure && \
 
 WORKDIR /workspace
 
+# ---- Install GCC 13 for FlexRIC ----
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
+    apt-get update && \
+    apt-get install -y gcc-13 g++-13 && \
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 \
+                        --slave /usr/bin/g++ g++ /usr/bin/g++-13 && \
+    gcc --version && g++ --version
+
+WORKDIR /workspace
+
+# ---- Build and install ASN.1C ----
+RUN apt remove -y asn1c && \
+    apt update && \
+    apt install -y git autoconf automake libtool make gcc g++ m4 && \
+    git clone https://github.com/mouse07410/asn1c /tmp/asn1c && \
+    cd /tmp/asn1c && \
+    git checkout 940dd5fa9f3917913fd487b13dfddfacd0ded06e && \
+    autoreconf -iv && \
+    ./configure --prefix=/opt/asn1c && \
+    make -j$(nproc) && \
+    make install && \
+    rm -rf /tmp/asn1c
+
+# Add ASN.1C to PATH for all future stages
+ENV PATH="/opt/asn1c/bin:${PATH}"
+WORKDIR /workspace
+
+RUN git clone https://gitlab.eurecom.fr/mosaic5g/flexric.git && \
+    cd flexric && \
+    git checkout oie-ric-taap-xapps && \
+    # Comment out the first line of CMakeLists.txt - fix to install FlexRIC
+    sed -i '1s/^/#/' examples/xApp/c/CMakeLists.txt && \
+    mkdir build && cd build && \
+    cmake .. -DE2AP_VERSION=E2AP_V1 -DKPM_VERSION=KPM_V3_00 && \
+    make -j$(nproc) && \
+    make install && \
+    ldconfig
+
+WORKDIR /workspace
+
 CMD [ "/bin/sh" ]
