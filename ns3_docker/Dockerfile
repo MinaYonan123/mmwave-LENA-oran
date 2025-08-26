@@ -33,8 +33,6 @@ COPY mmwave-LENA-oran /workspace/ns3-mmwave-oran
 
 WORKDIR /workspace/ns3-mmwave-oran
 
-RUN  git checkout ES_09
-
 RUN ./ns3 configure && \
     ./ns3 build
 
