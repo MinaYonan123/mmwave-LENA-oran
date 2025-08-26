@@ -213,6 +213,14 @@ In the given example, upon the reception of a *LOC_UPDATE* message from ns3-rt, 
 
 To fully understand how to create a custom scene for Sionna, please refer to the [official video tutorial by NVIDIA](https://www.youtube.com/watch?v=7xHLDxUaQ7chttps:/).
 
+## How to use contenarized RIC TaaP
+1. Start from local ns-O-RAN-flexric main folder.
+2. Build image: sudo docker build -f mmwave-LENA-oran/ns3_docker/Dockerfile . -t wcnc_tap
+3. Run container: sudo docker run -it --name wcnc_tap_container wcnc_tap /bin/bash
+4. Connect with another terminal to container: sudo docker exec -it wcnc_tap_container /bin/bash
+5. Run FlexRIC on one terminal and ns3 at the second one.
+6. RIC TaaP is running correctly.
+
 ## Acknowledgements
 If you want to acknowledge our work, please refer to the following pre-print:
 ```
