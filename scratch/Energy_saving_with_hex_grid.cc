@@ -282,18 +282,16 @@ EnergyConsumptionUpdate(int nodeIndex, std::string filename, double totaloldEner
     totalnewEnergyConsumption_storage[nodeIndex] = totalnewEnergyConsumption;
 }
 
-void
-EnergyConsumptionPrint(int nodeIndex) {
-    NS_LOG_UNCOND ("Total energy consumption for mmWave cell "
-                           << nodeIndex + 2 << ": " << totalnewEnergyConsumption_storage[nodeIndex] << "J"
-                           << " at time " << Simulator::Now().GetSeconds()
-                           << ", diff from last measurement is: "
-                           << (totalnewEnergyConsumption_storage[nodeIndex] -
-                               totaloldEnergyConsumption_storage[nodeIndex])
-                           << "J");
-    totalnewEnergyConsumption_storage[nodeIndex] = totalnewEnergyConsumption_storage[nodeIndex];
-    current_energy_consumption[nodeIndex] =
-            totalnewEnergyConsumption_storage[nodeIndex] - totaloldEnergyConsumption_storage[nodeIndex];
+void EnergyConsumptionPrint(int nodeIndex) {
+    double diff = totalnewEnergyConsumption_storage[nodeIndex] - totaloldEnergyConsumption_storage[nodeIndex];
+    if (diff < 0 && std::abs(diff) < 1e-3) diff = 0;
+    NS_LOG_UNCOND("Total energy consumption for mmWave cell "
+                          << nodeIndex + 2 << ": " << totalnewEnergyConsumption_storage[nodeIndex] << "J"
+                          << " at time " << Simulator::Now().GetSeconds()
+                          << ", diff from last measurement is: "
+                          << diff << "J");
+
+    current_energy_consumption[nodeIndex] = diff;
     totaloldEnergyConsumption_storage[nodeIndex] = totalnewEnergyConsumption_storage[nodeIndex];
 }
 
