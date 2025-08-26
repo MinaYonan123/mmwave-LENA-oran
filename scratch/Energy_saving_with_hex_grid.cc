@@ -960,6 +960,9 @@ main(int argc, char *argv[]) {
     }
 
     NS_LOG_INFO(lteHelper);
+    NS_LOG_UNCOND("----------------------------------------------");
+    NS_LOG_UNCOND("Simulation traces can be found at trace_" << t_startTime_simid
+                                                             << " folder \n");
     Simulator::Destroy();
     NS_LOG_INFO("Done.");
     return 0;

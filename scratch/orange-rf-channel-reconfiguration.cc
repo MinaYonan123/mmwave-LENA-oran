@@ -61,6 +61,7 @@ $ ./ns3 run "cttc-nr-demo --PrintHelp"
 #include "ns3/nr-module.h"
 #include "ns3/point-to-point-module.h"
 #include <string>
+#include <iomanip>
 /*
  * Use, always, the namespace ns3. All the NR classes are inside such namespace.
  */
