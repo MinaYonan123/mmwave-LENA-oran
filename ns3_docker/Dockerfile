@@ -67,9 +67,9 @@ WORKDIR /workspace
 
 RUN git clone https://gitlab.eurecom.fr/mosaic5g/flexric.git && \
     cd flexric && \
-    git checkout oie-ric-taap-xapps && \
+    git checkout dev && \
     # Comment out the first line of CMakeLists.txt - fix to install FlexRIC
-    sed -i '1s/^/#/' examples/xApp/c/CMakeLists.txt && \
+   # sed -i '1s/^/#/' examples/xApp/c/CMakeLists.txt && \
     mkdir build && cd build && \
     cmake .. -DE2AP_VERSION=E2AP_V1 -DKPM_VERSION=KPM_V3_00 && \
     make -j$(nproc) && \
