@@ -1,4 +1,4 @@
-1. Put CM files from CSON and Topo from OSIRIS into mmwave-LENA-oran/O1_sim/config_data/csv
+1. Put CM files from CSON and Topo from OSIRIS into mmwave-LENA-oran/O1_sim/config_data/
 2. mmwave-LENA-oran/O1_sim/config_data$ python3 O1_server.py
 3. /ns3 run 'scratch/opl_nr_mimo_demo.cc'
 4. Run ./TurnOff to turn off BRANGES_T2 cell (this means put in Energy Saving State).
