@@ -1,0 +1,1 @@
+<rpc-reply message-id="{{MESSAGE_ID}}" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><ok/></rpc-reply>

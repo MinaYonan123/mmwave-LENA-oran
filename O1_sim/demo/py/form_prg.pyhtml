@@ -1,0 +1,13 @@
+{% extends 'base.pyhtml' %}
+{% block content %}
+<h1>Form with PRG</h1>
+<form method="post">
+  <input type="hidden" name="use_prg" value="1">
+  <label>Name: <input name="name" value="{{ params_get('name','') }}"></label>
+  <button>Submit</button>
+</form>
+<%
+if params_get('name'):
+    write("<p>You submitted (PRG): " + params_get('name') + "</p>")
+%>
+{% endblock %}

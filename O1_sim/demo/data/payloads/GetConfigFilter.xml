@@ -1,0 +1,6 @@
+<!-- SAVE: EnergySavingState.xml -->
+<rpc>
+  <method>get_config</method>
+  <filename>Topo_Osiris_5G_2025-02-12_100122.xml</filename>
+  <filter_expr>cell_name == BRANGES_T1 or cell_name == BRANGES_T2 or cell_name == BRANGES_T3 or cell_name == BRANGES_OUEST_T1 or cell_name == BRANGES_OUEST_T2 or cell_name == BRANGES_OUEST_T3</filter_expr>
+</rpc>

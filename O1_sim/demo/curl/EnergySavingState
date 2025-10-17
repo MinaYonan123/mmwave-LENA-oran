@@ -1,0 +1,1 @@
+curl -H "Content-Type: text/xml" --data "@payloads/EnergySavingState.xml" localhost:8831

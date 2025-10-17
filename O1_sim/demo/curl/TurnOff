@@ -1,0 +1,15 @@
+MESSAGE_ID="1760542221876"
+# BRANGES_T2
+GNODEB_ID="2623693"
+CELL_ID="17"
+
+payload=$(<payloads/TurnOFF.xml)
+
+payload=${payload/\{\{MESSAGE_ID\}\}/$MESSAGE_ID}
+payload=${payload/\{\{GNODEB_ID\}\}/$GNODEB_ID}
+payload=${payload/\{\{CELL_ID\}\}/$CELL_ID}
+echo "$payload"
+
+
+
+curl -H "Content-Type: text/xml" --data "$payload" localhost:8831
