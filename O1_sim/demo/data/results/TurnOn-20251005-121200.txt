@@ -1,1 +1,0 @@
-<rpc-reply message-id="1759659113508" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0"><ok/></rpc-reply>
