@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Demo{% endblock %}</title>
+  <link rel="stylesheet" href="/static/site.css">
+</head>
+<body>
+  <nav><a href="/">Home</a> | <a href="/py/hello?name=World">Hello</a> | <a href="/py/form_no_prg">Form (no PRG)</a> | <a href="/py/form_prg">Form (with PRG)</a> | <a href="/py/entities">Entities</a></nav>
+  <hr>
+  {% block content %}{% endblock %}
+  <hr>
+  <footer><small>&copy; {{ now().year }}</small></footer>
+</body>
+</html>
