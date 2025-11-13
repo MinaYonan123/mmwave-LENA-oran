@@ -670,11 +670,11 @@ Update_O1_ES_Cells(int argc, char* argv[])
 
         if (baseIndex < 0)
         {
-            std::cerr << "⚠️ Warning: Base index not found for " << cellName << std::endl;
+            std::cerr << "Warning: Base index not found for " << cellName << std::endl;
             continue;
         }
 
-        int targetCellId = ((int)matrix_cells[i][19] / 3) + 1;
+        int targetCellId = ((int)matrix_cells[i][19] / 3) + 2;
         std::cout << "→ Target CellId: " << targetCellId << " for " << baseName << std::endl;
 
         bool matched = false;
@@ -727,7 +727,7 @@ Update_O1_ES_Cells(int argc, char* argv[])
 
         if (!matched)
         {
-            std::cerr << "⚠️ No matching cellId found in NodeList for target " << targetCellId
+            std::cerr << "No matching cellId found in NodeList for target " << targetCellId
                       << " (" << baseName << ")" << std::endl;
         }
     }
