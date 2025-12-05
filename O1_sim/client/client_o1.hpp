@@ -152,20 +152,30 @@ public:
                 << _cell_name << std::endl;
     }
 
-    if (entry.child("csiRsPeriodicity")) {
-      try {
-        _csiRsPeriodicity =
-            std::stoi(entry.child("csiRsPeriodicity").text().as_string());
-        defined["csiRsPeriodicity"] = true;
-      } catch (const std::invalid_argument &e) {
-        std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "csiRsPeriodicity error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
+      if (entry.child("csiRsPeriodicity")) {
+          std::string value = entry.child("csiRsPeriodicity").text().as_string();
+          if (value.empty()) {
+              std::cout << "[DEBUG] csiRsPeriodicity node exists but is empty for cell_name = "
+                        << _cell_name << std::endl;
+          } else {
+              try {
+                  _csiRsPeriodicity = std::stoi(value);
+                  defined["csiRsPeriodicity"] = true;
+              } catch (const std::invalid_argument &e) {
+                  std::cout << "[ERROR] Invalid argument while parsing csiRsPeriodicity: '"
+                            << value << "' for cell_name = " << _cell_name
+                            << " (" << e.what() << ")" << std::endl;
+              } catch (const std::out_of_range &e) {
+                  std::cout << "[ERROR] Out of range while parsing csiRsPeriodicity: '"
+                            << value << "' for cell_name = " << _cell_name
+                            << " (" << e.what() << ")" << std::endl;
+              }
+          }
+      } else {
+          std::cout << "[DEBUG] csiRsPeriodicity node missing for cell_name = "
+                    << _cell_name << std::endl;
       }
-    } else {
-      std::cout << "csiRsPeriodicity error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
-    }
+
 
     if (entry.child("hba")) {
       try {
@@ -198,20 +208,30 @@ public:
           << _cell_name << std::endl;
     }
 
-    if (entry.child("csiRsPeriodicity")) {
-      try {
-        _csiRsPeriodicity =
-            std::stoi(entry.child("csiRsPeriodicity").text().as_string());
-        defined["csiRsPeriodicity"] = true;
-      } catch (const std::invalid_argument &e) {
-        std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "csiRsPeriodicity error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
+      if (entry.child("csiRsPeriodicity")) {
+          std::string value = entry.child("csiRsPeriodicity").text().as_string();
+          if (value.empty()) {
+              std::cout << "[DEBUG] csiRsPeriodicity node exists but is empty for cell_name = "
+                        << _cell_name << std::endl;
+          } else {
+              try {
+                  _csiRsPeriodicity = std::stoi(value);
+                  defined["csiRsPeriodicity"] = true;
+              } catch (const std::invalid_argument &e) {
+                  std::cout << "[ERROR] Invalid argument while parsing csiRsPeriodicity: '"
+                            << value << "' for cell_name = " << _cell_name
+                            << " (" << e.what() << ")" << std::endl;
+              } catch (const std::out_of_range &e) {
+                  std::cout << "[ERROR] Out of range while parsing csiRsPeriodicity: '"
+                            << value << "' for cell_name = " << _cell_name
+                            << " (" << e.what() << ")" << std::endl;
+              }
+          }
+      } else {
+          std::cout << "[DEBUG] csiRsPeriodicity node missing for cell_name = "
+                    << _cell_name << std::endl;
       }
-    } else {
-      std::cout << "csiRsPeriodicity error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
-    }
+
 
     if (entry.child("dlMaxMuMimoLayers")) {
       try {
@@ -349,7 +369,7 @@ public:
           << "cbrsCellBandwidthPreferred error in set_from_xml for cell_name = "
           << _cell_name << std::endl;
     }
-    
+
     if (entry.child("energySavingControl")) {
       try {
         _energySavingControl =

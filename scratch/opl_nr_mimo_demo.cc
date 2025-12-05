@@ -30,9 +30,13 @@ $  ./ns3 run cttc-nr-mimo-demo -- --enableMimoFeedback=0
     \endcode
  *
  *
+*Customized by:
+*Kamil Kociszewski <kamil.kociszewski@orange.com>
  */
 
 #include "../src/core/model/log-macros-enabled.h"
+#include "client_o1.cc"
+#include "pugixml.hpp"
 
 #include "ns3/antenna-module.h"
 #include "ns3/applications-module.h"
@@ -45,7 +49,6 @@ $  ./ns3 run cttc-nr-mimo-demo -- --enableMimoFeedback=0
 #include "ns3/nr-module.h"
 #include "ns3/point-to-point-module.h"
 
-#include "pugixml.hpp"
 #include <cmath>
 #include <filesystem> // For filesystem utilities, available since C++17
 #include <fstream>
@@ -54,16 +57,14 @@ $  ./ns3 run cttc-nr-mimo-demo -- --enableMimoFeedback=0
 #include <sys/time.h>
 #include <vector>
 
-#include "client_o1.cc"
-
 uint64_t t_startTime_simid;
-double maxXAxis =0;
+double maxXAxis = 0;
 double maxYAxis = 0;
 
 int matrix_cells_rows = 0;
 const int matrix_cells_columns = 20;
-double (* matrix_cells)[matrix_cells_columns];
-std::string matrix_cell_names[10];
+double (*matrix_cells)[matrix_cells_columns];
+std::string matrix_cell_names[15];
 
 using namespace ns3;
 // using namespace nr;
@@ -118,7 +119,6 @@ PrintPosition(Ptr<Node> node, std::string Filename)
             NS_LOG_UNCOND(std::fixed << std::setprecision(1) << Simulator::Now().GetSeconds()
                                      << ": Position of UE with IMSI " << imsi << " is " << position
                                      << ", Speed: " << speedKmh << " km/h"
-
                                      << ", UE connected to Cell: " << serving_cell);
         }
     }
@@ -128,7 +128,7 @@ PrintPosition(Ptr<Node> node, std::string Filename)
 double (*O1_get_config(int argc, char* argv[], bool update))[matrix_cells_columns]
 {
     std::string url = "http://localhost:8831";
-    std::string O1_filename = ""; //"Topo_Osiris_5G_2025-02-12_100122.xml";
+    std::string O1_filename = ""; //"Topo_Example.xml";
     std::string condition = "";   //"nci:42986586128,42986586130,43013881872";
 
     if (!update)
@@ -375,27 +375,28 @@ energySavingState: " << matrix_cells[i][17] << std::endl;
 
 void Update_O1_ES_Cells(int argc, char* argv[])
 {
-    static std::vector<std::string> prevESS; // persists between calls
+    static std::vector<int> prevESS; // persist between calls
     static bool firstRun = true;
 
     // Load latest O1 config
     O1_get_config(argc, argv, true);
 
-    std::vector<std::string> newESS(matrix_cells_rows);
+    // Fill current ESS state
+    std::vector<int> newESS(matrix_cells_rows);
     for (int i = 0; i < matrix_cells_rows; i++)
     {
-        newESS[i] = matrix_cells[i][17]; // assuming column 17 = energySavingState
+        newESS[i] = static_cast<int>(matrix_cells[i][17]); // energySavingState as int
     }
 
     std::cout << "=== Energy Saving State Changes ===" << std::endl;
 
     if (firstRun)
     {
-        // First run: nothing to compare yet
+        // First run: just print initial state
         for (int i = 0; i < matrix_cells_rows; i++)
         {
-            auto cellName = matrix_cell_names[(int)matrix_cells[i][19]];
-            std::cout << "Cell: " << cellName << " | Initial ESS: " << newESS[i] << std::endl;
+            std::cout << "Cell: " << matrix_cell_names[(int)matrix_cells[i][19]]
+                      << " | Initial ESS: " << newESS[i] << std::endl;
         }
         firstRun = false;
     }
@@ -404,25 +405,18 @@ void Update_O1_ES_Cells(int argc, char* argv[])
         // Compare previous and current ESS states
         for (int i = 0; i < matrix_cells_rows; i++)
         {
-            auto cellName = matrix_cell_names[(int)matrix_cells[i][19]];
-
             if (prevESS[i] != newESS[i])
             {
-               std::cout << "Cell: " << cellName << " | ESS changed: "
-                         << prevESS[i] << " -> " << newESS[i] << std::endl;
-                //TODO Put here logic for cell on/off, but it's only applicable for mmwave module
+                std::cout << "Cell: " << matrix_cell_names[(int)matrix_cells[i][19]]
+                          << " | ESS changed: " << prevESS[i] << " -> " << newESS[i]
+                          << std::endl;
             }
-            /*else
-            {
-                std::cout << "Cell: " << cellName << " | ESS unchanged: " << newESS[i] << std::endl;
-            }*/
         }
     }
 
     // Update previous state
     prevESS = newESS;
 }
-
 
 static ns3::GlobalValue g_e2TermIp("e2TermIp",
                                    "The IP address of the RIC E2 termination",
@@ -445,24 +439,25 @@ int
 main(int argc, char* argv[])
 {
     LogComponentEnable("E2Termination", LOG_LEVEL_ALL);
-   // bool report_to_db = false;
+    // bool report_to_db = false;
     struct timeval time_now{};
     gettimeofday(&time_now, nullptr);
     t_startTime_simid = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
 
-
-    //auto matrix_cells = O1_get_config(argc, argv, false);
+    // auto matrix_cells = O1_get_config(argc, argv, false);
     O1_get_config(argc, argv, false);
 
     int minX = std::numeric_limits<int>::max();
     int minY = std::numeric_limits<int>::max();
 
     // Find most southwest cell
-    for (int i = 0; i < matrix_cells_rows; ++i) {
+    for (int i = 0; i < matrix_cells_rows; ++i)
+    {
         int x = matrix_cells[i][6];
         int y = matrix_cells[i][7];
 
-        if (x <= minX) {
+        if (x <= minX)
+        {
             minX = x;
             minY = y;
         }
@@ -472,7 +467,8 @@ main(int argc, char* argv[])
     //   << std::endl;
 
     // Normalize: make southwest cell (2000, 2000)
-    for (int i = 0; i < matrix_cells_rows; ++i) {
+    for (int i = 0; i < matrix_cells_rows; ++i)
+    {
         int normalizedX = matrix_cells[i][6] - minX + 2000;
         int normalizedY = matrix_cells[i][7] - minY + 2000;
 
@@ -481,31 +477,31 @@ main(int argc, char* argv[])
         matrix_cells[i][6] = normalizedX;
         matrix_cells[i][7] = normalizedY;
 
-        if (matrix_cells[i][6] > maxXAxis){
-            maxXAxis =matrix_cells[i][6];
+        if (matrix_cells[i][6] > maxXAxis)
+        {
+            maxXAxis = matrix_cells[i][6];
         }
-        if (matrix_cells[i][7] > maxYAxis){
-            maxYAxis =matrix_cells[i][7];
+        if (matrix_cells[i][7] > maxYAxis)
+        {
+            maxYAxis = matrix_cells[i][7];
         }
-
     }
     maxXAxis = maxXAxis + 2000;
     maxYAxis = maxYAxis + 2000;
     NS_LOG_UNCOND("MAX AREA: " << maxXAxis << "," << maxYAxis);
-    std::cout
-            << "\n";
+    std::cout << "\n";
 
     // Print the matrix
     std::cout << "Cell matrix contents:\n";
-    for (int i = 0; i < matrix_cells_rows; i++) {
-        for (int j = 0; j < matrix_cells_columns; j++) {
+    for (int i = 0; i < matrix_cells_rows; i++)
+    {
+        for (int j = 0; j < matrix_cells_columns; j++)
+        {
             std::cout << matrix_cells[i][j] << " ";
         }
-        std::cout
-            << "\n"; // Go to the next row after printing all columns in current row
+        std::cout << "\n"; // Go to the next row after printing all columns in current row
     }
-    std::cout
-        << "\n";
+    std::cout << "\n";
 
     // Position
     // The maximum X coordinate of the scenario
@@ -517,14 +513,18 @@ main(int argc, char* argv[])
     //  int UE_container = 1;
 
     // Create two vectors to store the rows for each matrix
-    std::vector<double *> matrix_700;
-    std::vector<double *> matrix_3500;
+    std::vector<double*> matrix_700;
+    std::vector<double*> matrix_3500;
 
     // Populate the vectors based on the value in the second column
-    for (int i = 0; i < matrix_cells_rows; ++i) {
-        if (matrix_cells[i][1] == 0.7e9) {
+    for (int i = 0; i < matrix_cells_rows; ++i)
+    {
+        if (matrix_cells[i][1] == 0.7e9)
+        {
             matrix_700.push_back(matrix_cells[i]);
-        } else if (matrix_cells[i][1] == 3.5e9) {
+        }
+        else if (matrix_cells[i][1] == 3.5e9)
+        {
             matrix_3500.push_back(matrix_cells[i]);
         }
     }
@@ -560,7 +560,7 @@ main(int argc, char* argv[])
     // For 2x2 MIMO and NR MCS table 2, packet interval is 40000 ns to
     // reach 200 mb/s
     Time packetInterval = NanoSeconds(40000);
-    Time udpAppStartTime = MilliSeconds(400);
+    Time udpAppStartTime = MilliSeconds(4000);
 
     // Interference
     // bool enableInterfNode = false; // if true an additional pair of gNB and UE will be created
@@ -746,41 +746,44 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::ThreeGppChannelModel::UpdatePeriod",
                        TimeValue(MilliSeconds(updatePeriodMs)));
 
-   // Config::SetDefault("ns3::NrGnbNetDevice::sim_id", UintegerValue(t_startTime_simid));
-   // Config::SetDefault("ns3::NrGnbNetDevice::report_to_db", BooleanValue(report_to_db));
+    // Config::SetDefault("ns3::NrGnbNetDevice::sim_id", UintegerValue(t_startTime_simid));
+    // Config::SetDefault("ns3::NrGnbNetDevice::report_to_db", BooleanValue(report_to_db));
 
     NodeContainer gnbContainer;
     gnbContainer.Create(matrix_3500.size());
 
-
     MobilityHelper mobility;
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-    Ptr<ListPositionAllocator> positionAlloc =
-        CreateObject<ListPositionAllocator>();
+    Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
 
     // Vector centerPosition = Vector(maxXAxis / 2, maxYAxis / 2, 30);
     // todo: fix here iteration
-    for (uint32_t i = 0; i < matrix_3500.size(); i++) {
+    for (uint32_t i = 0; i < matrix_3500.size(); i++)
+    {
         Ptr<Node> gNB = gnbContainer.Get(i);
         // Allocate positions
         int local_cell_id = 0;
-        if (matrix_3500[i][8] == 1) {
-            positionAlloc->Add(
-                Vector(matrix_3500[i][6] + 1, matrix_3500[i][7], matrix_3500[i][4]));
+        if (matrix_3500[i][8] == 1)
+        {
+            positionAlloc->Add(Vector(matrix_3500[i][6] + 1, matrix_3500[i][7], matrix_3500[i][4]));
             local_cell_id = matrix_3500[i][9];
             // Checking for out-of-bound access and that local_cell_id are the same
             if (i + 1 < matrix_3500.size() && matrix_3500[i + 1][8] == 2 and
-                local_cell_id == matrix_3500[i + 1][9]) {
-                positionAlloc->Add(Vector(matrix_3500[i][6] - 1, matrix_3500[i][7] + 1,
-                                          matrix_3500[i][4]));
+                local_cell_id == matrix_3500[i + 1][9])
+            {
+                positionAlloc->Add(
+                    Vector(matrix_3500[i][6] - 1, matrix_3500[i][7] + 1, matrix_3500[i][4]));
                 // Checking for out-of-bound access and that local_cell_id are the same
                 if (i + 2 < matrix_3500.size() && matrix_3500[i + 2][8] == 3 and
-                    local_cell_id == matrix_3500[i + 2][9]) {
-                    positionAlloc->Add(Vector(matrix_3500[i][6] - 1,
-                                              matrix_3500[i][7] - 1, matrix_3500[i][4]));
-                    }
+                    local_cell_id == matrix_3500[i + 2][9])
+                {
+                    positionAlloc->Add(
+                        Vector(matrix_3500[i][6] - 1, matrix_3500[i][7] - 1, matrix_3500[i][4]));
                 }
-        } else {
+            }
+        }
+        else
+        {
             //  NS_LOG_UNCOND("This is sector, skip");
         }
     }
@@ -821,9 +824,12 @@ main(int argc, char* argv[])
     speed->SetAttribute("Min", DoubleValue(40.0));
     speed->SetAttribute("Max", DoubleValue(50.0));
 
-    uemobility.SetMobilityModel("ns3::RandomWalk2dOutdoorMobilityModel",
-                                "Speed", PointerValue(speed),
-                                "Bounds", RectangleValue(Rectangle(100, maxXAxis - 100, 100, maxYAxis - 100)));
+    uemobility.SetMobilityModel(
+        "ns3::RandomWalk2dOutdoorMobilityModel",
+        "Speed",
+        PointerValue(speed),
+        "Bounds",
+        RectangleValue(Rectangle(100, maxXAxis - 100, 100, maxYAxis - 100)));
 
     // Install mobility on UEs
     uemobility.Install(ueContainer);
@@ -916,51 +922,49 @@ main(int argc, char* argv[])
     NetDeviceContainer gnbNetDev = nrHelper->InstallGnbDevice(gnbContainer, allBwps);
     NetDeviceContainer ueNetDev = nrHelper->InstallUeDevice(ueContainer, allBwps);
 
-  if (matrix_3500.size() > 0) {
-    for (uint32_t numCell = 0; numCell < gnbContainer.GetN(); ++numCell) {
-      Ptr<NetDevice> gnb = gnbNetDev.Get(numCell);
-      int cell_id = gnb->GetObject<NrGnbNetDevice>()->GetCellId();
-      // uint32_t numBwps = nrHelper->GetNumberBwp(gnb);
+    if (matrix_3500.size() > 0)
+    {
+        for (uint32_t numCell = 0; numCell < gnbContainer.GetN(); ++numCell)
+        {
+            Ptr<NetDevice> gnb = gnbNetDev.Get(numCell);
+            int cell_id = gnb->GetObject<NrGnbNetDevice>()->GetCellId();
+            // uint32_t numBwps = nrHelper->GetNumberBwp(gnb);
 
-      // Access the PHY layer of the gNB
-      Ptr<NrGnbPhy> phy = nrHelper->GetGnbPhy(gnb, 0);
+            // Access the PHY layer of the gNB
+            Ptr<NrGnbPhy> phy = nrHelper->GetGnbPhy(gnb, 0);
 
-      // Get the antenna model and configure its parameters
-      Ptr<UniformPlanarArray> antenna =
-          DynamicCast<UniformPlanarArray>(phy->GetSpectrumPhy()->GetAntenna());
+            // Get the antenna model and configure its parameters
+            Ptr<UniformPlanarArray> antenna =
+                DynamicCast<UniformPlanarArray>(phy->GetSpectrumPhy()->GetAntenna());
 
-      double bearingAngleDeg = matrix_3500[numCell][2];
-      // Calculate angle directly (no normalization to 0-360)
-      double angle = 90.0 - bearingAngleDeg;
-      // Convert to radians
-      double bearingAngleRad = angle * (M_PI / 180.0);
-      // Normalize radians to [-pi, pi]
-      while (bearingAngleRad <= -M_PI)
-        bearingAngleRad += 2 * M_PI;
-      while (bearingAngleRad > M_PI)
-        bearingAngleRad -= 2 * M_PI;
+            double bearingAngleDeg = matrix_3500[numCell][2];
+            // Calculate angle directly (no normalization to 0-360)
+            double angle = 90.0 - bearingAngleDeg;
+            // Convert to radians
+            double bearingAngleRad = angle * (M_PI / 180.0);
+            // Normalize radians to [-pi, pi]
+            while (bearingAngleRad <= -M_PI)
+                bearingAngleRad += 2 * M_PI;
+            while (bearingAngleRad > M_PI)
+                bearingAngleRad -= 2 * M_PI;
 
-      // 5. Set the angles for the entire array
-      antenna->SetAttribute("BearingAngle", DoubleValue(bearingAngleRad));
+            // 5. Set the angles for the entire array
+            antenna->SetAttribute("BearingAngle", DoubleValue(bearingAngleRad));
 
-      double downtiltDeg =
-          matrix_3500[numCell][3]; // Column 3 is downtilt in degrees
-      double downtiltRad =
-          -downtiltDeg * M_PI / 180.0; // Note the negation for downtilt
-      antenna->SetAttribute("DowntiltAngle", DoubleValue(downtiltRad));
+            double downtiltDeg = matrix_3500[numCell][3];     // Column 3 is downtilt in degrees
+            double downtiltRad = -downtiltDeg * M_PI / 180.0; // Note the negation for downtilt
+            antenna->SetAttribute("DowntiltAngle", DoubleValue(downtiltRad));
 
-      nrHelper->GetGnbPhy(gnbNetDev.Get(numCell), 0)
-          ->SetAttribute("TxPower", DoubleValue(30));
-      // Set numerology (e.g., set according to RAN helper)
-      nrHelper->GetGnbPhy(gnb, 0)->SetAttribute("Numerology",
-                                                UintegerValue(numerology));
+            nrHelper->GetGnbPhy(gnbNetDev.Get(numCell), 0)
+                ->SetAttribute("TxPower", DoubleValue(30));
+            // Set numerology (e.g., set according to RAN helper)
+            nrHelper->GetGnbPhy(gnb, 0)->SetAttribute("Numerology", UintegerValue(numerology));
 
-      NS_LOG_UNCOND("gNB 3500 id: " << cell_id << " initialized at azimuth: "
-                                    << matrix_3500[numCell][2]
-                                    << " degrees with frequency: "
-                                    << matrix_3500[numCell][1] << " MHz.");
+            NS_LOG_UNCOND("gNB 3500 id: "
+                          << cell_id << " initialized at azimuth: " << matrix_3500[numCell][2]
+                          << " degrees with frequency: " << matrix_3500[numCell][1] << " MHz.");
+        }
     }
-  }
 
     /**
      * Fix the random stream throughout the nr, propagation, and spectrum
@@ -1108,7 +1112,9 @@ main(int argc, char* argv[])
                                 ue_poss_out);
         }
         Simulator::Schedule(Seconds(i * simTime.GetSeconds() / numPrints),
-                        &Update_O1_ES_Cells, argc, argv);
+                            &Update_O1_ES_Cells,
+                            argc,
+                            argv);
     }
 
     Simulator::Stop(simTime);

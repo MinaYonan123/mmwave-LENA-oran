@@ -352,7 +352,7 @@ entities = []
 try:
     # Pick the first existing file from these common locations
     ent_paths = [
-	Path('../config_data/xml/Topo_Osiris_5G_2025-02-12_100122.xml'),
+	Path('../config_data/xml/Topo_Example.xml'),
         Path('data/entities.xml'),
         Path('data/Entities.xml'),
         Path('data/results/entities.xml'),

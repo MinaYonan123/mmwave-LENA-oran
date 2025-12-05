@@ -1,7 +1,6 @@
 MESSAGE_ID="1760542221877"
-# BRANGES_T2
-GNODEB_ID="2623693"
-CELL_ID="17"
+GNODEB_ID="1"
+CELL_ID="1"
 
 payload=$(<payloads/TurnOn.xml)
 

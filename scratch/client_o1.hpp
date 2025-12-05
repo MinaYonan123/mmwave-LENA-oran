@@ -66,8 +66,8 @@ public:
       _cell_name = entry.child("cell_name").text().as_string();
       defined["cell_name"] = true;
     } else {
-      std::cout << "cell_name error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout << "cell_name error in set_from_xml for cell_name = "
+      //           << _cell_name << std::endl;
     }
 
     if (entry.child("X")) {
@@ -76,12 +76,12 @@ public:
         defined["X"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "X error in set_from_xml for cell_name = " << _cell_name
-                  << std::endl;
+        // std::cout << "X error in set_from_xml for cell_name = " << _cell_name
+        //           << std::endl;
       }
     } else {
-      std::cout << "X error in set_from_xml for cell_name = " << _cell_name
-                << std::endl;
+      // std::cout << "X error in set_from_xml for cell_name = " << _cell_name
+      //           << std::endl;
     }
 
     if (entry.child("Y")) {
@@ -90,12 +90,12 @@ public:
         defined["Y"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "Y error in set_from_xml for cell_name = " << _cell_name
-                  << std::endl;
+        // std::cout << "Y error in set_from_xml for cell_name = " << _cell_name
+        //           << std::endl;
       }
     } else {
-      std::cout << "Y error in set_from_xml for cell_name = " << _cell_name
-                << std::endl;
+      // std::cout << "Y error in set_from_xml for cell_name = " << _cell_name
+      //           << std::endl;
     }
 
     if (entry.child("azimut")) {
@@ -104,12 +104,12 @@ public:
         defined["azimut"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "azimut error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
+        // std::cout << "azimut error in set_from_xml for cell_name = "
+        //           << _cell_name << std::endl;
       }
     } else {
-      std::cout << "azimut error in set_from_xml for cell_name = " << _cell_name
-                << std::endl;
+      // std::cout << "azimut error in set_from_xml for cell_name = " << _cell_name
+      //           << std::endl;
     }
 
     if (entry.child("tilt")) {
@@ -118,12 +118,12 @@ public:
         defined["tilt"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "tilt error in set_from_xml for cell_name = " << _cell_name
-                  << std::endl;
+        // std::cout << "tilt error in set_from_xml for cell_name = " << _cell_name
+        //           << std::endl;
       }
     } else {
-      std::cout << "tilt error in set_from_xml for cell_name = " << _cell_name
-                << std::endl;
+      // std::cout << "tilt error in set_from_xml for cell_name = " << _cell_name
+      //           << std::endl;
     }
 
     if (entry.child("sector")) {
@@ -132,12 +132,12 @@ public:
         defined["sector"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "sector error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
+        // std::cout << "sector error in set_from_xml for cell_name = "
+        //           << _cell_name << std::endl;
       }
     } else {
-      std::cout << "sector error in set_from_xml for cell_name = " << _cell_name
-                << std::endl;
+      // std::cout << "sector error in set_from_xml for cell_name = " << _cell_name
+      //           << std::endl;
     }
 
     if (entry.child("gnodeb_id")) {
@@ -146,27 +146,36 @@ public:
         defined["gnodeb_id"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "gnodeb_id error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
+        // std::cout << "gnodeb_id error in set_from_xml for cell_name = "
+        //           << _cell_name << std::endl;
       }
     } else {
-      std::cout << "gnodeb_id error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout << "gnodeb_id error in set_from_xml for cell_name = "
+      //           << _cell_name << std::endl;
     }
 
     if (entry.child("csiRsPeriodicity")) {
-      try {
-        _csiRsPeriodicity =
-            std::stoi(entry.child("csiRsPeriodicity").text().as_string());
-        defined["csiRsPeriodicity"] = true;
-      } catch (const std::invalid_argument &e) {
-        std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "csiRsPeriodicity error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
-      }
+        std::string value = entry.child("csiRsPeriodicity").text().as_string();
+        if (value.empty()) {
+            std::cout << "[DEBUG] csiRsPeriodicity node exists but is empty for cell_name = "
+                      << _cell_name << std::endl;
+        } else {
+            try {
+                _csiRsPeriodicity = std::stoi(value);
+                defined["csiRsPeriodicity"] = true;
+            } catch (const std::invalid_argument &e) {
+                std::cout << "[ERROR] Invalid argument while parsing csiRsPeriodicity: '"
+                          << value << "' for cell_name = " << _cell_name
+                          << " (" << e.what() << ")" << std::endl;
+            } catch (const std::out_of_range &e) {
+                std::cout << "[ERROR] Out of range while parsing csiRsPeriodicity: '"
+                          << value << "' for cell_name = " << _cell_name
+                          << " (" << e.what() << ")" << std::endl;
+            }
+        }
     } else {
-      std::cout << "csiRsPeriodicity error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+        std::cout << "[DEBUG] csiRsPeriodicity node missing for cell_name = "
+                  << _cell_name << std::endl;
     }
 
     if (entry.child("hba")) {
@@ -175,12 +184,12 @@ public:
         defined["hba"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "hba error in set_from_xml for cell_name = " << _cell_name
-                  << std::endl;
+        // std::cout << "hba error in set_from_xml for cell_name = " << _cell_name
+        //           << std::endl;
       }
     } else {
-      std::cout << "hba error in set_from_xml for cell_name = " << _cell_name
-                << std::endl;
+      // std::cout << "hba error in set_from_xml for cell_name = " << _cell_name
+      //           << std::endl;
     }
 
     if (entry.child("advancedDlSuMimoEnabled")) {
@@ -190,29 +199,14 @@ public:
         defined["advancedDlSuMimoEnabled"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout
-            << "advancedDlSuMimoEnabled error in set_from_xml for cell_name = "
-            << _cell_name << std::endl;
+        // std::cout
+        //     << "advancedDlSuMimoEnabled error in set_from_xml for cell_name = "
+        //     << _cell_name << std::endl;
       }
     } else {
-      std::cout
-          << "advancedDlSuMimoEnabled error in set_from_xml for cell_name = "
-          << _cell_name << std::endl;
-    }
-
-    if (entry.child("csiRsPeriodicity")) {
-      try {
-        _csiRsPeriodicity =
-            std::stoi(entry.child("csiRsPeriodicity").text().as_string());
-        defined["csiRsPeriodicity"] = true;
-      } catch (const std::invalid_argument &e) {
-        std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "csiRsPeriodicity error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
-      }
-    } else {
-      std::cout << "csiRsPeriodicity error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout
+      //     << "advancedDlSuMimoEnabled error in set_from_xml for cell_name = "
+      //     << _cell_name << std::endl;
     }
 
     if (entry.child("dlMaxMuMimoLayers")) {
@@ -222,12 +216,12 @@ public:
         defined["dlMaxMuMimoLayers"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "dlMaxMuMimoLayers error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
+        // std::cout << "dlMaxMuMimoLayers error in set_from_xml for cell_name = "
+        //           << _cell_name << std::endl;
       }
     } else {
-      std::cout << "dlMaxMuMimoLayers error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout << "dlMaxMuMimoLayers error in set_from_xml for cell_name = "
+      //           << _cell_name << std::endl;
     }
 
     if (entry.child("ssbSubCarrierSpacing")) {
@@ -237,13 +231,13 @@ public:
         defined["ssbSubCarrierSpacing"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout
-            << "ssbSubCarrierSpacing error in set_from_xml for cell_name = "
-            << _cell_name << std::endl;
+        // std::cout
+        //     << "ssbSubCarrierSpacing error in set_from_xml for cell_name = "
+        //     << _cell_name << std::endl;
       }
     } else {
-      std::cout << "ssbSubCarrierSpacing error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout << "ssbSubCarrierSpacing error in set_from_xml for cell_name = "
+      //           << _cell_name << std::endl;
     }
 
     if (entry.child("bandListManual")) {
@@ -253,12 +247,12 @@ public:
         defined["bandListManual"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "bandListManual error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
+        // std::cout << "bandListManual error in set_from_xml for cell_name = "
+        //           << _cell_name << std::endl;
       }
     } else {
-      std::cout << "bandListManual error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout << "bandListManual error in set_from_xml for cell_name = "
+      //           << _cell_name << std::endl;
     }
 
     if (entry.child("srsPeriodicity")) {
@@ -268,12 +262,12 @@ public:
         defined["srsPeriodicity"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "srsPeriodicity error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
+        // std::cout << "srsPeriodicity error in set_from_xml for cell_name = "
+        //           << _cell_name << std::endl;
       }
     } else {
-      std::cout << "srsPeriodicity error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout << "srsPeriodicity error in set_from_xml for cell_name = "
+      //           << _cell_name << std::endl;
     }
 
     if (entry.child("pdcchLaBfGainFraction")) {
@@ -283,14 +277,14 @@ public:
         defined["pdcchLaBfGainFraction"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout
-            << "pdcchLaBfGainFraction error in set_from_xml for cell_name = "
-            << _cell_name << std::endl;
+        // std::cout
+        //     << "pdcchLaBfGainFraction error in set_from_xml for cell_name = "
+        //     << _cell_name << std::endl;
       }
     } else {
-      std::cout
-          << "pdcchLaBfGainFraction error in set_from_xml for cell_name = "
-          << _cell_name << std::endl;
+      // std::cout
+      //     << "pdcchLaBfGainFraction error in set_from_xml for cell_name = "
+      //     << _cell_name << std::endl;
     }
 
     if (entry.child("srsHoppingBandwidth")) {
@@ -298,16 +292,16 @@ public:
           entry.child("srsHoppingBandwidth").text().as_string();
       defined["srsHoppingBandwidth"] = true;
     } else {
-      std::cout << "srsHoppingBandwidth error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout << "srsHoppingBandwidth error in set_from_xml for cell_name = "
+      //           << _cell_name << std::endl;
     }
 
     if (entry.child("csiReportFormat")) {
       _csiReportFormat = entry.child("csiReportFormat").text().as_string();
       defined["csiReportFormat"] = true;
     } else {
-      std::cout << "csiReportFormat error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout << "csiReportFormat error in set_from_xml for cell_name = "
+      //           << _cell_name << std::endl;
     }
 
     if (entry.child("dl256QamEnabled")) {
@@ -317,12 +311,12 @@ public:
         defined["dl256QamEnabled"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "dl256QamEnabled error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
+        // std::cout << "dl256QamEnabled error in set_from_xml for cell_name = "
+        //           << _cell_name << std::endl;
       }
     } else {
-      std::cout << "dl256QamEnabled error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout << "dl256QamEnabled error in set_from_xml for cell_name = "
+      //           << _cell_name << std::endl;
     }
 
     if (entry.child("csiRsActivePortConfig")) {
@@ -330,9 +324,9 @@ public:
           entry.child("csiRsActivePortConfig").text().as_string();
       defined["csiRsActivePortConfig"] = true;
     } else {
-      std::cout
-          << "csiRsActivePortConfig error in set_from_xml for cell_name = "
-          << _cell_name << std::endl;
+      // std::cout
+      //     << "csiRsActivePortConfig error in set_from_xml for cell_name = "
+      //     << _cell_name << std::endl;
     }
 
     if (entry.child("cbrsCellBandwidthPreferred")) {
@@ -342,16 +336,16 @@ public:
         defined["cbrsCellBandwidthPreferred"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "cbrsCellBandwidthPreferred error in set_from_xml for "
-                     "cell_name = "
-                  << _cell_name << std::endl;
+        // std::cout << "cbrsCellBandwidthPreferred error in set_from_xml for "
+        //              "cell_name = "
+        //           << _cell_name << std::endl;
       }
     } else {
-      std::cout
-          << "cbrsCellBandwidthPreferred error in set_from_xml for cell_name = "
-          << _cell_name << std::endl;
+      // std::cout
+      //     << "cbrsCellBandwidthPreferred error in set_from_xml for cell_name = "
+      //     << _cell_name << std::endl;
     }
-    
+
     if (entry.child("energySavingControl")) {
       try {
         _energySavingControl =
@@ -359,12 +353,12 @@ public:
         defined["energySavingControl"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "energySavingControl error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
+        // std::cout << "energySavingControl error in set_from_xml for cell_name = "
+        //           << _cell_name << std::endl;
       }
     } else {
-      std::cout << "on error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout << "on error in set_from_xml for cell_name = "
+      //           << _cell_name << std::endl;
     }
 
     if (entry.child("energySavingState")) {
@@ -374,12 +368,12 @@ public:
         defined["energySavingState"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "energySavingState error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
+        // std::cout << "energySavingState error in set_from_xml for cell_name = "
+        //           << _cell_name << std::endl;
       }
     } else {
-      std::cout << "on error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout << "on error in set_from_xml for cell_name = "
+      //           << _cell_name << std::endl;
     }
 
     if (entry.child("energySavingStateNs3")) {
@@ -389,16 +383,17 @@ public:
         defined["energySavingStateNs3"] = true;
       } catch (const std::invalid_argument &e) {
         std::cout << "Invalid argument: " << e.what() << std::endl;
-        std::cout << "energySavingStateNs3 error in set_from_xml for cell_name = "
-                  << _cell_name << std::endl;
+        // std::cout << "energySavingStateNs3 error in set_from_xml for cell_name = "
+        //           << _cell_name << std::endl;
       }
     } else {
-      std::cout << "on error in set_from_xml for cell_name = "
-                << _cell_name << std::endl;
+      // std::cout << "on error in set_from_xml for cell_name = "
+      //           << _cell_name << std::endl;
     }
 
     return _cell_name;
-  }
+}
+
 
   std::string cell_name() {
     if (!defined["cell_name"])

@@ -13,7 +13,7 @@ xml_data2 = """<?xml version="1.0" encoding="UTF-8"?>
     <target><running/></target>
     <config>
       <file>
-      Topo_Osiris_5G_2025-02-12_100122.xml
+      Topo_Example.xml
       </file>
     </config>
   </init-config>

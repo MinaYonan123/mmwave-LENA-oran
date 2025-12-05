@@ -286,9 +286,9 @@ PrintPosition(Ptr<Node> node, int iterator, std::string Filename, uint64_t m_sta
                           << Simulator::Now().GetSeconds()
                           << ", UE connected to Cell: " << serving_cell);*/
             NS_LOG_UNCOND(Simulator::Now().GetSeconds()
-                                     << ": Position of UE with IMSI " << imsi << " is " << position
-                                     << ", Speed: " << speedKmh << " km/h"
-                                     << ", UE connected to Cell: " << serving_cell);
+                          << ": Position of UE with IMSI " << imsi << " is " << position
+                          << ", Speed: " << speedKmh << " km/h"
+                          << ", UE connected to Cell: " << serving_cell);
             outFile.open(filename.c_str(), std::ios_base::out | std::ios_base::app);
             if (!outFile.is_open())
             {
@@ -342,11 +342,10 @@ EnergyConsumptionPrint(int nodeIndex)
 }
 
 // O1 related functions
-
 double (*O1_get_config(int argc, char* argv[], bool update))[matrix_cells_columns]
 {
     std::string url = "http://localhost:8831";
-    std::string O1_filename = ""; //"Topo_Osiris_5G_2025-02-12_100122.xml";
+    std::string O1_filename = ""; //"Topo_Example.xml";
     std::string condition = "";   //"nci:42986586128,42986586130,43013881872";
 
     if (!update)
@@ -403,7 +402,9 @@ double (*O1_get_config(int argc, char* argv[], bool update))[matrix_cells_column
         matrix_cells = new double[matrix_cells_rows][matrix_cells_columns];
 
     int cell_count = 0;
+
     for (auto& entry : entities)
+
     {
         if (!update)
             std::cout << "\nReceived config: key=" << entry.first
@@ -522,8 +523,16 @@ double (*O1_get_config(int argc, char* argv[], bool update))[matrix_cells_column
         {
             energyControl = -1;
         }
-        if (update && matrix_cells[cell_count][16] != energyControl)
-            NS_LOG_UNCOND("energySavingControl = " << energyControl);
+        if (update && matrix_cells[cell_count][16] != energyControl) {
+            if (energyControl == -1)
+            {
+                NS_LOG_UNCOND("energySavingRState = Uninitialized");
+            }
+            else
+            {
+                NS_LOG_UNCOND("energySavingRState = " << energyControl);
+            }
+}
         matrix_cells[cell_count][16] = energyControl;
 
         if (!update)
@@ -542,7 +551,17 @@ double (*O1_get_config(int argc, char* argv[], bool update))[matrix_cells_column
             energyState = -1;
         }
         if (update && matrix_cells[cell_count][17] != energyState)
-            NS_LOG_UNCOND("energySavingRState = " << energyState);
+        {
+            if (energyState == -1)
+            {
+                NS_LOG_UNCOND("energySavingRState = Uninitialized");
+            }
+            else
+            {
+                NS_LOG_UNCOND("energySavingRState = " << energyState);
+            }
+        }
+
         matrix_cells[cell_count][17] = energyState;
 
         if (!update)
@@ -615,89 +634,102 @@ GetBaseCellIndex(const std::string& cellName,
 void
 Update_O1_ES_Cells(int argc, char* argv[])
 {
-    static std::vector<std::string> prevESS; // persists between calls
+    static std::vector<std::string> prevESS(matrix_cells_rows, "-1");
+
     static bool firstRun = true;
 
-    // === Load latest O1 config ===
+    // Load latest O1 config
     O1_get_config(argc, argv, true);
 
     std::vector<std::string> newESS(matrix_cells_rows);
 
-    // === Extract and convert ESS states ===
+    // Extract ESS
     for (int i = 0; i < matrix_cells_rows; i++)
     {
-        int ess_val = static_cast<int>(matrix_cells[i][17]); // column 17 = ESS numeric
+        int ess_val = static_cast<int>(matrix_cells[i][17]);
         newESS[i] = std::to_string(ess_val);
-
-        auto cellName = matrix_cell_names[(int)matrix_cells[i][19]];
-        if (newESS[i] == "-1")
-        {
-            std::cout << "Loaded ESS for " << cellName << " = " << "Not initialized" << std::endl;
-        }
-        else
-        {
-            std::cout << "Loaded ESS for " << cellName << " = " << newESS[i] << std::endl;
-        }
     }
 
+    // First run: only initialize
     if (firstRun)
     {
-        for (int i = 0; i < matrix_cells_rows; i++)
-        {
-            auto cellName = matrix_cell_names[(int)matrix_cells[i][19]];
-            //  std::cout << "Cell: " << cellName << " | Initial ESS: " << newESS[i] << std::endl;
-        }
         prevESS = newESS;
         firstRun = false;
         return;
     }
 
-    // === Compare previous and current ESS states ===
+    // ---------------------------------------
+    // STRUCT for storing all ESS changes
+    // ---------------------------------------
+    struct EsChange
+    {
+        int row;
+        std::string oldVal;
+        std::string newVal;
+        std::string cellName;
+        std::string baseName;
+        int targetCellId;
+    };
+
+    std::vector<EsChange> changes;
+
+    // ---------------------------------------
+    // COLLECT ALL ESS CHANGES FIRST
+    // ---------------------------------------
+
     for (int i = 0; i < matrix_cells_rows; i++)
     {
-        auto cellName = matrix_cell_names[(int)matrix_cells[i][19]];
-        std::string baseName = GetBaseSectorName(cellName);
-        int baseIndex =
-            GetBaseCellIndex(cellName, matrix_cells, matrix_cells_rows, matrix_cell_names);
-
-        // Skip unchanged
         if (prevESS[i] == newESS[i])
             continue;
 
-        std::cout << "=== Energy Saving State Changes ===" << std::endl;
-        std::cout << "Cell: " << cellName << " | Base cell: " << baseName
-                  << " | ESS changed: " << prevESS[i] << " -> " << newESS[i] << std::endl;
+        int rawCellValue = static_cast<int>(matrix_cells[i][19]);
+        std::string cellName = matrix_cell_names[rawCellValue];
+        std::string baseName = GetBaseSectorName(cellName);
 
-        if (baseIndex < 0)
+        int targetCellId = (rawCellValue / 3) + 2; // current formula
+
+        changes.push_back({i, prevESS[i], newESS[i], cellName, baseName, targetCellId});
+    }
+
+    if (changes.empty())
+        return;
+
+    // ---------------------------------------
+    // PRINT UPDATE SUMMARY
+    // ---------------------------------------
+    std::cout << "\n==============================================\n";
+    std::cout << "      ENERGY SAVING STATE UPDATES\n";
+    std::cout << "==============================================\n";
+
+    for (auto& c : changes)
+    {
+        std::cout << "Cell: " << c.cellName << " | Base: " << c.baseName << " | ESS: " << c.oldVal
+                  << " -> " << c.newVal << " | Target CellId: " << c.targetCellId << std::endl;
+    }
+
+    std::cout << "----------------------------------------------\n";
+
+    // ---------------------------------------
+    // APPLY ALL CHANGES IN ONE PASS
+    // ---------------------------------------
+    for (NodeList::Iterator it = NodeList::Begin(); it != NodeList::End(); ++it)
+    {
+        Ptr<Node> node = *it;
+
+        for (uint32_t j = 0; j < node->GetNDevices(); j++)
         {
-            std::cerr << "Warning: Base index not found for " << cellName << std::endl;
-            continue;
-        }
+            Ptr<MmWaveEnbNetDevice> mmdev = node->GetDevice(j)->GetObject<MmWaveEnbNetDevice>();
 
-        int targetCellId = ((int)matrix_cells[i][19] / 3) + 2;
-        std::cout << "→ Target CellId: " << targetCellId << " for " << baseName << std::endl;
+            if (!mmdev)
+                continue;
 
-        bool matched = false;
+            uint16_t cell_id = mmdev->GetCellId();
 
-        // === Apply changes to simulation ===
-        for (NodeList::Iterator it = NodeList::Begin(); it != NodeList::End(); ++it)
-        {
-            Ptr<Node> node = *it;
-            for (uint32_t j = 0; j < node->GetNDevices(); j++)
+            // Match against any changed cell
+            for (auto& c : changes)
             {
-                Ptr<MmWaveEnbNetDevice> mmdev = node->GetDevice(j)->GetObject<MmWaveEnbNetDevice>();
-                if (!mmdev)
+                if (cell_id != c.targetCellId)
                     continue;
-
-                uint16_t cell_id = mmdev->GetCellId();
-
-                // std::cout << "Checking node cellId=" << cell_id
-                //    << " vs targetCellId=" << targetCellId << std::endl;
-
-                if (cell_id != targetCellId)
-                    continue;
-
-                matched = true;
 
                 Ptr<MmWaveEnbPhy> enbPhy = mmdev->GetPhy();
                 if (!enbPhy)
@@ -706,35 +738,29 @@ Update_O1_ES_Cells(int argc, char* argv[])
                     continue;
                 }
 
-                // === Apply Energy Saving Logic ===
-                // int txPower = (newESS[i] == "0") ? 30 : 0;
-                // int noiseFigure = (newESS[i] == "0") ? 5 : 100;
-                int txPower = (newESS[i] == "0") ? 30 : 0;
-                int noiseFigure = (newESS[i] == "0") ? 5 : 100;
+                // Apply energy saving state
+                bool isOn = (c.newVal == "0");
+                int txPower = isOn ? 30 : 0;
+                int noiseFigure = isOn ? 5 : 100;
 
                 enbPhy->SetTxPower(txPower);
                 enbPhy->SetNoiseFigure(noiseFigure);
 
-                if (txPower == 0)
-                    NS_LOG_UNCOND("Cell turned OFF: " << cell_id);
+                if (!isOn)
+                    NS_LOG_UNCOND("Cell OFF: " << cell_id);
                 else
-                    NS_LOG_UNCOND("Cell turned ON: " << cell_id);
+                    NS_LOG_UNCOND("Cell ON: " << cell_id);
 
-                std::cout << "Applied ESS change → CellId " << cell_id << " | TxPower=" << txPower
+                std::cout << "Applied ESS → CellId " << cell_id << " | TxPower=" << txPower
                           << " | NoiseFigure=" << noiseFigure << std::endl;
             }
         }
-
-        if (!matched)
-        {
-            std::cerr << "No matching cellId found in NodeList for target " << targetCellId
-                      << " (" << baseName << ")" << std::endl;
-        }
     }
 
-    // === Update previous ESS states ===
+    std::cout << "==============================================\n";
+
+    // Save updated ESS state
     prevESS = newESS;
-    NS_LOG_UNCOND("---------------------------------------------");
 }
 
 static ns3::GlobalValue g_bufferSize("bufferSize",
@@ -857,6 +883,12 @@ main(int argc, char* argv[])
 {
     // Load latest O1 config
     O1_get_config(argc, argv, true);
+
+    for (int i = 0; i < matrix_cells_rows; ++i)
+    {
+        matrix_cells[i][16] = 0; // energySavingControl
+        matrix_cells[i][17] = 0; // energySavingState
+    }
 
     int minX = std::numeric_limits<int>::max();
     int minY = std::numeric_limits<int>::max();
