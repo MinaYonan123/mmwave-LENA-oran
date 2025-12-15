@@ -612,29 +612,10 @@ GetBaseSectorName(const std::string& name)
     return name; // already T1 or no suffix
 }
 
-int
-GetBaseCellIndex(const std::string& cellName,
-                 double matrix[][20],
-                 int matrix_rows,
-                 const std::string matrixNames[])
-{
-    std::string baseName = GetBaseSectorName(cellName);
-
-    for (int i = 0; i < matrix_rows; i++)
-    {
-        std::string name = matrixNames[(int)matrix[i][19]];
-        if (name == baseName)
-        {
-            return i; // found base sector T1
-        }
-    }
-    return -1; // not found
-}
-
 void
 Update_O1_ES_Cells(int argc, char* argv[])
 {
-    static std::vector<std::string> prevESS(matrix_cells_rows, "-1");
+    static std::vector<std::string> prevESS(matrix_cells_rows, "0");
 
     static bool firstRun = true;
 
@@ -649,6 +630,18 @@ Update_O1_ES_Cells(int argc, char* argv[])
         int ess_val = static_cast<int>(matrix_cells[i][17]);
         newESS[i] = std::to_string(ess_val);
     }
+
+    // Print the matrix
+    std::cout << "Cell matrix contents:\n";
+    for (int i = 0; i < matrix_cells_rows; i++)
+    {
+        for (int j = 0; j < matrix_cells_columns; j++)
+        {
+            std::cout << matrix_cells[i][j] << " ";
+        }
+        std::cout << "\n"; // Go to the next row after printing all columns in current row
+    }
+    std::cout << "\n";
 
     // First run: only initialize
     if (firstRun)
@@ -708,6 +701,7 @@ Update_O1_ES_Cells(int argc, char* argv[])
     }
 
     std::cout << "----------------------------------------------\n";
+
 
     // ---------------------------------------
     // APPLY ALL CHANGES IN ONE PASS
@@ -775,12 +769,12 @@ static ns3::GlobalValue g_enableTraces("enableTraces",
 
 static ns3::GlobalValue g_e2lteEnabled("e2lteEnabled",
                                        "If true, send LTE E2 reports",
-                                       ns3::BooleanValue(true),
+                                       ns3::BooleanValue(false),
                                        ns3::MakeBooleanChecker());
 
 static ns3::GlobalValue g_e2nrEnabled("e2nrEnabled",
                                       "If true, send NR E2 reports",
-                                      ns3::BooleanValue(true),
+                                      ns3::BooleanValue(false),
                                       ns3::MakeBooleanChecker());
 
 static ns3::GlobalValue g_e2du("e2du",
@@ -883,12 +877,6 @@ main(int argc, char* argv[])
 {
     // Load latest O1 config
     O1_get_config(argc, argv, true);
-
-    for (int i = 0; i < matrix_cells_rows; ++i)
-    {
-        matrix_cells[i][16] = 0; // energySavingControl
-        matrix_cells[i][17] = 0; // energySavingState
-    }
 
     int minX = std::numeric_limits<int>::max();
     int minY = std::numeric_limits<int>::max();
@@ -1295,7 +1283,7 @@ main(int argc, char* argv[])
     NodeContainerManager::GetInstance().SetMmWaveEnbNodes(mmWaveEnbNodes);
 
     // Define number of UEs based on number of cells
-    uint32_t ueFactor = 2; // UEs per cell
+    uint32_t ueFactor = 1; // UEs per cell
     uint32_t numUes = nMmWaveEnbNodes * ueFactor;
 
     // Create UE container
