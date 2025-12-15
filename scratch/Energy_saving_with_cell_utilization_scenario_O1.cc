@@ -631,7 +631,7 @@ Update_O1_ES_Cells(int argc, char* argv[])
         newESS[i] = std::to_string(ess_val);
     }
 
-    // Print the matrix
+    /*// Print the matrix
     std::cout << "Cell matrix contents:\n";
     for (int i = 0; i < matrix_cells_rows; i++)
     {
@@ -641,7 +641,7 @@ Update_O1_ES_Cells(int argc, char* argv[])
         }
         std::cout << "\n"; // Go to the next row after printing all columns in current row
     }
-    std::cout << "\n";
+    std::cout << "\n";*/
 
     // First run: only initialize
     if (firstRun)
