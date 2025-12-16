@@ -1,1 +1,7 @@
-curl -H "Content-Type: text/xml" --data "@payloads/EnergySavingState.xml" localhost:8831
+MESSAGE_ID="1760542221890"
+payload=$(<payloads/EnergySavingState.xml)
+
+payload=${payload/\{\{MESSAGE_ID\}\}/$MESSAGE_ID}
+echo "$payload"
+
+curl -H "Content-Type: text/json" --data "$payload" localhost:8831

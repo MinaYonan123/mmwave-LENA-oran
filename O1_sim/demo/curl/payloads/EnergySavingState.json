@@ -1,0 +1,11 @@
+{
+  "rpc": { 
+    "message-id": "{{MESSAGE_ID}}",
+    "method": "get-config",
+    "get-config": { 
+      "target": "running",
+       "info": "energySavingState",
+       "filter_expr": "cell_name == CELL_A_T1 or cell_name == CELL_A_T2 or cell_name == CELL_A_T3 or cell_name == CELL_B_T1 or cell_name == CELL_B_T2 or cell_name == CELL_B_T3 or cell_name == CELL_C_T1 or cell_name == CELL_C_T2 or cell_name == CELL_C_T3 or cell_name == CELL_D_T1 or cell_name == CELL_D_T2 or cell_name == CELL_D_T3 or cell_name == CELL_E_T1 or cell_name == CELL_E_T2 or cell_name == CELL_E_T3" 
+    }
+  }
+} 
