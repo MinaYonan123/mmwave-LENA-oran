@@ -1,6 +1,6 @@
 /* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 /* *
- * Copyright (c) 2024 Orange Innovation Poland
+ * Copyright (c) 2025 Orange Innovation Poland
  * Copyright (c) 2024 Orange Innovation Egypt
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -21,6 +21,7 @@
  *          Kamil Kociszewski <kamil.kociszewski@orange.com>
  *          Mostafa Ashraf <mostafa.ashraf.ext@orange.com>
  */
+
 #include "../src/mmwave/model/node-container-manager.h"
 #include "client_o1.cc"
 
@@ -41,50 +42,41 @@
 
 #include <chrono>
 #include <cmath>
-#include <ctime>
 #include <filesystem> // For filesystem utilities, available since C++17
 #include <fstream>
 #include <iostream>
-#include <list>
-#include <random>
-#include <stdlib.h>
-#include <sys/time.h>
+#include <unordered_map>
 #include <sys/types.h>
 #include <vector>
 
 using namespace ns3;
 using namespace mmwave;
 
-std::map<uint64_t, uint16_t> imsi_cellid;
-std::map<uint16_t, std::set<uint64_t>> imsi_list;
-std::map<uint16_t, Ptr<Node>> cellid_node;
-std::map<uint32_t, uint16_t> ue_cellid_usinghandover;
-std::map<uint64_t, uint32_t> ueimsi_nodeid;
-int ue_assoc_list[10] = {0};
-double maxXAxis;
-double maxYAxis;
-bool esON_list[10] = {0};
-double totalnewEnergyConsumption_storage[10] = {0};
-double totaloldEnergyConsumption_storage[10] = {0};
-double current_energy_consumption[10] = {0};
+//values store area of simulation
+double maxXAxis = 0.0;
+double maxYAxis = 0.0;
+
+std::unordered_map<uint64_t, uint16_t> ueAssocByImsi; // IMSI -> serving cellId
+std::unordered_map<uint16_t, bool> esON_list; // cellId -> ES state
+std::unordered_map<uint16_t, double> totalnewEnergyConsumption_storage; // cellId -> J
+std::unordered_map<uint16_t, double> totaloldEnergyConsumption_storage; // cellId -> J
+std::unordered_map<uint16_t, double> current_energy_consumption;        // cellId -> J (delta)
+
 double curr_total_energy_consumption = 0;
 double max_energy_consumption = 0;
 double sum_curr_total_energy_consumption = 0;
 int num_of_mmdev = 0;
 
-// O1 related varuabkes
+// O1 related variables
 int matrix_cells_rows = 0;
 const int matrix_cells_columns = 20;
 double (*matrix_cells)[matrix_cells_columns];
 std::string matrix_cell_names[20];
 
-/**
- * Scenario Zero
- *
- */
 
-NS_LOG_COMPONENT_DEFINE("ScenarioZero");
+NS_LOG_COMPONENT_DEFINE("Energy_saving_with_cell_utilization_scenario_O1");
 
+//This function prints all UEs that takes part in simulation to an external file.
 void
 PrintGnuplottableUeListToFile(std::string filename)
 {
@@ -132,6 +124,7 @@ PrintGnuplottableUeListToFile(std::string filename)
     }
 }
 
+//This function prints all Cells that takes part in simulation to an external file.
 void
 PrintGnuplottableEnbListToFile(uint64_t m_startTime)
 {
@@ -185,7 +178,8 @@ PrintGnuplottableEnbListToFile(uint64_t m_startTime)
                     uint64_t imsi_assoc = ue.second->GetImsi();
                     // NS_LOG_UNCOND ("IMSI: " << imsi_assoc << " associated with cell: "  <<
                     // mmdev->GetCellId ());
-                    ue_assoc_list[imsi_assoc - 1] = mmdev->GetCellId();
+                    // Old: ue_assoc_list[imsi_assoc - 1] = mmdev->GetCellId();
+                    ueAssocByImsi[imsi_assoc] = mmdev->GetCellId();
                 }
                 uint16_t cell_id = mmdev->GetCellId();
                 double es_power = enbPhy->GetTxPower();
@@ -219,6 +213,7 @@ PrintGnuplottableEnbListToFile(uint64_t m_startTime)
     }
 }
 
+//This function clears external files and it's mainly used for RIC TaaP Studio GUI
 void
 ClearFile(std::string Filename, uint64_t m_startTime)
 {
@@ -250,6 +245,7 @@ ClearFile(std::string Filename, uint64_t m_startTime)
     outFile1.close();
 }
 
+//This function print current status of UE every 100ms
 void
 PrintPosition(Ptr<Node> node, int iterator, std::string Filename, uint64_t m_startTime)
 {
@@ -269,7 +265,13 @@ PrintPosition(Ptr<Node> node, int iterator, std::string Filename, uint64_t m_sta
         if (mcuedev)
         {
             imsi = int(mcuedev->GetImsi());
-            int serving_cell = ue_assoc_list[imsi - 1];
+            // Old: int serving_cell = ue_assoc_list[imsi - 1];
+            int serving_cell = 0;
+            auto itAssoc = ueAssocByImsi.find(static_cast<uint64_t>(imsi));
+            if (itAssoc != ueAssocByImsi.end())
+            {
+                serving_cell = static_cast<int>(itAssoc->second);
+            }
             if (serving_cell == 0)
             {
                 serving_cell = 1;
@@ -308,6 +310,7 @@ PrintPosition(Ptr<Node> node, int iterator, std::string Filename, uint64_t m_sta
     NS_LOG_UNCOND("---------------------------------------------");
 }
 
+//This function allows tracing current power consumption of cells
 void
 EnergyConsumptionUpdate(int nodeIndex,
                         std::string filename,
@@ -324,9 +327,11 @@ EnergyConsumptionUpdate(int nodeIndex,
     totalnewEnergyConsumption_storage[nodeIndex] = totalnewEnergyConsumption;
 }
 
+//This function allows observing current power consumption of cells
 void
 EnergyConsumptionPrint(int nodeIndex)
 {
+    //nodeIndex + 2 - Cell naming offset
     NS_LOG_UNCOND("Total energy consumption for mmWave cell "
                   << nodeIndex + 2 << ": " << totalnewEnergyConsumption_storage[nodeIndex] << "J"
                   << " at time " << Simulator::Now().GetSeconds()
@@ -334,14 +339,13 @@ EnergyConsumptionPrint(int nodeIndex)
                   << (totalnewEnergyConsumption_storage[nodeIndex] -
                       totaloldEnergyConsumption_storage[nodeIndex])
                   << "J");
-    totalnewEnergyConsumption_storage[nodeIndex] = totalnewEnergyConsumption_storage[nodeIndex];
     current_energy_consumption[nodeIndex] =
         totalnewEnergyConsumption_storage[nodeIndex] - totaloldEnergyConsumption_storage[nodeIndex];
     totaloldEnergyConsumption_storage[nodeIndex] = totalnewEnergyConsumption_storage[nodeIndex];
     NS_LOG_UNCOND("---------------------------------------------");
 }
 
-// O1 related functions
+// Update configuration of cells from the O1 server
 double (*O1_get_config(int argc, char* argv[], bool update))[matrix_cells_columns]
 {
     std::string url = "http://localhost:8831";
@@ -601,7 +605,7 @@ double (*O1_get_config(int argc, char* argv[], bool update))[matrix_cells_column
     return matrix_cells;
 }
 
-// Helper functions
+// this function is needed to override mmwave limitation of RIC TaaP which blocks sectorized cells for mmwave module, it helps to handle sector-related commands
 std::string
 GetBaseSectorName(const std::string& name)
 {
@@ -612,6 +616,7 @@ GetBaseSectorName(const std::string& name)
     return name; // already T1 or no suffix
 }
 
+// Update energy saving state of cells from the O1 server
 void
 Update_O1_ES_Cells(int argc, char* argv[])
 {
@@ -757,6 +762,7 @@ Update_O1_ES_Cells(int argc, char* argv[])
     prevESS = newESS;
 }
 
+//section with global values for mmwave simulation
 static ns3::GlobalValue g_bufferSize("bufferSize",
                                      "RLC tx buffer size (MB)",
                                      ns3::UintegerValue(10),
@@ -878,8 +884,8 @@ main(int argc, char* argv[])
     // Load latest O1 config
     O1_get_config(argc, argv, true);
 
-    int minX = std::numeric_limits<int>::max();
-    int minY = std::numeric_limits<int>::max();
+    double minX = std::numeric_limits<int>::max();
+    double minY = std::numeric_limits<int>::max();
 
     // Find most southwest cell
     for (int i = 0; i < matrix_cells_rows; ++i)
@@ -933,15 +939,6 @@ main(int argc, char* argv[])
         std::cout << "\n"; // Go to the next row after printing all columns in current row
     }
     std::cout << "\n";
-
-    // Position
-    // The maximum X coordinate of the scenario
-    // double maxXAxis = 15000;
-    // The maximum Y coordinate of the scenario
-    // double maxYAxis = 7000;
-    // Scenario parameters (that we will use inside this script):
-    //  uint16_t gNbNum = matrix_cells_rows;
-    //  int UE_container = 1;
 
     LogComponentEnableAll(LOG_PREFIX_ALL);
     //  LogComponentEnable ("RicControlMessage", LOG_LEVEL_ALL);
@@ -1128,6 +1125,7 @@ main(int argc, char* argv[])
     }
     else
     {
+        //
     }
 
     // Number of antennas in each UE
@@ -1156,16 +1154,6 @@ main(int argc, char* argv[])
 
     // GlobalValue::GetValueByName ("N_LteEnbNodes", uintegerValue);
     uint8_t nLteEnbNodes = 1; // uintegerValue.Get();
-
-    // TODO: discuss number of UEs implementation
-    // uint8_t numUes = ues * nMmWaveEnbNodes;
-    // uint8_t numUes = ues;
-    /*NS_LOG_INFO(" Bandwidth " << bandwidth << " centerFrequency " << double(centerFrequency)
-                              << " isd_cell " << isd_cell << " numAntennasMcUe " <<
-       numAntennasMcUe
-                              << " numAntennasMmWave " << numAntennasMmWave << " nMmWaveEnbNodes
-       "
-                              << unsigned(nMmWaveEnbNodes));*/
 
     // Get SGW/PGW and create a single RemoteHost
     Ptr<Node> pgw = epcHelper->GetPgwNode();
@@ -1500,11 +1488,6 @@ main(int argc, char* argv[])
     lteHelper->Initialize();
     lteHelper->EnablePhyTraces();
     lteHelper->EnableMacTraces();
-
-    // Since nodes are randomly allocated during each run we always need to print their
-    // positions
-    // PrintGnuplottableUeListToFile ("ues.txt");
-    // PrintGnuplottableEnbListToFile ("enbs.txt");
 
     bool run = true;
     if (run)
