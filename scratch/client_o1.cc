@@ -22,7 +22,9 @@ std::string FetchFilteredConfig(const std::string& url,
 
     curl = curl_easy_init();
     if(curl) {
-
+        struct curl_slist *hs=NULL;
+        hs = curl_slist_append(hs, "Content-Type: application/xml");
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hs);
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, xmlRequest.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);

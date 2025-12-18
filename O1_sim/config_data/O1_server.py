@@ -614,160 +614,176 @@ class RPCHandler(http.server.SimpleHTTPRequestHandler):
     class serving rpc http calls
     """
     def do_POST(self):
-        content_length = int(self.headers.get('Content-Length', 0))
-        post_data = self.rfile.read(content_length).decode('utf-8')
-        root = ET.fromstring(post_data)
-        filename = root.findtext("filename")
-        method = root.findtext("method")
-        message_id = root.get("message-id", "0")
+        is_json = False
+        content_type = (self.headers.get('Content-Type') or '').split(';')[0].strip()
+        if content_type in ("application/json", "text/json"):
+            # JSON part begin
+            is_json = True
+            # JSON part end
+        elif content_type in ("application/xml", "text/xml"):
+            # XML part begin
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            root = ET.fromstring(post_data)
+            filename = root.findtext("filename")
+            method = root.findtext("method")
+            message_id = root.get("message-id", "0")
 
-        # If no explicit <method>, try to detect from first child
-        if method is None:
-            if onlytag(root.tag) == "rpc" and len(root):
-                method = onlytag(root[0].tag)
+            # If no explicit <method>, try to detect from first child
+            if method is None:
+                if onlytag(root.tag) == "rpc" and len(root):
+                    method = onlytag(root[0].tag)
 
-        print("Detected method:", method, "message_id:", message_id)
-        response = ""
-        try:
-            if method == "edit-config":
-                message_id = root.get("message-id", "0")
-                print("Processing edit-config, message_id:", message_id)
+            print("Detected method:", method, "message_id:", message_id)
+            response = ""
+            try:
+                if method == "edit-config":
+                    message_id = root.get("message-id", "0")
+                    print("Processing edit-config, message_id:", message_id)
 
-                # Iterate over all ManagedElement nodes
-                for me in root.findall(
-                        ".//{urn:3gpp:sa5:_3gpp-common-managed-element}ManagedElement"
-                ):
-                    idManagedElement = me.findtext("{urn:3gpp:sa5:_3gpp-common-managed-element}id")
-                    for gnb in me.findall("{urn:3gpp:sa5:_3gpp-nr-nrm-gnbcucpfunction}GNBCUCPFunction"):
-                        idGNBCUCPFunction = gnb.findtext("{urn:3gpp:sa5:_3gpp-nr-nrm-gnbcucpfunction}id")
-                        for nrcell in gnb.findall("{urn:3gpp:sa5:_3gpp-nr-nrm-nrcellcu}NRCellCU"):
-                            idNRCellCU = nrcell.findtext("{urn:3gpp:sa5:_3gpp-nr-nrm-nrcellcu}id")
-                            ces = nrcell.find("{urn:3gpp:sa5:_3gpp-nr-nrm-cesmanagementfunction}CESManagementFunction")
-                            if ces is None:
-                                continue
-                            idCESManagementFunction = ces.findtext(
-                                "{urn:3gpp:sa5:_3gpp-nr-nrm-cesmanagementfunction}id")
-                            energySavingControl = ces.findtext(
-                                ".//{urn:3gpp:sa5:_3gpp-nr-nrm-cesmanagementfunction}energySavingControl"
-                            )
+                    # Iterate over all ManagedElement nodes
+                    for me in root.findall(
+                            ".//{urn:3gpp:sa5:_3gpp-common-managed-element}ManagedElement"
+                    ):
+                        idManagedElement = me.findtext("{urn:3gpp:sa5:_3gpp-common-managed-element}id")
+                        for gnb in me.findall("{urn:3gpp:sa5:_3gpp-nr-nrm-gnbcucpfunction}GNBCUCPFunction"):
+                            idGNBCUCPFunction = gnb.findtext("{urn:3gpp:sa5:_3gpp-nr-nrm-gnbcucpfunction}id")
+                            for nrcell in gnb.findall("{urn:3gpp:sa5:_3gpp-nr-nrm-nrcellcu}NRCellCU"):
+                                idNRCellCU = nrcell.findtext("{urn:3gpp:sa5:_3gpp-nr-nrm-nrcellcu}id")
+                                ces = nrcell.find("{urn:3gpp:sa5:_3gpp-nr-nrm-cesmanagementfunction}CESManagementFunction")
+                                if ces is None:
+                                    continue
+                                idCESManagementFunction = ces.findtext(
+                                    "{urn:3gpp:sa5:_3gpp-nr-nrm-cesmanagementfunction}id")
+                                energySavingControl = ces.findtext(
+                                    ".//{urn:3gpp:sa5:_3gpp-nr-nrm-cesmanagementfunction}energySavingControl"
+                                )
 
-                            # Map energySavingControl to energySavingState
-                            if energySavingControl == "toBeNotEnergySaving":
-                                energySavingState = "isNotEnergySaving"
-                            elif energySavingControl == "toBeEnergySaving":
-                                energySavingState = "isEnergySaving"
-                            else:
-                                energySavingState = None
+                                # Map energySavingControl to energySavingState
+                                if energySavingControl == "toBeNotEnergySaving":
+                                    energySavingState = "isNotEnergySaving"
+                                elif energySavingControl == "toBeEnergySaving":
+                                    energySavingState = "isEnergySaving"
+                                else:
+                                    energySavingState = None
 
-                            # Build the node dict
-                            energy_node = {
-                                "message_id": message_id,
-                                "idManagedElement": idManagedElement,
-                                "idGNBCUCPFunction": idGNBCUCPFunction,
-                                "idNRCellCU": idNRCellCU,
-                                "idCESManagementFunction": idCESManagementFunction,
-                                "energySavingControl": energySavingControl,
-                                "energySavingState": energySavingState,
-                            }
+                                # Build the node dict
+                                energy_node = {
+                                    "message_id": message_id,
+                                    "idManagedElement": idManagedElement,
+                                    "idGNBCUCPFunction": idGNBCUCPFunction,
+                                    "idNRCellCU": idNRCellCU,
+                                    "idCESManagementFunction": idCESManagementFunction,
+                                    "energySavingControl": energySavingControl,
+                                    "energySavingState": energySavingState,
+                                }
 
-                            # Debug print
-                            print("[DEBUG] Merging energy_node:", energy_node)
+                                # Debug print
+                                print("[DEBUG] Merging energy_node:", energy_node)
 
-                            # Merge into simulation / ns-3
-                            merge_cell_config_into_CM(idManagedElement, idNRCellCU, energy_node)
+                                # Merge into simulation / ns-3
+                                merge_cell_config_into_CM(idManagedElement, idNRCellCU, energy_node)
 
-                # Always return ok for edit-config
-                response = f"""<rpc-reply message-id="{message_id}" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
-            <ok/>
-            </rpc-reply>"""
-                print(response)
+                    # Always return ok for edit-config
+                    response = f"""<rpc-reply message-id="{message_id}" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+                <ok/>
+                </rpc-reply>"""
+                    print(response)
 
-            elif method == "init-config":
-                print("init-config*")
-                mainfile = root.find(
-                    "init-config/config/file"
-                ).text.strip()
-                print(mainfile)
-                setconfig(mainfile)
-                response = f"<rpc-reply message-id=\"{message_id}\" xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\">\
-                            <ok/>\
-                            </rpc-reply>"
-            elif method == "get-config":
-                taglist = {"cell_name", "gnodeb_id", "RelativeCellId", "energySavingState"}
-                filter_expr = root.findtext("get-config/filter_expr")
-                filename = getconfig()
-                xml_path = os.path.join(XML_DIR, filename)
-                print(taglist, filter_expr, filename, xml_path)
-                try:
-                    tree = ET.parse(xml_path)
-                    config_root = tree.getroot()
-                    if not filter_expr:
-                        filter_expr = "true"
-                    if filter_expr:
-                        print("Filter", filter_expr)
-                        filtered = ET.Element("config")
-                        for entry in config_root.findall("entry"):
-                            row = {child.tag: child.text for child in entry}
-                            if evaluate_expression_without_sp(filter_expr, row):
-                                cell_name = row.get("cell_name")
-                                if cell_name:
-                                    new_entry = ET.Element("entry")
-                                    for child in list(entry):
-                                        if child.tag in taglist:
-                                            # Keep only tags in whitelist
-                                            new_entry.append(child)
-                                    merge_cell_config(new_entry, cell_name, taglist)
+                elif method == "init-config":
+                    print("init-config*")
+                    mainfile = root.find(
+                        "init-config/config/file"
+                    ).text.strip()
+                    print(mainfile)
+                    setconfig(mainfile)
+                    response = f"<rpc-reply message-id=\"{message_id}\" xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\">\
+                                <ok/>\
+                                </rpc-reply>"
+                elif method == "get-config":
+                    taglist = {"cell_name", "gnodeb_id", "RelativeCellId", "energySavingState"}
+                    filter_expr = root.findtext("get-config/filter_expr")
+                    filename = getconfig()
+                    xml_path = os.path.join(XML_DIR, filename)
+                    print(taglist, filter_expr, filename, xml_path)
+                    try:
+                        tree = ET.parse(xml_path)
+                        config_root = tree.getroot()
+                        if not filter_expr:
+                            filter_expr = "true"
+                        if filter_expr:
+                            print("Filter", filter_expr)
+                            filtered = ET.Element("config")
+                            for entry in config_root.findall("entry"):
+                                row = {child.tag: child.text for child in entry}
+                                if evaluate_expression_without_sp(filter_expr, row):
+                                    cell_name = row.get("cell_name")
+                                    if cell_name:
+                                        new_entry = ET.Element("entry")
+                                        for child in list(entry):
+                                            if child.tag in taglist:
+                                                # Keep only tags in whitelist
+                                                new_entry.append(child)
+                                        merge_cell_config(new_entry, cell_name, taglist)
 
-                                filtered.append(new_entry)
-                        response = ET.tostring(filtered, encoding="unicode")
-                    else:
-                        response = ET.tostring(config_root, encoding="unicode")
-                    response = f"<rpc-reply message-id=\"{message_id}\" xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\">" + response + "</rpc-reply>"
-                except Exception as e:
-                    response = f"<error>Could not read or filter file {filename}: {str(e)}</error>"
+                                    filtered.append(new_entry)
+                            response = ET.tostring(filtered, encoding="unicode")
+                        else:
+                            response = ET.tostring(config_root, encoding="unicode")
+                        response = f"<rpc-reply message-id=\"{message_id}\" xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\">" + response + "</rpc-reply>"
+                    except Exception as e:
+                        response = f"<error>Could not read or filter file {filename}: {str(e)}</error>"
 
-                # end if method is None
-            elif method == "get_config" and filename:
-                filter_expr = root.findtext("filter_expr")
-                xml_path = os.path.join(XML_DIR, filename)
-                try:
-                    tree = ET.parse(xml_path)
-                    config_root = tree.getroot()
+                    # end if method is None
+                elif method == "get_config" and filename:
+                    filter_expr = root.findtext("filter_expr")
+                    xml_path = os.path.join(XML_DIR, filename)
+                    try:
+                        tree = ET.parse(xml_path)
+                        config_root = tree.getroot()
 
-                    if filter_expr:
-                        print("Filter", filter_expr)
-                        filtered = ET.Element("config")
-                        for entry in config_root.findall("entry"):
-                            row = {child.tag: child.text for child in entry}
-                            if evaluate_expression_without_sp(filter_expr, row):
-                                cell_name = row.get("cell_name")
-                                if cell_name:
-                                    merge_cell_config(entry, cell_name)
+                        if filter_expr:
+                            print("Filter", filter_expr)
+                            filtered = ET.Element("config")
+                            for entry in config_root.findall("entry"):
+                                row = {child.tag: child.text for child in entry}
+                                if evaluate_expression_without_sp(filter_expr, row):
+                                    cell_name = row.get("cell_name")
+                                    if cell_name:
+                                        merge_cell_config(entry, cell_name)
 
-                                filtered.append(entry)
-                        response = ET.tostring(filtered, encoding="unicode")
-                    else:
-                        response = ET.tostring(config_root, encoding="unicode")
-                except Exception as e:
-                    response = f"<error>Could not read or filter file {filename}: {str(e)}</error>"
-            elif method == "edit_config":
-                config = root.findtext("config")
-                try:
+                                    filtered.append(entry)
+                            response = ET.tostring(filtered, encoding="unicode")
+                        else:
+                            response = ET.tostring(config_root, encoding="unicode")
+                    except Exception as e:
+                        response = f"<error>Could not read or filter file {filename}: {str(e)}</error>"
+                elif method == "edit_config":
+                    config = root.findtext("config")
+                    try:
 
-                    response = ET.tostring(config, encoding="unicode")
-                except Exception as e:
-                    response = f"<error>edit_config error: {str(e)}</error>"
+                        response = ET.tostring(config, encoding="unicode")
+                    except Exception as e:
+                        response = f"<error>edit_config error: {str(e)}</error>"
 
-                pass
-            else:
-                response = "<error>Missing method or filename</error>"
-        except ET.ParseError as e:
-            response = f"<error>XML parsing error: {str(e)}</error>"
+                    pass
+                else:
+                    response = "<error>Missing method or filename</error>"
+            except ET.ParseError as e:
+                response = f"<error>XML parsing error: {str(e)}</error>"
+            # XML part end
+        else:
+            self.send_response(400)
+            self.wfile.write("Wrong content_type".encode("utf-8"))
+            return
 
         self.send_response(200)
-        self.send_header("Content-type", "application/xml")
+        self.send_header("Content-type", content_type)
         self.end_headers()
-        self.wfile.write(pretty_xml_no_blanks(response).encode("utf-8"))
+        if is_json:
+            pass
+        else:
+            self.wfile.write(pretty_xml_no_blanks(response).encode("utf-8"))
 
 
 if __name__ == "__main__":
