@@ -18,114 +18,130 @@ XML_DIR = "xml"
 
 
 def quote(name):
+    """
+    Quote name with quotation marks
+
+    Parameters:
+    name (str): Name to be quoted
+
+    Returns:
+    str: quoted string
+    """
     return "\"" + name.strip() + "\""
 
 
-def entity_simple(fout, klucz, wartosc, last):
-    wartosc = wartosc.replace("\"", "")
+def entity_simple(fout, key, value, last):
+    value = value.replace("\"", "")
     if last:
-        fout[0] += klucz + ": " + quote(wartosc) + "\n"
+        fout[0] += key + ": " + quote(value) + "\n"
     else:
-        fout[0] += klucz + ": " + quote(wartosc) + ",\n"
+        fout[0] += key + ": " + quote(value) + ",\n"
 
 
 def entity_simple_in(el):
     el_collected = el[:]
     if ":" in el_collected:
-        klucz = el_collected[0:el_collected.index(":")]
-        wartosc = el_collected[el_collected.index(":") + 1:]
-    wartosc = wartosc.replace("\"\"", "\"")
-    return "\t" + quote(klucz) + ": " + quote(wartosc.strip())
+        key = el_collected[0:el_collected.index(":")]
+        value = el_collected[el_collected.index(":") + 1:]
+    value = value.replace("\"\"", "\"")
+    return "\t" + quote(key) + ": " + quote(value.strip())
 
 
 def entity_list_in(el):
     result = "\t{"
     result_list = []
-    klucz = ""
-    wartosc = ""
+    key = ""
+    value = ""
     el_collected = el[:]
     if "," in el_collected:
         el_collected_list = el_collected.split(",")
         for el in el_collected_list:
-            klucz = el[0:el.index(":")]
-            wartosc = el[el.index(":") + 1:]
-            result_list += [quote(klucz) + ": " + quote(wartosc.strip())]
+            key = el[0:el.index(":")]
+            value = el[el.index(":") + 1:]
+            result_list += [quote(key) + ": " + quote(value.strip())]
         result += ", ".join(result_list)
     else:
         el = el[:]
         if el.find(":") >= 0:
-            klucz = el[0:el.index(":")]
-            wartosc = el[el.index(":") + 1:]
+            key = el[0:el.index(":")]
+            value = el[el.index(":") + 1:]
 
-        result += quote(klucz) + ": " + quote(wartosc.strip())
+        result += quote(key) + ": " + quote(value.strip())
 
     return result + "}"
 
 
-def entity_with_sub(fout, klucz, wartosc, last):
-    wartosc = wartosc.replace("\"", "{\n", 1) + "\n}"  # .replace("\"\"", "\"\n}",1)
-    full_wartosc_list = wartosc.split("\n")
-    wartosc_list = [entity_simple_in(el) for el in full_wartosc_list[1:-1]]
-    wartosc = full_wartosc_list[0] + "\n" + ",\n".join(wartosc_list) + "\n" + full_wartosc_list[-1]
+def entity_with_sub(fout, key, value, last):
+    value = value.replace("\"", "{\n", 1) + "\n}"
+    full_value_list = value.split("\n")
+    value_list = [entity_simple_in(el) for el in full_value_list[1:-1]]
+    value = full_value_list[0] + "\n" + ",\n".join(value_list) + "\n" + full_value_list[-1]
     if last:
-        fout[0] += klucz + ": " + wartosc + "\n"
+        fout[0] += key + ": " + value + "\n"
     else:
-        fout[0] += klucz + ": " + wartosc + ",\n"
+        fout[0] += key + ": " + value + ",\n"
 
 
-def entity_list(fout, klucz, wartosc, last):
-    # wartosc = wartosc.replace("\"\"", "[\n\"",1).replace("\"\"", "\"\n]",1)
-    wartosc = wartosc.replace("\"", "", 1)
-    full_wartosc_list = wartosc.split("\n")
-    wartosc_list = [entity_list_in(el) for el in full_wartosc_list[:]]
-    # wartosc = full_wartosc_list[0] + "\n" + ",\n".join(wartosc_list) + "\n" +full_wartosc_list[-1]
-    wartosc = "[\n" + ",\n".join(wartosc_list) + "\n]"
+def entity_list(fout, key, value, last):
+
+    value = value.replace("\"", "", 1)
+    full_value_list = value.split("\n")
+    value_list = [entity_list_in(el) for el in full_value_list[:]]
+
+    value = "[\n" + ",\n".join(value_list) + "\n]"
     if last:
-        fout[0] += klucz + ": " + wartosc + "\n"
+        fout[0] += key + ": " + value + "\n"
     else:
-        fout[0] += klucz + ": " + wartosc + ",\n"
+        fout[0] += key + ": " + value + ",\n"
 
 
-def entity_puzzled_list(fout, klucz, wartosc, last):
-    wartosc = wartosc.replace("\"\"", "[\n\"", 1).replace("\"\"", "\"\n]", 1)
-    full_wartosc_list = wartosc.split("\n")
-    wartosc_list = [entity_list_in(el) for el in full_wartosc_list[1:-1]]
-    wartosc = full_wartosc_list[0] + "\n" + ",\n".join(wartosc_list) + "\n" + full_wartosc_list[-1]
+def entity_puzzled_list(fout, key, value, last):
+    value = value.replace("\"\"", "[\n\"", 1).replace("\"\"", "\"\n]", 1)
+    full_value_list = value.split("\n")
+    value_list = [entity_list_in(el) for el in full_value_list[1:-1]]
+    value = full_value_list[0] + "\n" + ",\n".join(value_list) + "\n" + full_value_list[-1]
     if last:
-        fout[0] += quote(klucz) + ": " + wartosc + "\n"
+        fout[0] += quote(key) + ": " + value + "\n"
     else:
-        fout[0] += quote(klucz) + ": " + wartosc + ",\n"
+        fout[0] += quote(key) + ": " + value + ",\n"
 
 
-def simple_list(fout, klucz, wartosc, last):
-    # print("klucz", klucz, "wartosc", wartosc)
-    wartosc = wartosc.replace("\"", "")
-    full_wartosc_list = wartosc.split(",")
-    wartosc_list = [quote(el) for el in full_wartosc_list]
-    wartosc = ",".join(wartosc_list)
-    fout[0] += klucz + ": [" + wartosc + "],\n"
+def simple_list(fout, key, value, last):
+    # print("key", key, "value", value)
+    value = value.replace("\"", "")
+    full_value_list = value.split(",")
+    value_list = [quote(el) for el in full_value_list]
+    value = ",".join(value_list)
+    fout[0] += key + ": [" + value + "],\n"
 
 
 def entity(fout, collected, last):
     ent_collected = collected[0:-2]
     if "," in ent_collected:
-        klucz = ent_collected[0:ent_collected.index(",")]
-        wartosc = ent_collected[ent_collected.index(",") + 1:]
+        key = ent_collected[0:ent_collected.index(",")]
+        value = ent_collected[ent_collected.index(",") + 1:]
 
-        if not "\n" in wartosc and not "," in wartosc:
-            entity_simple(fout, klucz, wartosc, last)
+        if not "\n" in value and not "," in value:
+            entity_simple(fout, key, value, last)
 
-        if "\n" in wartosc and ":" in wartosc and not "," in wartosc:
-            entity_with_sub(fout, klucz, wartosc, last)
+        if "\n" in value and ":" in value and not "," in value:
+            entity_with_sub(fout, key, value, last)
 
-        if "\n" in wartosc and ":" in wartosc and "," in wartosc:
-            entity_list(fout, klucz, wartosc, last)
+        if "\n" in value and ":" in value and "," in value:
+            entity_list(fout, key, value, last)
 
-        if not "\n" in wartosc and "," in wartosc:
-            simple_list(fout, klucz, wartosc, last)
+        if not "\n" in value and "," in value:
+            simple_list(fout, key, value, last)
 
 
 def convert_csv2_to_xml(csv_file, xml_file):
+    """
+    Convert csv file to xml file
+
+    Parameters:
+    csv_file (str): File nane of csv file
+    xml_file (str): File nane of xml file
+    """
     try:
 
         fout = [""]
@@ -177,6 +193,13 @@ algebra = BooleanAlgebra()
 
 
 def convert_csv1_to_xml(csv_file, xml_file):
+    """
+    Convert csv file to xml file
+
+    Parameters:
+    csv_file (str): File nane of csv file
+    xml_file (str): File nane of xml file
+    """
     try:
         with open(csv_file, newline='', encoding='latin1') as f:
             csv_header = f.readline().strip()
@@ -216,6 +239,13 @@ def convert_csv1_to_xml(csv_file, xml_file):
 
 
 def convert_csv_to_xml(csv_file, xml_file):
+    """
+    Convert csv file to xml file
+
+    Parameters:
+    csv_file (str): File nane of csv file
+    xml_file (str): File nane of xml file
+    """
     try:
         try:
             with open(csv_file, newline='', encoding='utf-8') as csvfile:
@@ -241,6 +271,9 @@ def convert_csv_to_xml(csv_file, xml_file):
 
 
 def watch_csv_folder():
+    """
+    Watch changes in csv folder and trigger conversion to xml
+    """
     seen_files = {}
     while True:
         for filename in os.listdir(CSV_DIR):
@@ -257,6 +290,17 @@ def watch_csv_folder():
 
 
 def compare(value, op, test_value):
+    """
+    Evaluate compare expression
+
+    Parameters:
+    value (str): value to be compared
+    op (str): operator
+    test_value (str): compared to this value
+    
+    Returns:
+    bool: result of comparision
+    """
     try:
         fval = float(value)
         ftest = float(test_value)
@@ -273,6 +317,16 @@ import re
 
 
 def evaluate_expression_without_sp(expr, row):
+    """
+    Evalueate expression without spaces
+
+    Parameters:
+    expr (str): expression to ealuate
+    row (str):  row in data
+    
+    Returns:
+    bool: result of evaluation
+    """
     # Normalize operators and tokenize expression safely (even without spaces)
     expr = re.sub(r'(?<![=!<>])=(?!=)', '==', expr)  # fix bare '=' into '=='
     expr = re.sub(r'([()])', r' \1 ', expr)  # space around brackets
@@ -314,6 +368,16 @@ def evaluate_expression_without_sp(expr, row):
 
 
 def evaluate_expression(expr, row):
+    """
+    Evalueate expression without spaces
+
+    Parameters:
+    expr (str): expression to ealuate
+    row (str):  row in data
+    
+    Returns:
+    bool: result of evaluation
+    """
     # Replace all known operators and evaluate booleans
     tokens = expr.replace("(", " ( ").replace(")", " ) ").split()
     rebuilt = []
@@ -398,17 +462,33 @@ def update_xml_parameters(xml_file, cell_name, params, parent_tag=None, output_f
 
 
 def getconfig():
+    """
+    get configuration
+    """
     with open("config", "r") as f:
         return f.read()
     return ""
 
 
 def setconfig(file):
+    """
+    set config file
+    """
     with open("config", "w") as f:
         f.write(file)
 
 
 def gnodeb_id_2_cell_name(gnodeb_id, relativeCellId):
+    """
+    Find cell name for gnodeb_id and cell id
+
+    Parameters:
+    gnodeb_id (str): gnodb id
+    relativeCellId (str):  cell id
+    
+    Returns:
+    str: cell name
+    """
     filename = getconfig()
     main_file = os.path.join(XML_DIR, filename)
 
@@ -440,6 +520,14 @@ def gnodeb_id_2_cell_name(gnodeb_id, relativeCellId):
 
 
 def merge_cell_config_into_CM(gnodeb_id, relativeCellId, energy_node):
+    """
+    Merge new data into proper CM identify by gnodeb and cell ids
+
+    Parameters:
+    gnodeb_id (str): gnodb id
+    relativeCellId (str):  cell id
+    energy_node (dict): data to be merged   
+    """
     cell_name = gnodeb_id_2_cell_name(gnodeb_id, relativeCellId)
     if cell_name:
         print(cell_name)
@@ -462,28 +550,35 @@ def merge_cell_config(entry_node, cell_name, taglist=None):
                 else:
                     entry_node.append(child)
 
-        #           switch_on = ET.fromstring("  <energySavingState>isNotEnergySaving</energySavingState>")
-        #           if os.path.exists(switch_file):
-        #               switch = ET.parse(switch_file)
-        #               cells = switch.getroot()
-        #               for cell in cells:
-        #                   if cell_name == cell.find("Name").text:
-        #                       switch_state = cell.find("energySavingControl")
-        #                       if switch_state is not None:
-        #                           switch_on = switch_state
-        #           entry_node.append(switch_on)
-
         except Exception as e:
             print(f"[WARN] Failed to merge {suffix_file}: {e}")
 
 
 def onlytag(tag):
+    """
+    Get tag without namespaces
+
+    Parameters:
+    tag (str): tag with namespaces
+
+    Returns:
+    str:  tag without namespaces   
+    """
     if tag[0] == "{":
         _, _, tag = tag[1:].partition("}")
     return tag
 
 
 def pretty_xml(xml_string: str) -> str:
+    """
+    Convert xml into readable version
+
+    Parameters:
+    xml_string (str): not formated xml
+    
+    Returns:
+    str: pretty formated xml string   
+    """
     # Parse the XML string
     dom = xml.dom.minidom.parseString(xml_string)
     # Pretty print with indentation
@@ -491,6 +586,15 @@ def pretty_xml(xml_string: str) -> str:
 
 
 def pretty_xml_no_blanks(xml_string: str) -> str:
+    """
+    Convert xml into readable version with removing unnecessary whitespaces
+
+    Parameters:
+    xml_string (str): not formated xml
+    
+    Returns:
+    str: pretty formated xml string   
+    """
     dom = xml.dom.minidom.parseString(xml_string)
 
     # remove empty text nodes
@@ -506,6 +610,9 @@ def pretty_xml_no_blanks(xml_string: str) -> str:
 
 
 class RPCHandler(http.server.SimpleHTTPRequestHandler):
+    """
+    class serving rpc http calls
+    """
     def do_POST(self):
         content_length = int(self.headers.get('Content-Length', 0))
         post_data = self.rfile.read(content_length).decode('utf-8')
