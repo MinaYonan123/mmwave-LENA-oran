@@ -690,16 +690,20 @@ class RPCHandler(http.server.SimpleHTTPRequestHandler):
                 </rpc-reply>"""
                     print(response)
 
-                elif method == "init-config":
-                    print("init-config*")
-                    mainfile = root.find(
-                        "init-config/config/file"
-                    ).text.strip()
-                    print(mainfile)
-                    setconfig(mainfile)
-                    response = f"<rpc-reply message-id=\"{message_id}\" xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\">\
-                                <ok/>\
-                                </rpc-reply>"
+                    if method == "init-config":
+                        print("init-config")
+                        mainfile = root.find("init-config/config/file")
+                        if mainfile is None:
+                            response = f"<rpc-reply message-id=\"{message_id}\" xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\">\
+                            <error>File name not given</error>\
+                            </rpc-reply>"
+                        else:
+                            mainfile = mainfile.text.strip()
+                            print(mainfile)
+                            setconfig(mainfile)
+                            response = f"<rpc-reply message-id=\"{message_id}\" xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\">\
+                            <ok/>\
+                            </rpc-reply>"
                 elif method == "get-config":
                     taglist = {"cell_name", "gnodeb_id", "RelativeCellId", "energySavingState"}
                     filter_expr = root.findtext("get-config/filter_expr")

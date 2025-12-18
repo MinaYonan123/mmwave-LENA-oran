@@ -4,7 +4,7 @@ import pprint
 import codecs
 
 # URL of the server you want to send the XML to
-url = "http://localhost:8830"
+url = "http://localhost:8831"
 
 # XML string to send
 xml_data2 = """<?xml version="1.0" encoding="UTF-8"?>
