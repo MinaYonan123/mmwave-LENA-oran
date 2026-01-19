@@ -710,7 +710,7 @@ main(int argc, char* argv[])
                      //  UintegerValue(40)); // csiRsPeriodicity = 40
    // Config::SetDefault("ns3::NrGnbNetDevice::sim_id", UintegerValue(t_startTime_simid));
     //Config::SetDefault("ns3::NrGnbNetDevice::report_to_db", BooleanValue(report_to_db));
-  //  Config::SetDefault("ns3::NrAmc::ImplementationLossDb", DoubleValue(implementationLossDb));
+  Config::SetDefault("ns3::NrAmc::ImplementationLossDb", DoubleValue(implementationLossDb));
     //Config::SetDefault("ns3::SpectrumChannel::MaxLossDb", DoubleValue(maxLossDb));
 
     NS_ABORT_IF(centralFrequency < 0.5e9 && centralFrequency > 100e9);
