@@ -808,55 +808,66 @@ main(int argc, char* argv[])
     }
 
     // === ASSIGN MOBILITY using predefined simTime ===
-    auto assignSectorMobility = [&](uint32_t ueIndex,
-                                    double cellX,
-                                    double cellY,
-                                    double azDeg,
-                                    double minDist,
-                                    double maxDist,
-                                    double speedValue) {
-        double angle = 90.0 - azDeg;
-        double azRad = angle * M_PI / 180.0;
+    auto assignSectorMobility =
+       [&](uint32_t ueIndex,
+           double cellX,
+           double cellY,
+           double azDeg,
+           double minDist,
+           double maxDist,
+           double speedValue)
+       {
+           double angle = 90.0 - azDeg;
+           double azRad = angle * M_PI / 180.0;
 
-        while (azRad <= -M_PI)
-            azRad += 2 * M_PI;
-        while (azRad > M_PI)
-            azRad -= 2 * M_PI;
+           while (azRad <= -M_PI) azRad += 2 * M_PI;
+           while (azRad >  M_PI) azRad -= 2 * M_PI;
 
-        // random starting position
-        double startDist = minDist + (maxDist - minDist) * ((double)rand() / RAND_MAX);
-        double endDist = (fabs(startDist - maxDist) < 1e-6 ? minDist : maxDist);
+           double startDist = minDist + (maxDist - minDist) * ((double)rand() / RAND_MAX);
+           double endDist   = (fabs(startDist - maxDist) < 1e-6) ? minDist : maxDist;
 
-        Vector startPos(cellX + startDist * cos(azRad), cellY + startDist * sin(azRad), 1.5);
+           Vector startPos(cellX + startDist * cos(azRad),
+                           cellY + startDist * sin(azRad), 1.5);
 
-        Vector endPos(cellX + endDist * cos(azRad), cellY + endDist * sin(azRad), 1.5);
+           Vector endPos(cellX + endDist * cos(azRad),
+                         cellY + endDist * sin(azRad), 1.5);
 
-        // travel time from start to end at UE speed
-        double travelTime = fabs(endDist - startDist) / speedValue;
+           double segmentTime = fabs(endDist - startDist) / speedValue;
 
-        // UE will go start → end → start → end... until simTime is reached
-        Ptr<WaypointMobilityModel> mobility = CreateObject<WaypointMobilityModel>();
+           Ptr<WaypointMobilityModel> mobility = CreateObject<WaypointMobilityModel>();
+           mobility->AddWaypoint(Waypoint(Seconds(0.0), startPos));
 
-        mobility->AddWaypoint(Waypoint(Seconds(0.0), startPos));
+           double t = 0.0;
+           bool goingOut = true;
+           Vector from = startPos;
+           Vector to   = endPos;
 
-        double t = travelTime;
-        bool goingOut = true;
+           while (t + segmentTime < duration)
+           {
+               t += segmentTime;
+               mobility->AddWaypoint(Waypoint(Seconds(t), to));
 
-        while (t < duration)
-        {
-            mobility->AddWaypoint(Waypoint(Seconds(t), goingOut ? endPos : startPos));
-            t += travelTime;
-            goingOut = !goingOut;
-        }
+               goingOut = !goingOut;
+               std::swap(from, to);
+           }
 
-        // final waypoint at simTime (clip)
-        mobility->AddWaypoint(Waypoint(Seconds(duration), goingOut ? startPos : endPos));
+           // ---- Final partial segment (interpolated) ----
+           double remaining = duration - t;
+           double ratio = remaining / segmentTime;
 
-        ueContainer.Get(ueIndex)->AggregateObject(mobility);
+           Vector finalPos(from.x + ratio * (to.x - from.x),
+                           from.y + ratio * (to.y - from.y),
+                           from.z);
 
-        NS_LOG_UNCOND("UE " << ueIndex << " speed=" << speedValue << " m/s az=" << azDeg
-                            << " start=" << startDist << " end=" << endDist);
-    };
+           mobility->AddWaypoint(Waypoint(Seconds(duration), finalPos));
+
+           ueContainer.Get(ueIndex)->AggregateObject(mobility);
+
+           NS_LOG_UNCOND("UE " << ueIndex
+                               << " speed=" << speedValue
+                               << " m/s az=" << azDeg);
+       };
+
 
     // === ASSIGN MOBILITY TO ALL UEs ===
     uint32_t ueIndex = 0;
@@ -1168,6 +1179,8 @@ main(int argc, char* argv[])
     endpointNodes.Add(remoteHost);
     endpointNodes.Add(ueContainer);
 
+    Ptr<FlowMonitor> monitor = flowmonHelper.Install(endpointNodes);
+
     std::string ue_poss_out = "ue_position.txt";
     std::string gnbs_out = "gnbs.txt";
 
@@ -1195,7 +1208,6 @@ main(int argc, char* argv[])
     Simulator::Stop(simTime);
     Simulator::Run();
 
-    Ptr<ns3::FlowMonitor> monitor = flowmonHelper.Install(endpointNodes);
     monitor->SetAttribute("DelayBinWidth", DoubleValue(0.001));
     monitor->SetAttribute("JitterBinWidth", DoubleValue(0.001));
     monitor->SetAttribute("PacketSizeBinWidth", DoubleValue(20));
@@ -1221,6 +1233,12 @@ main(int argc, char* argv[])
     outFile.setf(std::ios_base::fixed);
 
     double flowDuration = (simTime - udpAppStartTime).GetSeconds();
+    if (flowDuration <= 0)
+    {
+        NS_LOG_UNCOND("WARNING: flowDuration <= 0, skipping throughput calculation");
+        flowDuration = 1e-6; // or skip stats
+    }
+
     for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin();
          i != stats.end();
          ++i)
@@ -1268,8 +1286,19 @@ main(int argc, char* argv[])
         outFile << "  Rx Packets: " << i->second.rxPackets << "\n";
     }
 
-    outFile << "\n\n  Mean flow throughput: " << averageFlowThroughput / stats.size() << "\n";
-    outFile << "  Mean flow delay: " << averageFlowDelay / stats.size() << "\n";
+    if (!stats.empty())
+    {
+        outFile << "  Mean flow throughput: "
+                << averageFlowThroughput / stats.size() << " Mbps\n";
+        outFile << "  Mean flow delay: "
+                << averageFlowDelay / stats.size() << " ms\n";
+    }
+    else
+    {
+        outFile << "  Mean flow throughput: 0\n";
+        outFile << "  Mean flow delay: 0\n";
+    }
+
     outFile.close();
     std::ifstream f(filename.c_str());
     if (f.is_open())
