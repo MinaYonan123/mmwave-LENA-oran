@@ -1830,7 +1830,7 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
     NS_ABORT_MSG_IF(m_useCa && ccMap.size() < 2,
                     "You have to either specify carriers or disable carrier aggregation");
     NS_ASSERT(ccMap.size() == m_noOfCcs);
-    printf("iam here ");
+    //printf("iam here ");
     for (auto it = ccMap.begin(); it != ccMap.end(); ++it)
     {   
         printf ("iam in for ");

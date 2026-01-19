@@ -1,0 +1,11 @@
+{
+  "rpc": { 
+    "message-id": "{{MESSAGE_ID}}",
+    "method": "get-config",
+    "get-config": { 
+      "target": "running",
+       "info": "energySavingState",
+       "filter_expr": "{{FILTER_EXPR}}" 
+    }
+  }
+} 

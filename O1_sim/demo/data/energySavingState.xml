@@ -1,0 +1,5 @@
+<config>
+  <entry><name>name1</name><energySavingState>isNotEnergySaving</energySavingState></entry>
+  <entry><name>name2</name><energySavingState>isEnergySaving</energySavingState></entry>
+  <entry><name>name3</name><energySavingState>isEnergySaving</energySavingState></entry>
+</config>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<rpc xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="{{MESSAGE_ID}}"> 
+  <edit-config> 
+    <target><running/></target> 
+    <config> 
+      <ManagedElement xmlns="urn:3gpp:sa5:_3gpp-common-managed-element"> 
+        <id>{{GNODEB_ID}}</id> 
+        <GNBCUCPFunction xmlns="urn:3gpp:sa5:_3gpp-nr-nrm-gnbcucpfunction"> 
+          <id>1</id> 
+          <NRCellCU xmlns="urn:3gpp:sa5:_3gpp-nr-nrm-nrcellcu"> 
+            <id>{{CELL_ID}}</id> 
+            <CESManagementFunction xmlns="urn:3gpp:sa5:_3gpp-nr-nrm-cesmanagementfunction"> 
+              <id>5</id> 
+              <attributes> 
+                <energySavingControl>toBeNotEnergySaving</energySavingControl> 
+                <energySavingState>isNotEnergySaving</energySavingState> 
+              </attributes> 
+            </CESManagementFunction> 
+          </NRCellCU> 
+        </GNBCUCPFunction> 
+      </ManagedElement> 
+    </config> 
+  </edit-config> 
+</rpc> 

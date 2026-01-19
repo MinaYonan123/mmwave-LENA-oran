@@ -154,12 +154,20 @@ process_options()
 
 # Add the compiler flag globally
 add_compile_options(-Wno-deprecated-enum-enum-conversion)
+add_compile_options(-Wno-error)
 
 # ##############################################################################
 # Add subdirectories                  #
 # ##############################################################################
 # Build NS3 library core
 add_subdirectory(src)
+add_subdirectory(O1_sim/client)
+add_library(pugixml STATIC
+    external/pugixml/pugixml.cpp
+)
+target_include_directories(pugixml PUBLIC external/pugixml)
+
+find_package(CURL REQUIRED)
 
 # Build NS library examples
 add_subdirectory(examples)

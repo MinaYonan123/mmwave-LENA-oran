@@ -1,0 +1,13 @@
+MESSAGE_ID="1760542221877"
+GNODEB_ID="1"
+CELL_ID="1"
+
+payload=$(<payloads/TurnOn.xml)
+
+payload=${payload/\{\{MESSAGE_ID\}\}/$MESSAGE_ID}
+payload=${payload/\{\{GNODEB_ID\}\}/$GNODEB_ID}
+payload=${payload/\{\{CELL_ID\}\}/$CELL_ID}
+echo "$payload"
+
+curl -H "Content-Type: text/xml" --data "$payload" localhost:8831
+

@@ -1,0 +1,24 @@
+MESSAGE_ID="1760542221890"
+CELLS=(
+  CELL_A_T1 CELL_A_T2 CELL_A_T3
+  CELL_B_T1 CELL_B_T2 CELL_B_T3
+  CELL_C_T1 CELL_C_T2 CELL_C_T3
+  CELL_D_T1 CELL_D_T2 CELL_D_T3
+  CELL_E_T1 CELL_E_T2 CELL_E_T3
+)
+FILTER_EXPR=""
+for c in "${CELLS[@]}"; do
+  if [[ -z "$FILTER_EXPR" ]]; then
+    FILTER_EXPR="cell_name == $c"
+  else
+    FILTER_EXPR+=" or cell_name == $c"
+  fi
+done
+payload=$(<payloads/EnergySavingState.xml)
+
+payload=${payload/\{\{MESSAGE_ID\}\}/$MESSAGE_ID}
+payload=${payload//\{\{FILTER_EXPR\}\}/$FILTER_EXPR}
+
+echo "$payload"
+
+curl -H "Content-Type: text/xml" --data "$payload" localhost:8831

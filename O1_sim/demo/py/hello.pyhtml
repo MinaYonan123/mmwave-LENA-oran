@@ -1,0 +1,12 @@
+{% extends 'base.pyhtml' %}
+{% block title %}Hello Page{% endblock %}
+{% block content %}
+<h1>Hello, {{ params_get('name') or 'World' }}</h1>
+<ul>
+<%
+for i in range(3):
+    write("<li>Item %d</li>" % i)
+%>
+</ul>
+<p>Now: {{ now() }}</p>
+{% endblock %}

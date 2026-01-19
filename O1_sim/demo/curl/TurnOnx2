@@ -1,0 +1,30 @@
+MESSAGE_ID="1760542221878"
+
+GNODEB_ID1="1"
+CELL_ID1="1"
+ENERGY_SAVING_CONTROL1="toBeNotEnergySaving"
+ENERGY_SAVING_STATE1="isEnergySaving"
+
+GNODEB_ID2="4"
+CELL_ID2="10"
+ENERGY_SAVING_CONTROL2="toBeNotEnergySaving"
+ENERGY_SAVING_STATE2="isEnergySaving"
+
+payload=$(<payloads/TurnCombine.xml)
+
+payload=${payload/\{\{MESSAGE_ID\}\}/$MESSAGE_ID}
+
+payload=${payload/\{\{GNODEB_ID1\}\}/$GNODEB_ID1}
+payload=${payload/\{\{CELL_ID1\}\}/$CELL_ID1}
+payload=${payload/\{\{ENERGY_SAVING_CONTROL1\}\}/$ENERGY_SAVING_CONTROL1}
+payload=${payload/\{\{ENERGY_SAVING_STATE1\}\}/$ENERGY_SAVING_STATE1}
+
+payload=${payload/\{\{GNODEB_ID2\}\}/$GNODEB_ID2}
+payload=${payload/\{\{CELL_ID2\}\}/$CELL_ID2}
+payload=${payload/\{\{ENERGY_SAVING_CONTROL2\}\}/$ENERGY_SAVING_CONTROL2}
+payload=${payload/\{\{ENERGY_SAVING_STATE2\}\}/$ENERGY_SAVING_STATE2}
+
+echo "$payload"
+
+curl -H "Content-Type: text/xml" --data "$payload" localhost:8831
+

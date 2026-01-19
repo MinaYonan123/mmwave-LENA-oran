@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<config>
+  <Name>CELL_C_T3</Name>
+  <advancedDlSuMimoEnabled>true</advancedDlSuMimoEnabled>
+  <bandListManual>78</bandListManual>
+  <cbrsCellBandwidthPreferred>20000</cbrsCellBandwidthPreferred>
+  <csiRsPeriodicity>40</csiRsPeriodicity>
+  <dl256QamEnabled>true</dl256QamEnabled>
+  <dlMaxMuMimoLayers>4</dlMaxMuMimoLayers>
+  <pdcchLaBfGainFraction>0.0</pdcchLaBfGainFraction>
+  <srsPeriodicity>40</srsPeriodicity>
+  <ssbSubCarrierSpacing>30</ssbSubCarrierSpacing>
+  <srsHoppingBandwidth>FULL</srsHoppingBandwidth>
+  <csiReportFormat>CQI_WB_PMI_WB</csiReportFormat>
+  <energySavingControl/>
+  <energySavingState/>
+  <energySavingStateNs3/>
+</config>

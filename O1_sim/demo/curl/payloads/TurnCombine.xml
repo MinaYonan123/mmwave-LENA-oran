@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<rpc xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="{{MESSAGE_ID}}"> 
+  <edit-config> 
+    <target><running/></target> 
+    <config> 
+      <ManagedElement xmlns="urn:3gpp:sa5:_3gpp-common-managed-element">
+        <id>{{GNODEB_ID1}}</id>
+        <GNBCUCPFunction xmlns="urn:3gpp:sa5:_3gpp-nr-nrm-gnbcucpfunction">
+          <id>1</id>
+          <NRCellCU xmlns="urn:3gpp:sa5:_3gpp-nr-nrm-nrcellcu">
+            <id>{{CELL_ID1}}</id>
+            <CESManagementFunction xmlns="urn:3gpp:sa5:_3gpp-nr-nrm-cesmanagementfunction">
+              <id>5</id>
+              <attributes>
+                <energySavingControl>{{ENERGY_SAVING_CONTROL1}}</energySavingControl>
+                <energySavingState>{{ENERGY_SAVING_STATE1}}</energySavingState>
+              </attributes>
+            </CESManagementFunction>
+          </NRCellCU>
+        </GNBCUCPFunction>
+      </ManagedElement>
+      <ManagedElement xmlns="urn:3gpp:sa5:_3gpp-common-managed-element"> 
+        <id>{{GNODEB_ID2}}</id> 
+        <GNBCUCPFunction xmlns="urn:3gpp:sa5:_3gpp-nr-nrm-gnbcucpfunction"> 
+          <id>1</id> 
+          <NRCellCU xmlns="urn:3gpp:sa5:_3gpp-nr-nrm-nrcellcu"> 
+            <id>{{CELL_ID2}}</id> 
+            <CESManagementFunction xmlns="urn:3gpp:sa5:_3gpp-nr-nrm-cesmanagementfunction"> 
+              <id>5</id> 
+              <attributes> 
+                <energySavingControl>{{ENERGY_SAVING_CONTROL2}}</energySavingControl>
+                <energySavingState>{{ENERGY_SAVING_STATE2}}</energySavingState>
+              </attributes> 
+            </CESManagementFunction> 
+          </NRCellCU> 
+        </GNBCUCPFunction> 
+      </ManagedElement> 
+    </config> 
+  </edit-config> 
+</rpc> 

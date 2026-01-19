@@ -3,4 +3,4 @@
 	url= https://github.com/MinaYonan123/oran-interface
 [submodule "src/nr"]
 	path = src/nr
-	url = https://github.com/MinaYonan123/ns3-oran-lena-nr.git
+	url = https://github.com/kamilkociszewski/e2-ns3-oran-lena-nr
