@@ -79,64 +79,66 @@ PropagationLossModel::CalcRxPower(double txPowerDbm,
                                   Ptr<MobilityModel> a,
                                   Ptr<MobilityModel> b) const
 {
-    // 1 - Get xyz Coordinates, Velocities and Heading Angle for a and b
     Vector a_position = a->GetPosition();
     Vector b_position = b->GetPosition();
     Vector a_velocity = a->GetVelocity();
     Vector b_velocity = b->GetVelocity();
 
-    double power_ns3 = 0;
-    double power_sionna = 0;
+    double power_ns3 = DoCalcRxPower(txPowerDbm, a, b);
+    double power_sionna = std::numeric_limits<double>::quiet_NaN();
 
     if (m_sionna)
     {
-        // 2 - Retreive the NodeID associated to the Ptr<MobilityModel>
         Ptr<Node> nodeA = a->GetObject<Node>();
-        NS_ABORT_MSG_IF(!nodeA, "Error: Ptr<MobilityModel> a (usually TX) not linked to a Node. This is needed for Sionna to track the object location!");
+        NS_ABORT_MSG_IF(!nodeA, "MobilityModel a not linked to Node");
         std::string a_id = "obj" + std::to_string(nodeA->GetId() + 1);
+
         Ptr<Node> nodeB = b->GetObject<Node>();
-        NS_ABORT_MSG_IF(!nodeB, "Error: Ptr<MobilityModel> b (usually RX) not linked to a Node. This is needed for Sionna to track the object location!");
+        NS_ABORT_MSG_IF(!nodeB, "MobilityModel b not linked to Node");
         std::string b_id = "obj" + std::to_string(nodeB->GetId() + 1);
 
-        // 3 - Location Update to Sionna
+        // Update Sionna state
         updateLocationInSionna(a_id, a_position, a_velocity);
         updateLocationInSionna(b_id, b_position, b_velocity);
 
-        // 4 - Get Path Gain from Sionna and calculate power
+        // Query path gain
         double path_gain = getPathGainFromSionna(a_position, b_position);
-        power_sionna = txPowerDbm - path_gain;
-    }
 
-    power_ns3 = DoCalcRxPower(txPowerDbm, a, b);
+        // ---- CRITICAL GUARD ----
+        if (std::isfinite(path_gain) && path_gain < 250.0)
+        {
+            power_sionna = txPowerDbm - path_gain;
+        }
+        else
+        {
+            // No valid channel → treat as outage
+            power_sionna = -200.0; // conservative floor, NOT -300
+        }
 
-    if (m_sionna)
-    {   
-        // 5 - Log Progress
-        if (power_sionna != 0)
+        if (sionna_verbose)
         {
             std::string los = getLOSStatusFromSionna(a_position, b_position);
-
-            if (sionna_verbose)
-            {
-                std::cout << "rxPower_ns3_model: " << -(txPowerDbm - power_ns3)
-                          << ", rxPower_sionna: " << -(txPowerDbm - power_sionna)-30
-                          << ", LOS: " << los << std::endl;
-            }
-            std::string log_pl =
-                std::to_string(power_ns3) + "," + std::to_string(power_sionna) + "," + los;
-            logProgress(2, log_pl);
+            std::cout << "rxPower_ns3_model: " << power_ns3
+                      << ", rxPower_sionna: " << power_sionna
+                      << ", LOS: " << los << std::endl;
         }
+
+        logProgress(2,
+            std::to_string(power_ns3) + "," +
+            std::to_string(power_sionna));
     }
 
-    // 6 - Return value from Sionna instead of ns3 models (if necessary)
-    double self = m_sionna && power_sionna != txPowerDbm ? power_sionna : power_ns3;
+    // ---- FINAL SELECTION ----
+    double self = m_sionna ? power_sionna : power_ns3;
 
     if (m_next)
     {
         self = m_next->CalcRxPower(self, a, b);
     }
+
     return self;
 }
+
 
 int64_t
 PropagationLossModel::AssignStreams(int64_t stream)
