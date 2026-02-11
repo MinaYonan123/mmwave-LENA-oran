@@ -97,9 +97,10 @@ def manage_location_message(message, sionna_structure):
                     print(f"Updated car_{car} position in the scene.")
             else:
                 print(f"ERROR: no car_{car} in the scene, use Blender to check")
-
-            sionna_structure["scene"].remove(f"car_{car}_tx_antenna")
-            sionna_structure["scene"].remove(f"car_{car}_rx_antenna")
+            if sionna_structure["scene"].get(f"car_{car}_tx_antenna"):
+                sionna_structure["scene"].remove(f"car_{car}_tx_antenna")
+            if sionna_structure["scene"].get(f"car_{car}_rx_antenna"):
+                sionna_structure["scene"].remove(f"car_{car}_rx_antenna")
             if sionna_structure["verbose"]:
                 print(f"Removed antennas for car_{car} from the scene.")
 
@@ -264,8 +265,8 @@ def compute_rays(sionna_structure):
                         # Force an update if the source or target wasn't matched
                         for car_id in sionna_structure["sionna_location_db"]:
                             car_name = f"car_{car_id}"
-                            if sionna_structure["scene"].get(car_name):
-                                from_sionna = sionna_structure["scene"].get(car_name)
+                            from_sionna = sionna_structure["scene"].get(car_name)
+                            if from_sionna:
                                 new_position = [sionna_structure["SUMO_live_location_db"][car_id]["x"],
                                                 sionna_structure["SUMO_live_location_db"][car_id]["y"],
                                                 sionna_structure["SUMO_live_location_db"][car_id]["z"]]
@@ -278,22 +279,19 @@ def compute_rays(sionna_structure):
                                                                                           "SUMO_live_location_db"][
                                                                                           car_id]["angle"]}
                                 # Update antenna positions
-                                if sionna_structure["scene"].get(f"{car_name}_tx_antenna"):
-                                    sionna_structure["scene"].get(f"{car_name}_tx_antenna").position = \
+                                tx_ant = sionna_structure["scene"].get(f"{car_name}_tx_antenna")
+                                if tx_ant:
+                                    tx_ant.position = \
                                         [new_position[0] + sionna_structure["antenna_displacement"][0],
                                          new_position[1] + sionna_structure["antenna_displacement"][1],
                                          new_position[2] + sionna_structure["antenna_displacement"][2]]
-                                    if sionna_structure["verbose"]:
-                                        print(f"Forced update for {car_name} and its TX antenna in the scene.")
-                                if sionna_structure["scene"].get(f"{car_name}_rx_antenna"):
-                                    sionna_structure["scene"].get(f"{car_name}_rx_antenna").position = \
+
+                                rx_ant = sionna_structure["scene"].get(f"{car_name}_rx_antenna")
+                                if rx_ant:
+                                    rx_ant.position = \
                                         [new_position[0] + sionna_structure["antenna_displacement"][0],
                                          new_position[1] + sionna_structure["antenna_displacement"][1],
                                          new_position[2] + sionna_structure["antenna_displacement"][2]]
-                                    if sionna_structure["verbose"]:
-                                        print(f"Forced update for {car_name} and its RX antenna in the scene.")
-                            else:
-                                print(f"ERROR: no {car_name} in the scene for forced update, use Blender to check")
 
                         # Re-do matching with updated locations
                         t = time.time()
@@ -309,26 +307,25 @@ def compute_rays(sionna_structure):
     return None
 
 def get_path_loss(car1_id, car2_id, sionna_structure):
-    t = time.time()
     # Was the requested value already calculated?
     if car1_id not in sionna_structure["rays_cache"] or car2_id not in sionna_structure["rays_cache"][car1_id]:
-        if sionna_structure["verbose"]:
-            print(f"Pathloss calculation requested for {car1_id}-{car2_id}: rays not computed yet.")
+        if sionna_structure.get("verbose"):
+            print(f"[PathLoss] Cache miss for {car1_id}-{car2_id}, computing rays...")
         compute_rays(sionna_structure)
 
-    if sionna_structure["verbose"]:
-        print(f"Pathloss calculation requested for {car1_id}-{car2_id}: rays retreived from cache.")
+    # Re-check after compute to avoid KeyError if the cache is still missing
+    if car1_id not in sionna_structure["rays_cache"] or car2_id not in sionna_structure["rays_cache"][car1_id]:
+        if sionna_structure.get("verbose"):
+            print(f"[PathLoss] No rays available for {car1_id}-{car2_id} after compute. Returning 300 dB.")
+        return 300
 
     path_coefficients = sionna_structure["rays_cache"][car1_id][car2_id]["path_coefficients"]
-
-    total_cir = 0
-    if len(path_coefficients) > 0:
-        # Uncoherent paths summation
-        sum_coeffs = np.sum(path_coefficients)
-        abs_coeffs = np.abs(sum_coeffs)
-        square = abs_coeffs ** 2
-        total_cir = square
-
+    sum = np.sum(path_coefficients)
+    abs = np.abs(sum)
+    square = abs ** 2
+    total_cir = square
+    if sionna_structure.get("verbose"):
+        print("total_cir = ", total_cir)
     # Calculate path loss in dB
     if total_cir > 0:
         path_loss = -10 * np.log10(total_cir)
@@ -338,9 +335,6 @@ def get_path_loss(car1_id, car2_id, sionna_structure):
             print(
                 f"Pathloss calculation failed for {car1_id}-{car2_id}: got infinite value (not enough rays). Returning 300 dB.")
         path_loss = 300  # Assign 300 dB for loss cases
-
-    if sionna_structure["time_checker"]:
-        print(f"Pathloss calculation took: {(time.time() - t) * 1000} ms")
     return path_loss
 
 def manage_path_loss_request(message, sionna_structure):
@@ -427,7 +421,17 @@ def manage_los_request(message, sionna_structure):
             # If any, ignoring path_loss requests from the origin, used for statistical calibration
             los = 0
         else:
-            los = sionna_structure["rays_cache"][car_a_id][car_b_id]["is_los"]
+            if car_a_id not in sionna_structure["rays_cache"] or car_b_id not in sionna_structure["rays_cache"][car_a_id]:
+                if sionna_structure.get("verbose"):
+                    print(f"[LOS] Cache miss for {car_a_id}-{car_b_id}, computing rays...")
+                compute_rays(sionna_structure)
+
+            if car_a_id not in sionna_structure["rays_cache"] or car_b_id not in sionna_structure["rays_cache"][car_a_id]:
+                if sionna_structure.get("verbose"):
+                    print(f"[LOS] No rays available for {car_a_id}-{car_b_id} after compute. Returning 0.")
+                los = 0
+            else:
+                los = sionna_structure["rays_cache"][car_a_id][car_b_id]["is_los"]
 
         if sionna_structure["time_checker"]:
             print(f"LOS calculation took: {(time.time() - t) * 1000} ms")
@@ -478,7 +482,7 @@ def main():
     parser.add_argument('--path-to-xml-scenario', type=str, default='scenarios/SionnaCircleScenario/scene.xml',
                         help='Path to the .xml file of the scenario (see Sionna documentation for the creation of custom scenarios)')
     parser.add_argument('--frequency', type=float, help='Frequency of the simulation in Hz', default=3.5e9)
-    parser.add_argument('--bw', type=float, help='Bandwidth of the simulation in Hz', default=20e6)
+    parser.add_argument('--bw', type=float, help='Bandwidth of the simulation in Hz', default=100e6)
     # Integration
     parser.add_argument('--local-machine', action='store_true',
                         help='Flag to indicate if Sionna and ns3-rt are running on the same machine (locally)')
