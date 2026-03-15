@@ -82,6 +82,7 @@ class SimulationManager:
             cls._simulation.starting_power = 0
             cls._simulation.current_power = 0
             cls._simulation.simulation_status = 'off'
+            cls._simulation.rf_config = {}
 
     @classmethod
     def delete_simulation(cls):

@@ -48,8 +48,6 @@ class Simulation:
             self.cells = []
             self.sim_id = None
 
-
-
     def get_charts_max_axis_value(self):
         max_x = self.get_last_value_from_measurement('gnbs_x_0')
         if not max_x:
