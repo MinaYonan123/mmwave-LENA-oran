@@ -61,6 +61,7 @@ $ ./ns3 run "cttc-nr-demo --PrintHelp"
 #include "ns3/nr-module.h"
 #include "ns3/point-to-point-module.h"
 #include <string>
+#include <vector>
 /*
  * Use, always, the namespace ns3. All the NR classes are inside such namespace.
  */
@@ -90,6 +91,26 @@ uint64_t t_startTime_simid;
 double maxXAxis;
 double maxYAxis;
 int cell_it = 0;
+
+std::vector<Ptr<NrGnbPhy>> allGnbPhys;
+std::vector<Ptr<NrUePhy>> allUePhys;
+
+void PeriodicEnergyUpdate()
+{
+    // Update gNB PHY energy
+    for (auto phy : allGnbPhys)
+    {
+        phy->UpdateEnergyConsumption(MilliSeconds(100));
+    }
+    
+    // Update UE PHY energy
+    for (auto phy : allUePhys)
+    {
+        phy->UpdateEnergyConsumption(MilliSeconds(100));
+    }
+    
+    Simulator::Schedule(MilliSeconds(100), &PeriodicEnergyUpdate);
+}
 
 void
 PrintGnuplottableEnbListToFile() {
@@ -181,12 +202,12 @@ PrintPosition(Ptr <Node> node, std::string Filename) {
             int gui_ue_id = imsi - cell_it + 1;
 
             // Log position and SINR
-            NS_LOG_UNCOND(std::noshowpos << std::fixed << std::setprecision(2)
-                                         << "Position of UE with IMSI " << std::dec << static_cast<uint32_t>(imsi) << " (UE_ID in GUI: " <<
-                              static_cast<uint32_t>(gui_ue_id) << ") is " << position.x << ":" << position.y << ":" << position.z
-                                         << ", Speed: " << speedKmh << " km/h"
-                                         << " at time " << Simulator::Now().GetSeconds()
-                                         << ", UE connected to Cell: " << std::dec << static_cast<uint32_t>(serving_cell));
+            // NS_LOG_UNCOND(std::noshowpos << std::fixed << std::setprecision(2)
+            //                              << "Position of UE with IMSI " << std::dec << static_cast<uint32_t>(imsi) << " (UE_ID in GUI: " <<
+            //                   static_cast<uint32_t>(gui_ue_id) << ") is " << position.x << ":" << position.y << ":" << position.z
+            //                              << ", Speed: " << speedKmh << " km/h"
+            //                              << " at time " << Simulator::Now().GetSeconds()
+            //                              << ", UE connected to Cell: " << std::dec << static_cast<uint32_t>(serving_cell));
 
 
             outFile.open(filename.c_str(), std::ios_base::out | std::ios_base::app);
@@ -203,7 +224,24 @@ PrintPosition(Ptr <Node> node, std::string Filename) {
         }
     }
 }
-
+void SetFlowMonitorOnAllGnbDevices(Ptr<FlowMonitor> monitor,
+                                   Ptr<Ipv4FlowClassifier> classifier) {
+    for (NodeList::Iterator it = NodeList::Begin(); it != NodeList::End(); ++it) {
+        Ptr<Node> node = *it;
+        int nDevs = node->GetNDevices();
+        for (int j = 0; j < nDevs; ++j) {
+            Ptr<NetDevice> dev = node->GetDevice(j);
+            Ptr<NrGnbNetDevice> nrdev = dev->GetObject<NrGnbNetDevice>();
+            if (!nrdev)
+                continue;
+            nrdev->SetFlowMonitor(monitor);
+            nrdev->SetIpv4FlowClassifier(classifier);
+            // Optionally print/log:
+            NS_LOG_UNCOND("Attached FlowMonitor to gNB device on node "
+                                  << node->GetId());
+        }
+    }
+}
 int
 main(int argc, char* argv[])
 {
@@ -218,7 +256,7 @@ main(int argc, char* argv[])
      */
     // Scenario parameters (that we will use inside this script):
     uint16_t gNbNum = 1;
-    uint16_t N_Ues = 3;
+    uint16_t N_Ues = 1;
     bool logging = true;
     bool doubleOperationalBand = false;
 
@@ -234,7 +272,7 @@ main(int argc, char* argv[])
 
     // Simulation parameters. Please don't use double to indicate seconds; use
     // ns-3 Time values which use integers to avoid portability issues.
-    Time simTime = MilliSeconds(10000);
+    Time simTime = MilliSeconds(1000000);
     Time udpAppStartTime = MilliSeconds(400);
 
     // NR parameters (Reference: 3GPP TR 38.901 V17.0.0 (Release 17)
@@ -248,7 +286,7 @@ main(int argc, char* argv[])
     uint16_t numerologyBwp2 = 2;
     double centralFrequencyBand2 = 28.2e9;
     double bandwidthBand2 = 50e6;
-    double totalTxPower = 35;
+    double totalTxPower = 45;
 
     //GUI related flags
     bool enableE2FileLogging;
@@ -688,6 +726,7 @@ main(int argc, char* argv[])
     randomStream += nrHelper->AssignStreams(gnbNetDev, randomStream);
     randomStream += nrHelper->AssignStreams(ueLowLatNetDev, randomStream);
     randomStream += nrHelper->AssignStreams(ueVoiceNetDev, randomStream);
+    
     /*
      * Case (iii): Go node for node and change the attributes we have to setup
      * per-node.
@@ -695,11 +734,16 @@ main(int argc, char* argv[])
 
     // Get the first netdevice (gnbNetDev.Get (0)) and the first bandwidth part (0)
     // and set the attribute.
-    nrHelper->GetGnbPhy(gnbNetDev.Get(0), 0)
-        ->SetAttribute("Numerology", UintegerValue(numerologyBwp1));
-    nrHelper->GetGnbPhy(gnbNetDev.Get(0), 0)
-        ->SetAttribute("TxPower", DoubleValue(10 * log10((bandwidthBand1 / totalBandwidth) * x)));
-
+    // nrHelper->GetGnbPhy(gnbNetDev.Get(0), 0)
+    //     ->SetAttribute("Numerology", UintegerValue(numerologyBwp1));
+    // nrHelper->GetGnbPhy(gnbNetDev.Get(0), 0)
+    //     ->SetAttribute("TxPower", DoubleValue(10 * log10((bandwidthBand1 / totalBandwidth) * x)));
+    for (uint32_t i = 0; i < gnbNetDev.GetN(); ++i) {
+        double txPower = 10 * log10((bandwidthBand1 / totalBandwidth) * x);
+        nrHelper->GetGnbPhy(gnbNetDev.Get(i), 0)
+            ->SetAttribute("Numerology", UintegerValue(numerologyBwp1));
+        nrHelper->GetGnbPhy(gnbNetDev.Get(i), 0)->SetAttribute("TxPower", DoubleValue(txPower));
+    }
     if (doubleOperationalBand)
     {
         // Get the first netdevice (gnbNetDev.Get (0)) and the second bandwidth part (1)
@@ -717,6 +761,41 @@ main(int argc, char* argv[])
     nrHelper->UpdateDeviceConfigs(gnbNetDev);
     nrHelper->UpdateDeviceConfigs(ueLowLatNetDev);
     nrHelper->UpdateDeviceConfigs(ueVoiceNetDev);
+
+    // Collect all gNB PHYs
+    allGnbPhys.clear();
+    for (uint32_t i = 0; i < gnbNetDev.GetN(); ++i) {
+        Ptr<NrGnbNetDevice> gnbDev = DynamicCast<NrGnbNetDevice>(gnbNetDev.Get(i));
+        if (gnbDev) {
+            for (uint32_t j = 0; j < gnbDev->GetCcMapSize(); ++j) {
+                Ptr<NrGnbPhy> phy = gnbDev->GetPhy(j);
+                if (phy) {
+                    allGnbPhys.push_back(phy);
+                }
+            }
+        }
+    }
+    
+    // Collect all UE PHYs
+    allUePhys.clear();
+    NetDeviceContainer allUeDevs;
+    allUeDevs.Add(ueLowLatNetDev);
+    allUeDevs.Add(ueVoiceNetDev);
+    
+    for (uint32_t i = 0; i < allUeDevs.GetN(); ++i) {
+        Ptr<NrUeNetDevice> ueDev = DynamicCast<NrUeNetDevice>(allUeDevs.Get(i));
+        if (ueDev) {
+            for (uint32_t j = 0; j < ueDev->GetCcMapSize(); ++j) {
+                Ptr<NrUePhy> phy = ueDev->GetPhy(j);
+                if (phy) {
+                    allUePhys.push_back(phy);
+                }
+            }
+        }
+    }
+    
+    // Start periodic energy update for all PHYs
+    PeriodicEnergyUpdate();
 
     // From here, it is standard NS3. In the future, we will create helpers
     // for this part as well.
@@ -746,6 +825,24 @@ main(int argc, char* argv[])
             AddNetworkRouteTo(Ipv4Address("7.0.0.0"), Ipv4Mask("255.0.0.0"),
                               1);
     internet.Install(ueContainer);
+
+    // ===================================================================
+    // CRITICAL: Enable traces BEFORE IP assignment (which triggers attachment)!
+    // This registers RRC event callbacks before events fire
+    // ===================================================================
+    nrHelper->EnableTraces();
+    
+    // Get the PDCP stats calculator that was just created
+    Ptr<NrBearerStatsCalculator> pdcpStats = nrHelper->GetPdcpStatsCalculator();
+    
+    // Set start time to 0 so stats are recorded from the beginning
+    pdcpStats->SetStartTime(Seconds(0.0));
+    
+    // Set the PDCP calculator on all gNB devices
+    for (uint32_t i = 0; i < gnbNetDev.GetN(); ++i)
+    {
+        gnbNetDev.Get(i)->SetAttribute("E2PdcpCalculator", PointerValue(pdcpStats));
+    }
 
     Ipv4InterfaceContainer ueLowLatIpIface =
         nrEpcHelper->AssignUeIpv4Address(NetDeviceContainer(ueLowLatNetDev));
@@ -864,8 +961,9 @@ main(int argc, char* argv[])
     serverApps.Stop(simTime);
     clientApps.Stop(simTime);
 
-    // enable the traces provided by the nr module
-    // nrHelper->EnableTraces();
+    // Traces were already enabled before attachment
+    // Just start energy monitoring here
+    nrHelper->StartEnergyMonitoring();
 
     FlowMonitorHelper flowmonHelper;
     NodeContainer endpointNodes;
@@ -877,7 +975,11 @@ main(int argc, char* argv[])
     );
     std::string ue_poss_out = "ue_position.txt";
     std::string gnbs_out = "gnbs.txt";
-
+   // Install FlowMonitor, get classifier
+    Ptr<FlowMonitor> monitor_ms = flowmonHelper.InstallAll();
+    Ptr<Ipv4FlowClassifier> classifier_ms =
+        DynamicCast<Ipv4FlowClassifier>(flowmonHelper.GetClassifier());
+    Simulator::Schedule(MilliSeconds(0), &SetFlowMonitorOnAllGnbDevices, monitor_ms, classifier_ms);
 
 
     t_startTime_simid = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);

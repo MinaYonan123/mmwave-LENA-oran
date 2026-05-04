@@ -134,6 +134,10 @@
             flex: 1.2;
         }
 
+        #Rf-content {
+            flex: 1.2;
+        }
+
         .es-container {
             display: flex;
             flex-wrap: wrap;
@@ -159,6 +163,27 @@
 
         .es_subchart_div {
             height: 220px;
+        }
+
+        .Rf_subchart_div {
+            height: 220px;
+        }
+
+        .Rf_charts_left {
+            flex: 75;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 60px;
+            overflow-y: auto;
+        }
+
+        .Rf_charts_right {
+            flex: 25;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
         .data-container {
@@ -693,6 +718,7 @@
         <div id="chart-tab" class="tab-button active">Observe simulation grid</div>
         <div id="data-tab" class="tab-button">Observe KPIs</div>
         <div id="es-tab" class="tab-button">Observe ES</div>
+        <div id="Rf-tab" class="tab-button">Observe Rf Channel Reconfiguration</div>
     </div>
     <div id="chart-content" class="tab-content active">
         <canvas id="myChart"></canvas>
@@ -738,13 +764,96 @@
 
         </div>
     </div>
+    <div id="Rf-content" class="tab-content">
+        <div class="data-container">
+            <div class="Rf_charts_left">
+                <div class="Rf_subchart_div" style="height: 140px">
+                    <div id="cell-id-display" style="text-align: center; margin-bottom: 10px;">
+                        <span id="cell-id-value" style="font-size: 32px; font-weight: bold; color: #ff8c00;">Cell ID: --</span>
+                    </div>
+                    <div id="Indecation-Message-to-xApp" style="border: 3px solid #ff8c00; border-radius: 8px; padding: 15px; height: 100%; background: #1a1a1a; display: flex; flex-direction: column; justify-content: space-around;">
+                        <h3 style="margin: 0 0 10px 0; color: #ff8c00; font-size: 16px; text-align: center;">Indication Message to xApp</h3>
+                        <div style="color: #fff; font-size: 18px;">
+                            <div style="margin: 5px 0;"><strong>RRC Connections:</strong> <span id="rrc-connections-value">0</span></div>
+                            <div style="margin: 5px 0;"><strong>UE DL PDCP Throughput:</strong> <span id="ue-dl-throughput-value">0</span> Mbps</div>
+                            <div style="margin: 5px 0;"><strong>Old Antenna Config:</strong> <span id="old-antenna-config-value" style="color: #ff0000; font-weight: bold; font-size: 20px;">0 Ports On, 0 Ports Off</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="Rf_subchart_div">
+                    <canvas id="UE-Downlink-Throughput"></canvas>
+                </div>
+                <div class="Rf_subchart_div">
+                    <canvas id="E2ap-Message-Traffic"></canvas>
+                </div>
+                <div class="Rf_subchart_div">
+                    <canvas id="Cell-AvgPower"></canvas>
+                </div>
+                <div class="Rf_subchart_div">
+                    <canvas id="Power-Comparison"></canvas>
+                </div>
+            </div>
+            <div class="Rf_charts_right">
+                <div class="Rf_subchart_div" style="height: 140px">
+                    <div id="Control-Message-to-Cell" style="border: 3px solid #ff8c00; border-radius: 8px; padding: 15px; height: 100%; background: #1a1a1a; display: flex; flex-direction: column; justify-content: space-around;">
+                        <h3 style="margin: 0 0 10px 0; color: #ff8c00; font-size: 16px; text-align: center;">Control Message to Cell</h3>
+                        <div style="color: #fff; font-size: 14px;">
+                            <div style="margin: 5px 0;"><strong>+ New Antenna Config:</strong></div>
+                            <div id="new-antenna-config-container" style="max-height: 100px; overflow-y: auto;">
+                                <!-- New values will be appended here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="status-panel" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 8px; margin-top: 10px;">
+                        <h3 style="color: #fff; margin-bottom: 10px; font-size: 16px;">Power & Energy Comparison</h3>
+                        <div style="color: #fff; font-size: 14px;">
+                            <!-- Power Section -->
+                            <div style="margin: 5px 0;">
+                                <strong>Baseline Accumulated Power (0-25s):</strong> 
+                                <span id="baseline-avg-power-value" style="color: #ffd700; font-weight: bold; font-size: 16px;">0.0</span> W
+                                <span style="font-size: 12px; color: #ccc;">(Samples: <span id="baseline-sample-count">0</span>)</span>
+                            </div>
+                            <div style="margin: 5px 0;">
+                                <strong>xApp Accumulated Power (25-50s):</strong> 
+                                <span id="xapp-avg-power-value" style="color: #00ff00; font-weight: bold; font-size: 16px;">0.0</span> W
+                                <span style="font-size: 12px; color: #ccc;">(Samples: <span id="xapp-sample-count">0</span>)</span>
+                            </div>
+                            <div style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 8px;">
+                                <strong>Power Saving:</strong> 
+                                <span id="power-saving-value" style="color: #00ff00; font-weight: bold; font-size: 18px;">0.0</span> W
+                                <span id="power-saving-percent" style="color: #00ff00; font-weight: bold; font-size: 16px;">(0.0%)</span>
+                            </div>
+                            
+                            <!-- Energy Section -->
+                            <div style="margin: 8px 0; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 8px;">
+                                <strong>Baseline Energy:</strong> 
+                                <span id="baseline-energy-value" style="color: #ffd700; font-weight: bold; font-size: 16px;">0.0</span> J
+                                <span style="font-size: 12px; color: #ccc;">(25s period)</span>
+                            </div>
+                            <div style="margin: 5px 0;">
+                                <strong>xApp Energy:</strong> 
+                                <span id="xapp-energy-value" style="color: #00ff00; font-weight: bold; font-size: 16px;">0.0</span> J
+                                <span style="font-size: 12px; color: #ccc;">(25s period)</span>
+                            </div>
+                            <div style="margin: 5px 0; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 8px;">
+                                <strong>Energy Saving:</strong> 
+                                <span id="energy-saving-value" style="color: #00ff00; font-weight: bold; font-size: 20px;">0.0</span> J
+                                <span id="energy-saving-percent" style="color: #00ff00; font-weight: bold; font-size: 18px;">(0.0%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>    
+        </div>
+    </div>
 </div>
 
 <script>
     var defaultScenario = "scratch/scenario-zero-with_parallel_loging.cc";
-    var defaultScenario_nr = "scratch/orange-rf-channel-reconfiguration.cc";
+    var defaultScenario_nr = "scratch/RF_Reconfiguration.cc";
 
     const host_ns3 = "{{ host_ns3 }}";
+    let lastAntennaConfig = { on: null, off: null };
     document.getElementById('flexric').addEventListener('change', function () {
         var e2TermIpField = document.getElementById('e2TermIp');
         if (this.checked) {
@@ -946,6 +1055,10 @@
     const ctx4 = document.getElementById('sinr-chart').getContext('2d');
     const ctx5 = document.getElementById('retx-chart').getContext('2d');
     const ctx6 = document.getElementById('prb-usage-chart').getContext('2d');
+    const ctx8 = document.getElementById('UE-Downlink-Throughput').getContext('2d');
+    const ctx9 = document.getElementById('E2ap-Message-Traffic').getContext('2d');
+    const ctx10 = document.getElementById('Cell-AvgPower').getContext('2d');
+    const ctx11 = document.getElementById('Power-Comparison').getContext('2d');
 
     const es_mode_chart = new Chart(ctx3, {
         type: 'line',
@@ -1197,6 +1310,353 @@
         }
     });
 
+    // ==================== RF Configuration Charts ====================
+    
+    // Chart 1: UE Downlink Throughput
+    const UE_Downlink_Throughput_chart = new Chart(ctx8, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'UE DL Throughput',
+                data: [],
+                borderColor: '#ff8c00',
+                backgroundColor: 'rgba(255, 140, 0, 0.2)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Timeline',
+                        color: '#ff8c00',
+                        font: {
+                            size: 14
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.2)'
+                    },
+                    ticks: {
+                        color: '#ff8c00'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Mbps',
+                        color: '#ff8c00',
+                        font: {
+                            size: 14
+                        }
+                    },
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.2)'
+                    },
+                    ticks: {
+                        color: '#ff8c00'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: {
+                        color: '#ff8c00'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} Mbps`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Chart 2: E2AP Message Traffic
+    const E2ap_Message_Traffic_chart = new Chart(ctx9, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Indication_Message',
+                    data: [],
+                    backgroundColor: 'rgba(33, 150, 243, 0.7)',
+                    borderColor: 'rgba(33, 150, 243, 1)',
+                    borderWidth: 1,
+                    stack: 'stack1'
+                },
+                {
+                    label: 'Control_Messages',
+                    data: [],
+                    backgroundColor: 'rgba(255, 152, 0, 0.7)',
+                    borderColor: 'rgba(255, 152, 0, 1)',
+                    borderWidth: 1,
+                    stack: 'stack1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Timeline',
+                        color: '#ff8c00',
+                        font: {
+                            size: 14
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.2)'
+                    },
+                    ticks: {
+                        color: '#ff8c00'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Messages / 100s',
+                        color: '#ff8c00',
+                        font: {
+                            size: 14
+                        }
+                    },
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.2)'
+                    },
+                    ticks: {
+                        color: '#ff8c00'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        color: '#ffffff',
+                        usePointStyle: true,
+                        padding: 10,
+                        font: {
+                            size: 11
+                        },
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            const Control_Messages = data.Control_Messages || 0;
+                            const Indication_Message = data.Indication_Message || 0;
+                            
+                            return [
+                                {
+                                    text: `${Indication_Message} Indication_Message`,
+                                    fillStyle: 'rgba(33, 150, 243, 0.7)',
+                                    strokeStyle: 'rgba(33, 150, 243, 1)',
+                                    lineWidth: 3,
+                                    hidden: false,
+                                    index: 0,
+                                    fontColor: '#ffffff'
+                                },
+                                {
+                                    text: `${Control_Messages} Control_Messages`,
+                                    fillStyle: 'rgba(255, 152, 0, 0.7)',
+                                    strokeStyle: 'rgba(255, 152, 0, 1)',
+                                    lineWidth: 3,
+                                    hidden: false,
+                                    index: 1,
+                                    fontColor: '#ffffff'
+                                }
+                            ];
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Chart 3: Cell Avg Power
+    const Cell_AvgPower_chart = new Chart(ctx10, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Avg Power (W)',
+                data: [],
+                borderColor: '#4caf50',
+                backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Timeline',
+                        color: '#ff8c00',
+                        font: {
+                            size: 14
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.2)'
+                    },
+                    ticks: {
+                        color: '#ff8c00'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'avgPower (W)',
+                        color: '#ff8c00',
+                        font: {
+                            size: 14
+                        }
+                    },
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.2)'
+                    },
+                    ticks: {
+                        color: '#ff8c00'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        color: '#ff8c00',
+                        usePointStyle: true,
+                        padding: 10,
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} W`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // ==================== End RF Configuration Charts ====================
+        const Power_Comparison_chart = new Chart(ctx11, {
+        type: 'bar',
+        data: {
+            labels: ['Min Power', 'Max Power', 'Current Power'],
+            datasets: [
+                {
+                    label: 'Baseline (No xApp)',
+                    data: [0, 0, 0],
+                    backgroundColor: 'rgba(33, 150, 243, 0.7)',
+                    borderColor: 'rgba(33, 150, 243, 1)',
+                    borderWidth: 2
+                },
+                {
+                    label: 'With xApp',
+                    data: [0, 0, 0],
+                    backgroundColor: 'rgba(76, 175, 80, 0.7)',
+                    borderColor: 'rgba(76, 175, 80, 1)',
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Power Metrics',
+                        color: '#ff8c00',
+                        font: { size: 14 }
+                    },
+                    grid: { color: 'rgba(255, 255, 255, 0.2)' },
+                    ticks: { color: '#ff8c00' }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Power (W)',
+                        color: '#ff8c00',
+                        font: { size: 14 }
+                    },
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255, 255, 255, 0.2)' },
+                    ticks: { color: '#ff8c00' }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: { color: '#ff8c00' }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + ' W';
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Power Consumption: Baseline vs xApp',
+                    color: '#ff8c00',
+                    font: { size: 16 }
+                },
+                // ADD THIS: Data labels plugin configuration
+                datalabels: {
+                    anchor: 'end',
+                    align: 'top',
+                    color: '#ffffff',
+                    font: {
+                        weight: 'bold',
+                        size: 12
+                    },
+                    formatter: function(value) {
+                        return value.toFixed(2) + ' W';
+                    }
+                }
+            }
+        },
+        // ADD THIS: Register the datalabels plugin
+        plugins: [ChartDataLabels]
+    });
     function setFlags() {
         const select = document.getElementById("scenario");
         const flags = document.getElementById("flags");
@@ -1516,7 +1976,233 @@
                         legendContainer.classList.add('vertical');
                         legendContainer.classList.remove('horizontal');
                     }
-                });
+                    
+                    // ==================== RF Configuration Data Update ====================
+                    
+                    // Update Cell ID display
+                    if (data.rf_config && data.rf_config.cell_id) {
+                        document.getElementById('cell-id-value').textContent = 'Cell ID: ' + data.rf_config.cell_id;
+                    }
+                    
+                    // Update Status Panel 1: Indication Message to xApp
+                    if (data.rf_config && data.rf_config.indication) {
+                        document.getElementById('rrc-connections-value').textContent = data.rf_config.indication.rrc_connections || 0;
+                        document.getElementById('ue-dl-throughput-value').textContent = (parseFloat(data.rf_config.indication.ue_dl_throughput) || 0).toFixed(3);
+                        const oldOn = data.rf_config.indication.old_antenna_on || 0;
+                        const oldOff = data.rf_config.indication.old_antenna_off || 0;
+                        document.getElementById('old-antenna-config-value').textContent = `${oldOn} Ports On, ${oldOff} Ports Off`;
+                    }
+
+                        // Update Status Panel 2: Control Message to Cell
+                          if (data.rf_config && data.rf_config.control) {
+                        const newOn = data.rf_config.control.new_antenna_on || 0;
+                        const newOff = data.rf_config.control.new_antenna_off || 0;
+                        
+                        // Only update if values have changed
+                        if (lastAntennaConfig.on !== newOn || lastAntennaConfig.off !== newOff) {
+                            // Update tracked values
+                            lastAntennaConfig.on = newOn;
+                            lastAntennaConfig.off = newOff;
+                            
+                            // Get container
+                            const container = document.getElementById('new-antenna-config-container');
+                            
+                            // Create a new div for this value
+                            const newEntry = document.createElement('div');
+                            
+                            // Style: green color, bold, big numbers
+                            newEntry.style.cssText = 'margin: 8px 0; color: #00ff00; font-size: 18px; font-weight: bold; line-height: 1.4;';
+                            newEntry.textContent = `${newOn} Ports On, ${newOff} Ports Off`;
+                            
+                            // Append to container (newest at bottom)
+                            container.appendChild(newEntry);
+                            
+                            // Limit to last 10 entries to prevent overflow
+                            while (container.children.length > 10) {
+                                container.removeChild(container.firstChild);
+                            }
+                            
+                            // Auto-scroll to bottom to show newest
+                            container.scrollTop = container.scrollHeight;
+                        }
+                    }
+                    // Update UE Downlink Throughput Chart
+                    if (data.rf_config && data.rf_config.ue_throughput) {
+                        const throughputData = data.rf_config.ue_throughput;
+                        const throughputChart = Chart.getChart('UE-Downlink-Throughput');
+                        if (throughputChart) {
+                            // Add new data point
+                            const now = new Date();
+                            const timeLabel = now.toLocaleTimeString();
+                            throughputChart.data.labels.push(timeLabel);
+                            throughputChart.data.datasets[0].data.push(throughputData.value || 0);
+                            
+                            // Keep only last 20 points
+                            if (throughputChart.data.labels.length > 80) {
+                                throughputChart.data.labels.shift();
+                                throughputChart.data.datasets[0].data.shift();
+                            }
+                            throughputChart.update();
+                        }
+                    }
+                    
+                    // Update E2AP Message Traffic Chart
+                    if (data.rf_config && data.rf_config.e2ap_messages) {
+                        const e2apData = data.rf_config.e2ap_messages;
+                        const e2apChart = Chart.getChart('E2ap-Message-Traffic');
+                        if (e2apChart) {
+                            const now = new Date();
+                            const timeLabel = now.toLocaleTimeString();
+                            e2apChart.data.labels.push(timeLabel);
+                            e2apChart.data.datasets[0].data.push(e2apData.Indication_Message || 0);
+                            e2apChart.data.datasets[1].data.push(e2apData.Control_Messages || 0);
+                            
+                            if (e2apChart.data.labels.length > 80) {
+                                e2apChart.data.labels.shift();
+                                e2apChart.data.datasets[0].data.shift();
+                                e2apChart.data.datasets[1].data.shift();
+                            }
+                            e2apChart.update();
+                        }
+                    }
+                    
+                    // Update Cell Average Power Chart
+                    if (data.rf_config && data.rf_config.cell_power) {
+                        const powerData = data.rf_config.cell_power;
+                        const powerChart = Chart.getChart('Cell-AvgPower');
+                        if (powerChart) {
+                            const now = new Date();
+                            const timeLabel = now.toLocaleTimeString();
+                            powerChart.data.labels.push(timeLabel);
+                            powerChart.data.datasets[0].data.push(powerData.avg_power || 0);
+                            
+                            if (powerChart.data.labels.length > 80) {
+                                powerChart.data.labels.shift();
+                                powerChart.data.datasets[0].data.shift();
+                            }
+                            powerChart.update();
+                        }
+                    }
+                    // Function to calculate and display energy saving
+                    function calculateEnergySaving(baselineAccumulatedPower, xAppAccumulatedPower,baselineSampleCount,xAppSampleCount) {
+                    const sampleInterval = 0.1; // seconds (100ms per sample)
+                    
+                    // Calculate energy: Energy = Accumulated Power × Sample Interval
+                    const baselineEnergy = baselineAccumulatedPower * sampleInterval* baselineSampleCount; // Joules
+                    const xAppEnergy = xAppAccumulatedPower * sampleInterval* xAppSampleCount; // Joules
+                    
+                    // Calculate energy saving
+                    const energySaving = baselineEnergy - xAppEnergy; // Joules
+                    
+                    // Calculate energy saving percentage
+                    const energySavingPercent = (baselineEnergy > 0) 
+                        ? (energySaving / baselineEnergy) * 100.0 
+                        : 0.0;
+                    
+                    // Update GUI elements
+                    if (document.getElementById('baseline-energy-value')) {
+                        document.getElementById('baseline-energy-value').textContent = 
+                            baselineEnergy.toFixed(2);
+                    }
+                    
+                    if (document.getElementById('xapp-energy-value')) {
+                        document.getElementById('xapp-energy-value').textContent = 
+                            xAppEnergy.toFixed(2);
+                    }
+                    
+                    if (document.getElementById('energy-saving-value')) {
+                        document.getElementById('energy-saving-value').textContent = 
+                            energySaving.toFixed(2);
+                    }
+                    
+                    if (document.getElementById('energy-saving-percent')) {
+                        document.getElementById('energy-saving-percent').textContent = 
+                            "(" + energySavingPercent.toFixed(1) + "%)";
+                    }
+                    
+                    return {
+                        baselineEnergy: baselineEnergy,
+                        xAppEnergy: xAppEnergy,
+                        energySaving: energySaving,
+                        energySavingPercent: energySavingPercent
+                    };
+                }
+                    if (data.rf_config && data.rf_config.power_comparison) {
+                    const pc = data.rf_config.power_comparison;
+                    const pcChart = Chart.getChart('Power-Comparison');
+                    if (pcChart) {
+                        pcChart.data.datasets[0].data = [
+                            pc.baselineminpower || 0,
+                            pc.baselinemaxpower || 0,
+                            pc.baselinecurrentpower || 0
+                        ];
+                        pcChart.data.datasets[1].data = [
+                            pc.xappminpower || 0,
+                            pc.xappmaxpower || 0,
+                            pc.xappcurrentpower || 0
+                        ];
+                        
+                        // Update title with savings info - MAKE IT RED
+                        if (pc.xappactive) {
+                            const saving = parseFloat(pc.powersaving) || 0;
+                            const savingPct = parseFloat(pc.powersavingpercent) || 0;
+                            pcChart.options.plugins.title.text = 
+                                `Power Consumption: Baseline vs xApp (Saving: ${saving.toFixed(2)}W, ${savingPct.toFixed(1)}%)`;
+                            pcChart.options.plugins.title.color = '#ff0000'; // RED COLOR
+                        } else {
+                            pcChart.options.plugins.title.color = '#ff8c00'; // Default orange
+                        }
+                        pcChart.update();
+                    }
+                     // ===================================================================
+                    // UPDATE STATUS PANEL: Power & Energy Comparison
+                    // ===================================================================
+
+                    const baselineAccumulatedPower = parseFloat(pc.baselineaccumulatedpower) || 0.0;
+                    if (document.getElementById('baseline-avg-power-value')) {
+                        document.getElementById('baseline-avg-power-value').textContent = 
+                            baselineAccumulatedPower.toFixed(2);
+                    }
+                    
+                    // Update xApp Accumulated Power
+                    const xAppAccumulatedPower = parseFloat(pc.xappaccumulatedpower) || 0.0;
+                    if (document.getElementById('xapp-avg-power-value')) {
+                        document.getElementById('xapp-avg-power-value').textContent = 
+                            xAppAccumulatedPower.toFixed(2);
+                    }
+                    
+                    // Update Sample Counts
+                    if (document.getElementById('baseline-sample-count')) {
+                        document.getElementById('baseline-sample-count').textContent = 
+                            pc.baselinesamplecount || 0;
+                    }
+                    if (document.getElementById('xapp-sample-count')) {
+                        document.getElementById('xapp-sample-count').textContent = 
+                            pc.xappsamplecount || 0;
+                    }
+                    
+                    // Update Power Saving
+                    if (document.getElementById('power-saving-value')) {
+                        const saving = parseFloat(pc.powersaving) || 0;
+                        document.getElementById('power-saving-value').textContent = saving.toFixed(2);
+                    }
+                    if (document.getElementById('power-saving-percent')) {
+                        const savingPct = parseFloat(pc.powersavingpercent) || 0;
+                        document.getElementById('power-saving-percent').textContent = 
+                            "(" + savingPct.toFixed(1) + "%)";
+                    }
+                    
+                    // Calculate and display Energy values
+                    if (baselineAccumulatedPower > 0 || xAppAccumulatedPower > 0) {
+                        calculateEnergySaving(
+                        baselineAccumulatedPower, 
+                        xAppAccumulatedPower,
+                        pc.baselinesamplecount || 0,
+                        pc.xappsamplecount || 0
+                    );
+                    }
+                }
+                });        
     }
 
 
@@ -1736,9 +2422,11 @@
         document.getElementById('data-content').classList.remove('active');
         document.getElementById('chart-content').style.display = 'flex'
         document.getElementById('es-content').classList.remove('active');
+        document.getElementById('Rf-content').classList.remove('active');
         document.getElementById('chart-tab').classList.add('active');
         document.getElementById('data-tab').classList.remove('active');
         document.getElementById('es-tab').classList.remove('active');
+        document.getElementById('Rf-tab').classList.remove('active');
         updateChart();
     });
 
@@ -1747,23 +2435,38 @@
         document.getElementById('data-content').classList.add('active');
         document.getElementById('chart-content').style.display = 'flex'
         document.getElementById('es-content').classList.remove('active');
+        document.getElementById('Rf-content').classList.remove('active');
         document.getElementById('chart-tab').classList.remove('active');
         document.getElementById('data-tab').classList.add('active');
         document.getElementById('es-tab').classList.remove('active');
+        document.getElementById('Rf-tab').classList.remove('active');
         updateChart();
     });
 
-    document.getElementById('es-tab').addEventListener('click', () => {
-        document.getElementById('chart-content').classList.remove('active');
-        document.getElementById('data-content').classList.remove('active');
-        document.getElementById('chart-content').style.display = 'none'
-        document.getElementById('es-content').classList.add('active');
-        document.getElementById('chart-tab').classList.remove('active');
-        document.getElementById('data-tab').classList.remove('active');
-        document.getElementById('es-tab').classList.add('active');
-        updateChart();
-    });
-
+        document.getElementById('es-tab').addEventListener('click', () => {
+            document.getElementById('chart-content').classList.remove('active');
+            document.getElementById('data-content').classList.remove('active');
+            document.getElementById('chart-content').style.display = 'none'
+            document.getElementById('es-content').classList.add('active');
+            document.getElementById('Rf-content').classList.remove('active');
+            document.getElementById('chart-tab').classList.remove('active');
+            document.getElementById('data-tab').classList.remove('active');
+            document.getElementById('es-tab').classList.add('active');
+            document.getElementById('Rf-tab').classList.remove('active');
+            updateChart();
+        });
+        document.getElementById('Rf-tab').addEventListener('click', () => {
+            document.getElementById('chart-content').classList.remove('active');
+            document.getElementById('data-content').classList.remove('active');
+            document.getElementById('chart-content').style.display = 'none'
+            document.getElementById('es-content').classList.remove('active');
+            document.getElementById('Rf-content').classList.add('active');
+            document.getElementById('chart-tab').classList.remove('active');
+            document.getElementById('data-tab').classList.remove('active');
+            document.getElementById('es-tab').classList.remove('active');
+            document.getElementById('Rf-tab').classList.add('active');
+            updateChart();
+        });
     document.getElementById('simulationForm').addEventListener('submit', (event) => {
         event.preventDefault();
     });
@@ -1883,7 +2586,46 @@
         const diffChart = Chart.getChart('es_diff');
         diffChart.data.datasets = [];
         diffChart.update();
-
+                // Reset Cell ID display
+                document.getElementById('cell-id-value').textContent = 'Cell ID: --';
+        
+        // Reset Status Panel 1: Indication Message to xApp
+        document.getElementById('rrc-connections-value').textContent = '0';
+        document.getElementById('ue-dl-throughput-value').textContent = '0';
+        document.getElementById('old-antenna-config-value').textContent = '0 Ports On, 0 Ports Off';
+        
+        // Clear Status Panel 2: Control Message to Cell (antenna config container)
+        const antennaContainer = document.getElementById('new-antenna-config-container');
+        if (antennaContainer) {
+            antennaContainer.innerHTML = '';
+        }
+        
+        // Reset antenna config tracking
+        lastAntennaConfig.on = null;
+        lastAntennaConfig.off = null;
+        
+        // Reset RF Charts
+        const throughputChart = Chart.getChart('UE-Downlink-Throughput');
+        if (throughputChart) {
+            throughputChart.data.labels = [];
+            throughputChart.data.datasets[0].data = [];
+            throughputChart.update();
+        }
+        
+        const e2apChart = Chart.getChart('E2ap-Message-Traffic');
+        if (e2apChart) {
+            e2apChart.data.labels = [];
+            e2apChart.data.datasets[0].data = [];
+            e2apChart.data.datasets[1].data = [];
+            e2apChart.update();
+        }
+        
+        const powerChart = Chart.getChart('Cell-AvgPower');
+        if (powerChart) {
+            powerChart.data.labels = [];
+            powerChart.data.datasets[0].data = [];
+            powerChart.update();
+        }
         fetch(endpoint, {
             method: 'POST',
             headers: {
