@@ -1036,7 +1036,7 @@ MmWaveEnbNetDevice::BuildRicIndicationMessageCuUp (std::string plmId)
       if (!indicationMessageHelper->IsOffline ())
         {
           indicationMessageHelper->AddCuUpUePmItem (ueImsiComplete, txPdcpPduBytesNrRlc,
-                                                    txPdcpPduNrRlc);
+                                                    txPdcpPduNrRlc, txBytes);
         }
 
       uePmString.insert (std::make_pair (imsi, ",,,," + std::to_string (txPdcpPduBytesNrRlc) + "," +

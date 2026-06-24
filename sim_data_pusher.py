@@ -147,7 +147,7 @@ def push_data_to_influx(
         'tb.totnbrdl.1.ueid',
         'dlprbusage',
         'qosflow_pdcppduvolumedl_filter_ueid(txpdcppdubytesnrrlc)',
-        'drb.pdcpsdudelaydl.ueid(pdcp latency)',
+        'drb.pdcpsdudelaydl.ueid(pdcplatency)',
         'drb_pdcppdunbrdl_qos_ueid(txpdcppdunrrlc)',
         'tot_pdcpsdunbrdl_ueid(txdlpackets)',
         'drb.pdcpsdubitratedl.ueid(pdcpthroughput)',
@@ -167,7 +167,33 @@ def push_data_to_influx(
         'tb.totnbrdl.1.ueid',
         'drb.pdcpsdudelaydl (cellaveragelatency)',
         'm_pdcpbytesdl (celldltxvolume)',
-        'dlprbusage'
+        'dlprbusage',
+           # NR-specific fields
+        'drb.pdcpsduvolumedl_filter.ueid(txbytes)',
+        'tot.pdcpsdunbrdl.ueid(txdlpackets)',
+        'drb.pdcpsdubitratedl.ueid(pdcpthroughput)',
+        'numactiveues',
+        'cellid',
+        'portson',
+        'portsoff',
+        'averagepower',
+        'indicationflag',
+        'controlflag',
+        'newportson',
+        'newportsoff',
+        'baselineminpower',
+        'baselinemaxpower',
+        'baselineaccumulatedpower',
+        'baselinecurrentpower',
+        'xappminpower',
+        'xappmaxpower',
+        'xappaccumulatedpower',
+        'xappcurrentpower',
+        'powersaving',
+        'powersavingpercent',
+        'xappactive',
+        'baselinesamplecount',
+        'xappsamplecount'
     }
 
     client = InfluxDBClient(
@@ -317,7 +343,7 @@ def main():
     while True:
         additional_files = [
             file for file in os.listdir('.')
-            if file.startswith(('cu-cp-cell-', 'cu-up-cell-', 'du-cell-')) and file.endswith('.txt')
+            if file.startswith(('nr-cu-up-cell-','cu-cp-cell-', 'cu-up-cell-', 'du-cell-')) and file.endswith('.txt')
         ]
 
         files_to_process = core_files + additional_files

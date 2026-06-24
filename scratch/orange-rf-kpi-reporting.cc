@@ -59,6 +59,7 @@ $ ./ns3 run "cttc-nr-demo --PrintHelp"
 #include "ns3/internet-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/nr-module.h"
+#include "ns3/nr-kpi-reporting-config.h"
 #include "ns3/point-to-point-module.h"
 #include <string>
 #include <vector>
@@ -245,6 +246,31 @@ void SetFlowMonitorOnAllGnbDevices(Ptr<FlowMonitor> monitor,
 int
 main(int argc, char* argv[])
 {
+    Config::SetDefault("ns3::NrHelper::EnableMimoFeedback", BooleanValue(true));
+
+    // Antenna parameters (gNB and UE) — aligned with RF_Reconfiguration
+    NrHelper::AntennaParams apUe;
+    apUe.antennaElem = "ns3::ThreeGppAntennaModel";
+    apUe.nAntCols = 2;
+    apUe.nAntRows = 2;
+    apUe.nHorizPorts = 2;
+    apUe.nVertPorts = 1;
+    apUe.isDualPolarized = true;
+
+    NrHelper::AntennaParams apGnb;
+    apGnb.antennaElem = "ns3::ThreeGppAntennaModel";
+    apGnb.nAntCols = 4;
+    apGnb.nAntRows = 2;
+    apGnb.nHorizPorts = 2;
+    apGnb.nVertPorts = 1;
+    apGnb.isDualPolarized = true;
+    apGnb.port_power = {1, 1, 1, 1};
+
+    double polSlantAngleGnb = 0.0;
+    double polSlantAngleUe = 90.0;
+    double bearingAngleGnb = 0.0;
+    double bearingAngleUe = 180.0;
+
        LogComponentEnableAll (LOG_PREFIX_ALL);
        LogComponentEnable ("E2Termination", LOG_LEVEL_ALL);
        LogComponentEnable ("rfchannel", LOG_LEVEL_ALL);
@@ -294,7 +320,7 @@ main(int argc, char* argv[])
     double indicationPeriodicity = 0.1;
     double g_e2_func_id = 2;
     double g_rc_e2_func_id = 3;
-    double isd_ue = 500;
+    double isd_ue = 100;
     double isd_cell = 500;
 
     // Where we will store the output files.
@@ -616,51 +642,34 @@ main(int argc, char* argv[])
     nrEpcHelper->SetAttribute("S1uLinkDelay", TimeValue(MilliSeconds(0)));
 
 //==============================================================================
+    // Antenna configuration via AntennaParams (aligned with RF_Reconfiguration)
+    apUe.bearingAngle = bearingAngleUe * (M_PI / 180);
+    apUe.polSlantAngle = polSlantAngleUe * (M_PI / 180);
+    apGnb.bearingAngle = bearingAngleGnb * (M_PI / 180);
+    apGnb.polSlantAngle = polSlantAngleGnb * (M_PI / 180);
 
-    // Antennas for all the UEs
-    // Antennas for all the gNbs
-    //Config::SetDefault("ns3::NrHelper::EnableMimoFeedback", BooleanValue(true));
-   // Config::SetDefault("ns3::NrPmSearch::SubbandSize", UintegerValue(16));
-   // bool useMimoPmiParams = false ;
+    // MIMO PMI search configuration
+    {
+        ns3::NrHelper::MimoPmiParams params;
+        params.subbandSize = 1; // must be 1 when BWP has < 24 PRBs (28 GHz / numerology 4 scenario)
+        params.fullSearchCb = "ns3::NrCbTypeOneSp";
+        params.pmSearchMethod = "ns3::NrPmSearchFull";
+        nrHelper->SetupMimoPmi(params);
 
+        if (!apGnb.port_power.empty())
+        {
+            std::stringstream ss;
+            for (size_t i = 0; i < apGnb.port_power.size(); ++i)
+            {
+                if (i > 0) ss << ",";
+                ss << apGnb.port_power[i];
+            }
+            Config::SetDefault("ns3::NrCbTypeOneSp::PortPower", StringValue(ss.str()));
+        }
+    }
 
-   Ptr<ThreeGppAntennaModel> Ue_antennaElem = CreateObject<ThreeGppAntennaModel>();
-   uint16_t Ue_nAntCols = 2;
-   uint16_t Ue_nAntRows = 2;
-   uint16_t Ue_nHorizPorts = 2;
-  uint16_t  Ue_nVertPorts = 1;
-  bool  Ue_isDualPolarized = false;
-  Ptr<ThreeGppAntennaModel> Gnb_antennaElem = CreateObject<ThreeGppAntennaModel>();
-  uint16_t  Gnb_nAntCols = 4;
-  uint16_t   Gnb_nAntRows = 2;
-  uint16_t   Gnb_nHorizPorts = 2;
-  uint16_t    Gnb_nVertPorts = 1;
-  bool    Gnb_isDualPolarized = false;
-    // The polarization slant angle in degrees in case of x-polarized
-     double polSlantAngleGnb = 0.0;
-     double polSlantAngleUe = 90.0;
-    // The bearing angles in degrees
-    double bearingAngleGnb = 0.0;
-    double bearingAngleUe = 180.0;
-
-    nrHelper->SetUeAntennaAttribute("AntennaElement", PointerValue(Ue_antennaElem));
-    nrHelper->SetUeAntennaAttribute("NumColumns", UintegerValue(Ue_nAntCols));
-    nrHelper->SetUeAntennaAttribute("NumRows", UintegerValue(Ue_nAntRows));
-    nrHelper->SetUeAntennaAttribute("IsDualPolarized", BooleanValue(Ue_isDualPolarized));
-    nrHelper->SetUeAntennaAttribute("NumHorizontalPorts", UintegerValue(Ue_nHorizPorts));
-    nrHelper->SetUeAntennaAttribute("NumVerticalPorts", UintegerValue(Ue_nVertPorts));
-    nrHelper->SetUeAntennaAttribute("BearingAngle", DoubleValue(bearingAngleUe* (M_PI / 180)));
-    nrHelper->SetUeAntennaAttribute("PolSlantAngle", DoubleValue(polSlantAngleUe* (M_PI / 180)));
-
-
-    nrHelper->SetGnbAntennaAttribute("AntennaElement", PointerValue(Gnb_antennaElem));
-    nrHelper->SetGnbAntennaAttribute("NumColumns", UintegerValue(Gnb_nAntCols));
-    nrHelper->SetGnbAntennaAttribute("NumRows", UintegerValue(Gnb_nAntRows));
-    nrHelper->SetGnbAntennaAttribute("IsDualPolarized", BooleanValue(Gnb_isDualPolarized));
-    nrHelper->SetGnbAntennaAttribute("NumHorizontalPorts", UintegerValue(Gnb_nHorizPorts));
-    nrHelper->SetGnbAntennaAttribute("NumVerticalPorts", UintegerValue(Gnb_nVertPorts));
-    nrHelper->SetGnbAntennaAttribute("BearingAngle", DoubleValue(bearingAngleGnb* (M_PI / 180)));
-    nrHelper->SetGnbAntennaAttribute("PolSlantAngle", DoubleValue(polSlantAngleGnb* (M_PI / 180)));
+    nrHelper->SetupGnbAntennas(apGnb);
+    nrHelper->SetupUeAntennas(apUe);
 //==============================================================================
 
 
@@ -726,7 +735,20 @@ main(int argc, char* argv[])
     randomStream += nrHelper->AssignStreams(gnbNetDev, randomStream);
     randomStream += nrHelper->AssignStreams(ueLowLatNetDev, randomStream);
     randomStream += nrHelper->AssignStreams(ueVoiceNetDev, randomStream);
-    
+
+    // Set port power on all gNBs so PHY.AntennaPortsOn is reported correctly
+    if (!apGnb.port_power.empty())
+    {
+        for (uint32_t i = 0; i < gnbNetDev.GetN(); ++i)
+        {
+            Ptr<NrGnbNetDevice> gnbDev = DynamicCast<NrGnbNetDevice>(gnbNetDev.Get(i));
+            if (gnbDev)
+            {
+                gnbDev->SetPortPower(apGnb.port_power);
+            }
+        }
+    }
+
     /*
      * Case (iii): Go node for node and change the attributes we have to setup
      * per-node.
@@ -831,7 +853,67 @@ main(int argc, char* argv[])
     // This registers RRC event callbacks before events fire
     // ===================================================================
     nrHelper->EnableTraces();
-    
+
+    // -----------------------------------------------------------------------
+    // PHY KPI Reporting – enable after EnableTraces() so trace sources exist
+    // -----------------------------------------------------------------------
+    {
+        NrKpiReportingConfig kpiCfg;
+
+        // --- PHY ---
+        kpiCfg.enablePhyReporting = true;
+        kpiCfg.selectedPhyKpis = {
+            "PHY.DlDataSinr", "PHY.DlCtrlSinr", "PHY.Rsrp", "PHY.Rsrq",
+            // "PHY.Cqi", "PHY.Mcs", "PHY.Ri",
+            // "PHY.RxPacketTbSize", "PHY.Tbler", "PHY.CorruptTb",
+            // "PHY.PrbUtilizationDl", "PHY.ActivityFactor",
+            // "PHY.TxPowerWatts", "PHY.AntennaPortsOn",
+            // "PHY.EnergyConsumptionJ", "PHY.InstantaneousPowerW",
+            // "PHY.SlotDataUsedSym", "PHY.SlotAvailRb", "PHY.SlotCtrlUsedSym",
+        };
+
+        // --- MAC ---
+        kpiCfg.enableMacReporting = false;
+        kpiCfg.selectedMacKpis = {
+            "MAC.DlTbSize", "MAC.DlMcs", "MAC.UlTbSize", "MAC.UlMcs", "MAC.HarqFail",
+            "MAC.UEThpDl",
+        };
+
+        // --- RLC ---
+        kpiCfg.enableRlcReporting = false;
+        kpiCfg.selectedRlcKpis = {
+            "RLC.DlTxBytes", "RLC.DlRxBytes", "RLC.UlTxBytes",
+            "RLC.DlTxPackets", "RLC.DlRxPackets",
+            "RLC.DlDelay", "RLC.UlDelay",
+        };
+
+        // --- PDCP ---
+        kpiCfg.enablePdcpReporting = false;
+        kpiCfg.selectedPdcpKpis = {
+            "PDCP.DlTxBytes", "PDCP.DlRxBytes",
+            "PDCP.DlTxPackets", "PDCP.DlRxPackets",
+            "PDCP.DlDelay", "PDCP.UlDelay",
+            "DRB.UEThpDl",
+        };
+
+        // --- RRC ---
+        kpiCfg.enableRrcReporting = false;
+        kpiCfg.selectedRrcKpis = {
+            "RRC.ConnEstab", "RRC.HoSucc", "RRC.RLF",
+            "RRC.StateChange", "RRC.ActiveUes",
+        };
+
+        kpiCfg.enableE2Reporting = true;
+
+        // All UE net devices (low-latency + voice) must be passed so that
+        // UE-side traces (SINR, RSRP, CQI, RRC …) can be connected.
+        NetDeviceContainer allUeDevs;
+        allUeDevs.Add(ueLowLatNetDev);
+        allUeDevs.Add(ueVoiceNetDev);
+
+        nrHelper->EnableKpiReporting(kpiCfg, gnbNetDev, allUeDevs);
+    }
+
     // Get the PDCP stats calculator that was just created
     Ptr<NrBearerStatsCalculator> pdcpStats = nrHelper->GetPdcpStatsCalculator();
     
@@ -960,6 +1042,54 @@ main(int argc, char* argv[])
     clientApps.Start(udpAppStartTime);
     serverApps.Stop(simTime);
     clientApps.Stop(simTime);
+
+    // ===================================================================
+    // Staircase Throughput Pattern (from RF_Reconfiguration):
+    // High -> Medium -> Low -> Medium -> High, repeating every 25s
+    // ===================================================================
+    Time highInterval   = NanoSeconds(25000);   // ~320 Mbps
+    Time mediumInterval = NanoSeconds(50000);   // ~160 Mbps
+    Time lowInterval    = NanoSeconds(100000);  // ~80 Mbps
+
+    auto ChangeToMedium = [clientApps, mediumInterval]() {
+        NS_LOG_UNCOND("[Time " << Simulator::Now().GetSeconds() << "s] Throughput -> MEDIUM (~160 Mbps)");
+        for (uint32_t i = 0; i < clientApps.GetN(); ++i)
+        {
+            Ptr<UdpClient> udpClient = DynamicCast<UdpClient>(clientApps.Get(i));
+            if (udpClient) udpClient->SetAttribute("Interval", TimeValue(mediumInterval));
+        }
+    };
+    auto ChangeToLow = [clientApps, lowInterval]() {
+        NS_LOG_UNCOND("[Time " << Simulator::Now().GetSeconds() << "s] Throughput -> LOW (~80 Mbps)");
+        for (uint32_t i = 0; i < clientApps.GetN(); ++i)
+        {
+            Ptr<UdpClient> udpClient = DynamicCast<UdpClient>(clientApps.Get(i));
+            if (udpClient) udpClient->SetAttribute("Interval", TimeValue(lowInterval));
+        }
+    };
+    auto ChangeToHigh = [clientApps, highInterval]() {
+        NS_LOG_UNCOND("[Time " << Simulator::Now().GetSeconds() << "s] Throughput -> HIGH (~320 Mbps)");
+        for (uint32_t i = 0; i < clientApps.GetN(); ++i)
+        {
+            Ptr<UdpClient> udpClient = DynamicCast<UdpClient>(clientApps.Get(i));
+            if (udpClient) udpClient->SetAttribute("Interval", TimeValue(highInterval));
+        }
+    };
+
+    // Schedule: every 5s step, cycle repeats every 25s
+    double timeGap = 5.0;
+    double cycleDuration = timeGap * 5;
+    double totalSeconds = (simTime - udpAppStartTime).GetSeconds();
+    uint32_t numCycles = static_cast<uint32_t>(totalSeconds / cycleDuration) + 1;
+    for (uint32_t cycle = 0; cycle < numCycles; ++cycle)
+    {
+        Time cycleStart = udpAppStartTime + Seconds(cycle * cycleDuration);
+        if (cycleStart + Seconds(timeGap)     <= simTime) Simulator::Schedule(cycleStart + Seconds(timeGap),     ChangeToMedium);
+        if (cycleStart + Seconds(timeGap * 2) <= simTime) Simulator::Schedule(cycleStart + Seconds(timeGap * 2), ChangeToLow);
+        if (cycleStart + Seconds(timeGap * 3) <= simTime) Simulator::Schedule(cycleStart + Seconds(timeGap * 3), ChangeToMedium);
+        if (cycleStart + Seconds(timeGap * 4) <= simTime) Simulator::Schedule(cycleStart + Seconds(timeGap * 4), ChangeToHigh);
+    }
+    NS_LOG_UNCOND("[Traffic Pattern] Staircase: HIGH(0-5s)->MEDIUM(5-10s)->LOW(10-15s)->MEDIUM(15-20s)->HIGH(20-25s), repeating every " << cycleDuration << "s");
 
     // Traces were already enabled before attachment
     // Just start energy monitoring here
